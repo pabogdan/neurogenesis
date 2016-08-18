@@ -7,6 +7,23 @@ import os
 plt.viridis()
 plt.close()
 
+# Membrane
+v_rest = -70 * mvolt  # mV
+e_ext = 0 * mvolt  # V
+v_thr = -54 * mvolt  # mV
+g_max = 0.2
+tau_m = 20 * ms  # ms
+tau_ex = 5 * ms  # ms
+e = np.e
+g = g_max
+pre_t = 0 * ms
+
+# STDP
+Apre = a_plus = 0.1
+b = 1.2
+taupre = tau_plus = 20 * ms  # ms
+taupost = tau_minus = 64 * ms  # ms
+Apost = a_minus = (a_plus * tau_plus * b) / tau_minus
 
 
 class BrianModel(object):
@@ -75,8 +92,8 @@ class BrianModel(object):
 
         self.rewire_trigger = 0
         self.form_trigger = {
-            0 : 0,
-            1 : 0,
+            0: 0,
+            1: 0,
         }
         self.elim_trigger = {
             0: 0,
@@ -131,31 +148,13 @@ class BrianModel(object):
         return random_index
 
     def simulate(self, duration=None, dt_=0.1 * ms):
+        start_scope()
         if not duration:
             if not self.no_iterations:
                 raise EnvironmentError("You have not defined a run time for the simulation")
             duration = self.no_iterations * dt_
 
         start = time.time() * second
-        start_scope()
-        # Membrane
-        v_rest = -70 * mvolt  # mV
-        e_ext = 0 * mvolt  # V
-        v_thr = -54 * mvolt  # mV
-        g_max = 0.2
-        tau_m = 20 * ms  # ms
-        tau_ex = 5 * ms  # ms
-        e = np.e
-        g = g_max
-        pre_t = 0 * ms
-
-        # STDP
-        Apre = a_plus = 0.1
-        b = 1.2
-        taupre = tau_plus = 20 * ms  # ms
-        taupost = tau_minus = 64 * ms  # ms
-        Apost = a_minus = (a_plus * tau_plus * b) / tau_minus
-        # Rest...
         projections = []
         layers = []
         neuron_dynamics = '''
@@ -164,7 +163,7 @@ class BrianModel(object):
         s : 1
         '''
         G = NeuronGroup(self.N, neuron_dynamics, threshold='v > -54 * mV',
-                        reset='v = v_rest', method='euler', dt=0.1 * ms, name="target_layer")
+                        reset='v = -70 * mV', method='euler', dt=0.1 * ms, name="target_layer")
         G.v = [-70 * mV, ] * self.N
         G.gex = [0.0, ] * self.N
         G.s = [0, ] * self.N
@@ -287,23 +286,24 @@ class BrianModel(object):
             '''
             self.rewire_trigger += 1
             # First, choose a type of projection (FF or LAT)
-            projection_index = np.random.randint(0, len(projections))
+            _projection_index = np.random.randint(0, len(projections))
             # Second, choose a postsynaptic neuron from that projection
-            postsynaptic_neuron_index = np.random.randint(0, self.N)
+            _postsynaptic_neuron_index = np.random.randint(0, self.N)
 
-            potential_pre = self.potential_presynaptic_neuron(projections[projection_index], postsynaptic_neuron_index)
-            _2d_to_1d_arithmetic = potential_pre * self.N + postsynaptic_neuron_index
+            _potential_pre = self.potential_presynaptic_neuron(projections[_projection_index], _postsynaptic_neuron_index)
+            _2d_to_1d_arithmetic_ = _potential_pre * self.N + _postsynaptic_neuron_index
             #         _2d_to_1d_arithmetic = pre_x * N + pre_y
             # Third, check if the synapse exists or not and follow the appropriate rule
-            if projections[projection_index].synapse_connected[_2d_to_1d_arithmetic]:
-                self.elim_trigger[projection_index] += 1
-                elimination_rule(projections[projection_index], _2d_to_1d_arithmetic)
-            elif projections[projection_index].target.s[postsynaptic_neuron_index] < self.s_max:
-                self.form_trigger[projection_index] += 1
-                formation_rule(projections[projection_index], _2d_to_1d_arithmetic)
+            if projections[_projection_index].synapse_connected[_2d_to_1d_arithmetic_]:
+                self.elim_trigger[_projection_index] += 1
+                elimination_rule(projections[_projection_index], _2d_to_1d_arithmetic_)
+            elif projections[_projection_index].target.s[_postsynaptic_neuron_index] < self.s_max:
+                self.form_trigger[_projection_index] += 1
+                formation_rule(projections[_projection_index], _2d_to_1d_arithmetic_)
 
         @network_operation(dt=self.t_stim)
         def change_stimulus():
+            global location, _rates
             self.stimulus_trigger += 1
             location = np.random.randint(0, self.n, 2)
             _rates = self.generate_rates(location)
@@ -357,22 +357,7 @@ class BrianModel(object):
 
         end = time.time() * second
         print "Simulation finished in", end - init_done
-        # plt.show()
-        plot(self.statemon.t / ms, self.statemon.v[0])
-        for t in self.spikemon.spike_trains()[0]:
-            axvline(t / ms, ls=':', c='r', lw=1, alpha=.3)
-        # print t,
-        #     print "Input spike times:"
-        #     for t in inp_spikemon.t:
-        #         axvline(t/ms, ls=':', c='y', lw=1)
-        #         print t,
-        xlabel('Time (ms)')
-        ylabel('v')
-        # ylim([-.075, -.05])
-        show()
-        pass
-        # output = (statemon, spikemon, feedforward, lateral)
-        # return output
+        return self.statemon
 
     @property
     def target_spike_monitor(self):
@@ -389,7 +374,7 @@ class BrianModel(object):
 
 if __name__ == "__main__":
     brian_model = BrianModel(seed=7)
-    brian_model.simulate(duration=100 * ms)
+    state = brian_model.simulate(duration=100 * ms)
     print brian_model.target_spike_monitor.num_spikes / (100 * ms)
     print brian_model.spikemon.num_spikes / (100 * ms)
     print brian_model.target_spike_monitor.num_spikes
@@ -401,3 +386,8 @@ if __name__ == "__main__":
     print brian_model.formations
     print brian_model.eliminations
     print brian_model.stimulus_trigger
+
+    plot(state.t / ms, state.v[0])
+    xlabel('Time (ms)')
+    ylabel('v')
+    show()
