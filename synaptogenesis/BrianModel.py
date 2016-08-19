@@ -228,7 +228,7 @@ class BrianModel(object):
             post = synapse_index % self.N
             # Generate a value to check against form / elimination probabilities
             r = np.random.rand()
-            if (projection.w[synapse_index] <= .5 * g_max and r < self.p_elim_dep) or r < p_elim_pot:
+            if (projection.w[synapse_index] <= .5 * g_max and r < self.p_elim_dep) or r < self.p_elim_pot:
                 projection.w[synapse_index] = 0
                 projection.synapse_connected[synapse_index] = False
                 projection.target.s[post] -= 1
