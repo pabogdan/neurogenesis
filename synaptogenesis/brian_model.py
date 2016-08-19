@@ -229,6 +229,10 @@ class BrianModel(object):
             # Generate a value to check against form / elimination probabilities
             r = np.random.rand()
             if (projection.w[synapse_index] <= .5 * g_max and r < self.p_elim_dep) or r < self.p_elim_pot:
+                if 'feedforward' in projection.name:
+                    self.eliminations[0] += 1
+                else:
+                    self.eliminations[1] += 1
                 projection.w[synapse_index] = 0
                 projection.synapse_connected[synapse_index] = False
                 projection.target.s[post] -= 1
@@ -249,6 +253,7 @@ class BrianModel(object):
                                 -(self.distance((pre // self.n, pre % self.n),
                                                 (post // self.n, post % self.n)) ** 2) / (
                                         2 * self.sigma_form_forward ** 2)):
+                self.formations[0] += 1
                 # Form synapse
                 projection.w[synapse_index] = g_max
                 projection.synapse_connected[synapse_index] = True
@@ -258,6 +263,7 @@ class BrianModel(object):
                                 -(self.distance((pre // self.n, pre % self.n),
                                                 (post // self.n, post % self.n)) ** 2) / (
                                         2 * self.sigma_form_lateral ** 2)):
+                self.formations[1] += 1
                 # Form synapse
                 projection.w[synapse_index] = g_max
                 projection.synapse_connected[synapse_index] = True
@@ -270,22 +276,27 @@ class BrianModel(object):
             else follow formation rule.
 
             '''
+            self.rewire_trigger += 1
             # First, choose a type of projection (FF or LAT)
             projection_index = np.random.randint(0, len(projections))
             # Second, choose a postsynaptic neuron from that projection
             postsynaptic_neuron_index = np.random.randint(0, self.N)
 
-            potential_pre = self.potential_presynaptic_neuron(projections[projection_index], postsynaptic_neuron_index)
+            # potential_pre = self.potential_presynaptic_neuron(projections[projection_index], postsynaptic_neuron_index)
+            potential_pre = np.random.randint(0, self.N)
             _2d_to_1d_arithmetic = potential_pre * self.N + postsynaptic_neuron_index
             #         _2d_to_1d_arithmetic = pre_x * N + pre_y
             # Third, check if the synapse exists or not and follow the appropriate rule
             if projections[projection_index].synapse_connected[_2d_to_1d_arithmetic]:
+                self.elim_trigger[projection_index] += 1
                 elimination_rule(projections[projection_index], _2d_to_1d_arithmetic)
             elif projections[projection_index].target.s[postsynaptic_neuron_index] < self.s_max:
+                self.form_trigger[projection_index] += 1
                 formation_rule(projections[projection_index], _2d_to_1d_arithmetic)
 
         @network_operation(dt=self.t_stim)
         def change_stimulus():
+            self.stimulus_trigger += 1
             location = np.random.randint(0, self.n, 2)
             _rates = self.generate_rates(location)
             inp.rates = _rates.ravel()
@@ -354,19 +365,20 @@ class BrianModel(object):
 
 
 if __name__ == "__main__":
+    duration = 2000*ms
     brian_model = BrianModel(seed=7)
-    state = brian_model.simulate(duration=100 * ms)
-    # print brian_model.target_spike_monitor.num_spikes / (100 * ms)
-    # print brian_model.spikemon.num_spikes / (100 * ms)
-    # print brian_model.target_spike_monitor.num_spikes
-    # print brian_model.spikemon.num_spikes
-    # print
-    # print brian_model.rewire_trigger
-    # print brian_model.elim_trigger
-    # print brian_model.form_trigger
-    # print brian_model.formations
-    # print brian_model.eliminations
-    # print brian_model.stimulus_trigger
+    state = brian_model.simulate(duration=duration)
+    print brian_model.target_spike_monitor.num_spikes / (duration)
+    print brian_model.spikemon.num_spikes / (duration)
+    print brian_model.target_spike_monitor.num_spikes
+    print brian_model.spikemon.num_spikes
+    print
+    print brian_model.rewire_trigger
+    print brian_model.elim_trigger
+    print brian_model.form_trigger
+    print brian_model.formations
+    print brian_model.eliminations
+    print brian_model.stimulus_trigger
 
     plot(brian_model.statemon.t / ms, brian_model.statemon.v[0])
     xlabel('Time (ms)')
