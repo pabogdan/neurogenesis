@@ -83,9 +83,11 @@ class BrianModel(object):
                            'states': True,
                            'rewiring': True,
                            'use_files': True,
+                           'rates': True,
                            }
         self.statemon = None
         self.spikemon = None
+        self.ratemon = None
 
         self.feedforward = None
         self.lateral = None
@@ -152,7 +154,7 @@ class BrianModel(object):
         if not duration:
             if not self.no_iterations:
                 raise EnvironmentError("You have not defined a run time for the simulation")
-                duration = self.no_iterations * dt_
+            duration = self.no_iterations * dt_
         start_scope()
         projections = []
         layers = []
@@ -167,11 +169,15 @@ class BrianModel(object):
         G.gex = [0.0, ] * self.N
         G.s = [0, ] * self.N
         layers.append(G)
+        statemon = None
         if self.recordings['states']:
             statemon = StateMonitor(G, ['v', ], record=True)
-
+        spikemon = None
         if self.recordings['spikes']:
             spikemon = SpikeMonitor(G)
+        ratemon = None
+        if self.recordings['rates']:
+            ratemon = PopulationRateMonitor(G)
 
         # Pre pop
         location = np.random.randint(0, self.n, 2)
@@ -341,14 +347,30 @@ class BrianModel(object):
         print "Starting sim"
         run(duration)
         print "Sim done"
-
         end = time.time() * second
         print "Simulation finished in", end - init_done
+        # Save simulation results to a file
+
         output = (statemon, spikemon, feedforward, lateral)
         self.statemon = statemon
         self.spikemon = spikemon
         self.feedforward = feedforward
         self.lateral = lateral
+        self.ratemon = ratemon
+        if self.recordings['use_files']:
+            print "Saving simulation data..."
+            np.savez("save-" + self.recording_filename,
+                     state=self.statemon.v,
+                     spikes=self.spikemon.spike_trains(),
+                     rates=self.ratemon.smooth_rate(window='flat', width=0.5 * ms),
+                     ff_w=self.feedforward.w.variable.get_value(),
+                     ff_conn=self.feedforward.synapse_connected,
+                     lat_w=self.lateral.w.variable.get_value(),
+                     lat_conn=self.lateral.synapse_connected,
+                     final_s=G.s.variable.get_value(),
+                     duration=duration,
+                     )
+
         return output
 
     @property
@@ -365,7 +387,7 @@ class BrianModel(object):
 
 
 if __name__ == "__main__":
-    duration = 2000*ms
+    duration = 200 * ms
     brian_model = BrianModel(seed=7)
     state = brian_model.simulate(duration=duration)
     print brian_model.target_spike_monitor.num_spikes / (duration)
@@ -380,7 +402,17 @@ if __name__ == "__main__":
     print brian_model.eliminations
     print brian_model.stimulus_trigger
 
+    subplot(211)
     plot(brian_model.statemon.t / ms, brian_model.statemon.v[0])
+    xlim(0, duration / ms)
+
     xlabel('Time (ms)')
     ylabel('v')
+
+    subplot(212)
+    plot(brian_model.ratemon.t / ms, brian_model.ratemon.smooth_rate(window='flat', width=0.5 * ms) / Hz)
+    xlim(0, duration / ms)
+
+
+
     show()
