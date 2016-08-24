@@ -3,145 +3,21 @@ import matplotlib.pyplot as plt
 from brian2 import *
 import time
 import os
+from synaptogenesis_model import SynaptogenesisModel
 
 plt.viridis()
 plt.close()
 
-# Membrane
-v_rest = -70 * mvolt  # mV
-e_ext = 0 * mvolt  # V
-v_thr = -54 * mvolt  # mV
-g_max = 0.2
-tau_m = 20 * ms  # ms
-tau_ex = 5 * ms  # ms
-e = np.e
-g = g_max
-pre_t = 0 * ms
 
-# STDP
-Apre = a_plus = 0.1
-b = 1.2
-taupre = tau_plus = 20 * ms  # ms
-taupost = tau_minus = 64 * ms  # ms
-Apost = a_minus = (a_plus * tau_plus * b) / tau_minus
+class BrianModel(SynaptogenesisModel):
+    '''
+    Simeon Bamford's synaptogenesis VLSI model re-created in Brian
+    '''
 
-
-class BrianModel(object):
     def __init__(self, seed=None, **kwargs):
-        if 'no_iterations' in kwargs:
-            self.no_iterations = kwargs['no_iterations']
-        else:
-            self.no_iterations = None
-        self.seed = None
-        if seed:
-            self.seed = seed
-            np.random.seed(self.seed)
-        self.recording_filename = str(np.random.randint(100000, 1000000))
+        super(BrianModel, self).__init__(seed=seed, **kwargs)
 
-        # Wiring
-        self.n = 16
-        self.N = self.n ** 2
-        self.S = (self.n, self.n)
-
-        self.s_max = 32
-        self.sigma_form_forward = 2.5
-        self.sigma_form_lateral = 1
-        self.p_form_lateral = 1
-        self.p_form_forward = 0.16
-        self.p_elim_dep = 0.0245
-        self.p_elim_pot = 1.36 * np.e ** -4
-        self.f_rew = 10 ** 4 * Hz
-
-        # Membrane
-        self.v_rest = -70 * mvolt
-        self.e_ext = 0 * mvolt
-        self.v_thr = -54 * mvolt
-        self.g_max = 0.2
-        self.tau_m = 20 * ms
-        self.tau_ex = 5 * ms
-        self.e = np.e
-        self.g = 0
-        self.pre_t = 0 * ms
-
-        # Inputs
-        self.f_mean = 20 * Hz
-        self.f_base = 5 * Hz
-        self.f_peak = 152.8 * Hz
-        self.sigma_stim = 2
-        self.t_stim = 0.02 * second
-        self.rate = 200 * Hz
-
-        # STDP
-        self.Apre = self.a_plus = 0.1
-        self.b = 1.2
-        self.taupre = self.tau_plus = 20 * ms
-        self.taupost = self.tau_minus = 64 * ms
-        self.Apost = self.a_minus = (self.a_plus * self.tau_plus * self.b) / self.tau_minus
-
-        # Recordings
-        self.recordings = {'spikes': True,
-                           'states': True,
-                           'rewiring': True,
-                           'use_files': True,
-                           'rates': True,
-                           }
-        self.statemon = None
-        self.spikemon = None
-        self.ratemon = None
-
-        self.feedforward = None
-        self.lateral = None
-
-        self.rewire_trigger = 0
-        self.form_trigger = {
-            0: 0,
-            1: 0,
-        }
-        self.elim_trigger = {
-            0: 0,
-            1: 0,
-        }
-        self.formations = {
-            0: 0,
-            1: 0,
-        }
-        self.eliminations = {
-            0: 0,
-            1: 0,
-        }
-        self.stimulus_trigger = 0
-
-    def distance(self, s, t, dist_type='euclidian'):
-        '''
-        Function that computes distance in a grid of neurons taking into account periodic boundry conditions.
-
-        First, translate source into the center of the grid.
-        Second, translate target by the same amount.
-        Finally, perform desired distance computation.
-        '''
-        s = np.asarray(s)
-        t = np.asarray(t)
-        _grid_size = np.asarray(self.S)
-        trans = s - (_grid_size // 2)
-        s = np.mod(s - trans, _grid_size)
-        t = np.mod(t - trans, _grid_size)
-        if dist_type == 'manhattan':
-            return s[0] - t[0] + s[1] - t[1]
-        return np.sqrt((s[0] - t[0]) ** 2 + (s[1] - t[1]) ** 2)
-
-    def generate_rates(self, s, dist_type='euclidian'):
-        '''
-        Function that generates an array the same shape as the input layer so that
-        each cell has a value corresponding to the firing rate for the neuron
-        at that position.
-        '''
-        _rates = np.zeros(self.S)
-        for x, y in np.ndindex(self.S):
-            _d = self.distance(s, (x, y), dist_type=dist_type)
-            _rates[x, y] = self.f_base + self.f_peak * np.e ** (-_d / (2 * self.sigma_stim ** 2))
-        return _rates * Hz
-
-    def potential_presynaptic_neuron(self, projection, postsynaptic_index):
+    def formation_presynaptic_neuron(self, projection, postsynaptic_index):
         potential_neurons = \
             np.nonzero(np.invert(projection.synapse_connected.reshape(self.N, self.N)[:, postsynaptic_index]))[0]
         if len(potential_neurons) == 0:
@@ -156,6 +32,24 @@ class BrianModel(object):
                 raise EnvironmentError("You have not defined a run time for the simulation")
             duration = self.no_iterations * dt_
         start_scope()
+        # Simulation parameters
+        # Membrane
+        v_rest = self.v_rest  # mV
+        e_ext = self.e_ext  # V
+        v_thr = self.v_thr  # mV
+        g_max = self.g_max
+        tau_m = self.tau_m  # ms
+        tau_ex = self.tau_ex  # ms
+        e = self.e
+        pre_t = self.pre_t
+
+        # STDP
+        Apre = self.a_plus
+        b = self.b
+        taupre = self.tau_plus
+        taupost = self.tau_minus
+        Apost = (self.a_plus * self.tau_plus * self.b) / self.tau_minus
+
         projections = []
         layers = []
         neuron_dynamics = '''
@@ -257,7 +151,8 @@ class BrianModel(object):
             if 'feedforward' in projection.name and r < self.p_form_forward * \
                             np.e ** (
                                 -(self.distance((pre // self.n, pre % self.n),
-                                                (post // self.n, post % self.n)) ** 2) / (
+                                                (post // self.n, post % self.n), grid_shape=self.S,
+                                                dimensions=self.dimensions) ** 2) / (
                                         2 * self.sigma_form_forward ** 2)):
                 self.formations[0] += 1
                 # Form synapse
@@ -267,7 +162,8 @@ class BrianModel(object):
             elif 'lateral' in projection.name and r < self.p_form_lateral * \
                             np.e ** (
                                 -(self.distance((pre // self.n, pre % self.n),
-                                                (post // self.n, post % self.n)) ** 2) / (
+                                                (post // self.n, post % self.n), grid_shape=self.S,
+                                                dimensions=self.dimensions) ** 2) / (
                                         2 * self.sigma_form_lateral ** 2)):
                 self.formations[1] += 1
                 # Form synapse
@@ -324,13 +220,13 @@ class BrianModel(object):
             for postsynaptic_neuron_index in range(self.N):
                 # Place Feedforward first (S_max // 2)
                 while G.s[postsynaptic_neuron_index] < self.s_max // 2:
-                    potential_pre = self.potential_presynaptic_neuron(projections[0], postsynaptic_neuron_index)
+                    potential_pre = self.formation_presynaptic_neuron(projections[0], postsynaptic_neuron_index)
                     _2d_to_1d_arithmetic = potential_pre * self.N + postsynaptic_neuron_index
                     formation_rule(projections[0], _2d_to_1d_arithmetic)
 
                 # Place Lateral now (S_max // 2)
                 while G.s[postsynaptic_neuron_index] < self.s_max:
-                    potential_pre = self.potential_presynaptic_neuron(projections[1], postsynaptic_neuron_index)
+                    potential_pre = self.formation_presynaptic_neuron(projections[1], postsynaptic_neuron_index)
                     _2d_to_1d_arithmetic = potential_pre * self.N + postsynaptic_neuron_index
                     formation_rule(projections[1], _2d_to_1d_arithmetic)
             # Save everything to a file to not have to wait as much next time
@@ -390,9 +286,9 @@ if __name__ == "__main__":
     duration = 200 * ms
     brian_model = BrianModel(seed=7)
     state = brian_model.simulate(duration=duration)
-    print brian_model.target_spike_monitor.num_spikes / (duration)
-    print brian_model.spikemon.num_spikes / (duration)
-    print brian_model.target_spike_monitor.num_spikes
+    print brian_model.target_spike_monitor.num_spikes / (duration) / (16 ** 2)
+    print brian_model.spikemon.num_spikes / (duration) / (16 ** 2)
+    print brian_model.target_spike_monitor.num_spikes / (16 ** 2)
     print brian_model.spikemon.num_spikes
     print
     print brian_model.rewire_trigger
@@ -410,9 +306,7 @@ if __name__ == "__main__":
     ylabel('v')
 
     subplot(212)
-    plot(brian_model.ratemon.t / ms, brian_model.ratemon.smooth_rate(window='flat', width=0.5 * ms) / Hz)
+    plot(brian_model.ratemon.t / ms, brian_model.ratemon.smooth_rate(window='flat', width=0.1 * ms) / Hz / (16. ** 2))
     xlim(0, duration / ms)
-
-
 
     show()
