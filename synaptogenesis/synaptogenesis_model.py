@@ -21,8 +21,11 @@ class SynaptogenesisModel(object):
 
         # TODO -- Add support for recordings directories
         self.recording_filename = str(np.random.randint(100000, 1000000))
+        self.recording_directory = ""
 
         self.dimensions = 2
+
+        self.case = 1
 
         # Wiring
         self.n = 16
@@ -100,13 +103,25 @@ class SynaptogenesisModel(object):
     def simulate(self):
         pass
 
-    def load(self, filename):
-        # TODO
-        pass
+    def load(self, filename=None, directory=None, prefix=None, extension=".npz"):
+        # TODO -- Add support for directories
+        if not filename:
+            filename = self.recording_filename
+        if not directory:
+            directory = self.recording_directory
+        if not prefix:
+            prefix = ""
+        return np.load(prefix + filename + extension)
 
-    def save(self, filename, **kwargs):
-        # TODO
-        pass
+    def save(self, filename=None, directory=None, prefix=None, **kwargs):
+        # TODO -- Add support for directories
+        if not filename:
+            filename = self.recording_filename
+        if not directory:
+            directory = self.recording_directory
+        if not prefix:
+            prefix = ""
+        np.savez(prefix + filename, **kwargs)
 
     @staticmethod
     def distance(s, t, grid_shape, dimensions):

@@ -16,6 +16,11 @@ class BrianModel(SynaptogenesisModel):
 
     def __init__(self, seed=None, **kwargs):
         super(BrianModel, self).__init__(seed=seed, **kwargs)
+        for variable_name, variable_value in kwargs.items():
+            if not hasattr(self, variable_name):
+                raise AttributeError(
+                    "You are trying to modify a simulation parameter that doesn't exist -- \"" + variable_name + "\"")
+            setattr(self, variable_name, variable_value)
 
     def formation_presynaptic_neuron(self, projection, postsynaptic_index):
         potential_neurons = \
@@ -178,36 +183,39 @@ class BrianModel(SynaptogenesisModel):
             else follow formation rule.
 
             '''
-            self.rewire_trigger += 1
-            # First, choose a type of projection (FF or LAT)
-            projection_index = np.random.randint(0, len(projections))
-            # Second, choose a postsynaptic neuron from that projection
-            postsynaptic_neuron_index = np.random.randint(0, self.N)
+            if self.case == 1 or self.case == 3:
+                self.rewire_trigger += 1
+                # First, choose a type of projection (FF or LAT)
+                projection_index = np.random.randint(0, len(projections))
+                # Second, choose a postsynaptic neuron from that projection
+                postsynaptic_neuron_index = np.random.randint(0, self.N)
 
-            # potential_pre = self.potential_presynaptic_neuron(projections[projection_index], postsynaptic_neuron_index)
-            potential_pre = np.random.randint(0, self.N)
-            _2d_to_1d_arithmetic = potential_pre * self.N + postsynaptic_neuron_index
-            #         _2d_to_1d_arithmetic = pre_x * N + pre_y
-            # Third, check if the synapse exists or not and follow the appropriate rule
-            if projections[projection_index].synapse_connected[_2d_to_1d_arithmetic]:
-                self.elim_trigger[projection_index] += 1
-                elimination_rule(projections[projection_index], _2d_to_1d_arithmetic)
-            elif projections[projection_index].target.s[postsynaptic_neuron_index] < self.s_max:
-                self.form_trigger[projection_index] += 1
-                formation_rule(projections[projection_index], _2d_to_1d_arithmetic)
+                # potential_pre = self.potential_presynaptic_neuron(projections[projection_index], postsynaptic_neuron_index)
+                potential_pre = np.random.randint(0, self.N)
+                _2d_to_1d_arithmetic = potential_pre * self.N + postsynaptic_neuron_index
+                #         _2d_to_1d_arithmetic = pre_x * N + pre_y
+                # Third, check if the synapse exists or not and follow the appropriate rule
+                if projections[projection_index].synapse_connected[_2d_to_1d_arithmetic]:
+                    self.elim_trigger[projection_index] += 1
+                    elimination_rule(projections[projection_index], _2d_to_1d_arithmetic)
+                elif projections[projection_index].target.s[postsynaptic_neuron_index] < self.s_max:
+                    self.form_trigger[projection_index] += 1
+                    formation_rule(projections[projection_index], _2d_to_1d_arithmetic)
 
         @network_operation(dt=self.t_stim)
         def change_stimulus():
-            self.stimulus_trigger += 1
-            location = np.random.randint(0, self.n, 2)
-            _rates = self.generate_rates(location)
-            inp.rates = _rates.ravel()
+            if self.case == 1 or self.case == 2:
+                self.stimulus_trigger += 1
+                location = np.random.randint(0, self.n, 2)
+                _rates = self.generate_rates(location)
+                inp.rates = _rates.ravel()
 
         _initialise = True
+        # TODO -- Add support for directories
         if os.path.isfile(self.recording_filename + ".npz"):
             print "Using previously generated initialization..."
             _initialise = False
-            with np.load(self.recording_filename + ".npz")as init_data:
+            with self.load() as init_data:
                 print init_data.keys()
                 G.s = init_data['s']
                 feedforward.w = init_data['ff_w']
@@ -232,12 +240,12 @@ class BrianModel(SynaptogenesisModel):
             # Save everything to a file to not have to wait as much next time
             if self.recordings['use_files']:
                 print "Saving initialization..."
-                np.savez(self.recording_filename,
-                         s=G.s.variable.get_value(),
-                         ff_w=self.feedforward.w.variable.get_value(),
-                         ff_conn=self.feedforward.synapse_connected,
-                         lat_w=self.lateral.w.variable.get_value(),
-                         lat_conn=self.lateral.synapse_connected)
+                self.save(s=G.s.variable.get_value(),
+                          ff_w=self.feedforward.w.variable.get_value(),
+                          ff_conn=self.feedforward.synapse_connected,
+                          lat_w=self.lateral.w.variable.get_value(),
+                          lat_conn=self.lateral.synapse_connected)
+
         init_done = time.time() * second
         print "Initialization done in ", init_done - start
         print "Starting sim"
@@ -255,17 +263,17 @@ class BrianModel(SynaptogenesisModel):
         self.ratemon = ratemon
         if self.recordings['use_files']:
             print "Saving simulation data..."
-            np.savez("save-" + self.recording_filename,
-                     state=self.statemon.v,
-                     spikes=self.spikemon.spike_trains(),
-                     rates=self.ratemon.smooth_rate(window='flat', width=0.5 * ms),
-                     ff_w=self.feedforward.w.variable.get_value(),
-                     ff_conn=self.feedforward.synapse_connected,
-                     lat_w=self.lateral.w.variable.get_value(),
-                     lat_conn=self.lateral.synapse_connected,
-                     final_s=G.s.variable.get_value(),
-                     duration=duration,
-                     )
+            self.save(prefix="save-",
+                      simulator="brian",
+                      state=self.statemon.v,
+                      spikes=self.spikemon.spike_trains(),
+                      rates=self.ratemon.smooth_rate(window='flat', width=0.5 * ms),
+                      ff_w=self.feedforward.w.variable.get_value(),
+                      ff_conn=self.feedforward.synapse_connected,
+                      lat_w=self.lateral.w.variable.get_value(),
+                      lat_conn=self.lateral.synapse_connected,
+                      final_s=G.s.variable.get_value(),
+                      duration=duration)
 
         return output
 
@@ -283,8 +291,10 @@ class BrianModel(SynaptogenesisModel):
 
 
 if __name__ == "__main__":
+    case = 1
+    # while case < 4:
     duration = 200 * ms
-    brian_model = BrianModel(seed=7)
+    brian_model = BrianModel(seed=7, dimensions=1, case=case)
     state = brian_model.simulate(duration=duration)
     print brian_model.target_spike_monitor.num_spikes / (duration) / (16 ** 2)
     print brian_model.spikemon.num_spikes / (duration) / (16 ** 2)
@@ -298,6 +308,9 @@ if __name__ == "__main__":
     print brian_model.eliminations
     print brian_model.stimulus_trigger
 
+    print "Final mean target spike rate", \
+        np.mean(brian_model.ratemon.smooth_rate(window='flat', width=duration) / (16. ** 2))
+
     subplot(211)
     plot(brian_model.statemon.t / ms, brian_model.statemon.v[0])
     xlim(0, duration / ms)
@@ -308,5 +321,4 @@ if __name__ == "__main__":
     subplot(212)
     plot(brian_model.ratemon.t / ms, brian_model.ratemon.smooth_rate(window='flat', width=0.1 * ms) / Hz / (16. ** 2))
     xlim(0, duration / ms)
-
     show()
