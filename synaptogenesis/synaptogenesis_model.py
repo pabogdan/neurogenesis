@@ -155,3 +155,13 @@ class SynaptogenesisModel(object):
     def statistics(self):
         # TODO
         raise NotImplementedError()
+
+    def record(self, name, value=True):
+        '''
+        Tell the simulation which values are of interest and should be monitored.
+        :param name: Name of recording
+        :type name: str
+        :param value: Recording On/Off for specified recording
+        :type value: bool, Default=True
+        '''
+        self.recordings[name] = value
