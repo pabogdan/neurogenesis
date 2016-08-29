@@ -21,7 +21,7 @@ class PyNNModel(SynaptogenesisModel):
         p.set_number_of_neurons_per_core("IF_cond_exp", self.N / 2)
 
         # Class variables for PyNN simulation variables
-        self.cm = 1.0 * mfarad
+        self.cm = 10. * mfarad
         self.i_offset = 0. * amp
         self.tau_refrac = 0. * ms
         self.tau_syn_E = 5. * ms
@@ -30,7 +30,7 @@ class PyNNModel(SynaptogenesisModel):
         self.e_rev_E = 0. * mV
         self.e_rev_I = -80. * mV
 
-        self.w = 0.014 * amp
+        self.w = self.g_max / 2.
         self.delay = 0.1 * ms
         # Equate PyNN variables with Sim's variables
 
@@ -80,7 +80,7 @@ class PyNNModel(SynaptogenesisModel):
         self.target = p.Population(self.N, p.IF_cond_exp, cell_params_lif, label='target_layer')
         self.source = p.Population(self.N, p.SpikeSourceArray, self.spike_array, label='source_layer')
 
-        self.feedforward = p.Projection(self.source, self.target, p.AllToAllConnector(weights=[.2, ] * self.N))
+        self.feedforward = p.Projection(self.source, self.target, p.AllToAllConnector(weights=[self.w, ] * self.N))
         self.lateral = p.Projection(self.target, self.target, p.AllToAllConnector(weights=[0., ] * self.N))
 
         if self.recordings['states']:
