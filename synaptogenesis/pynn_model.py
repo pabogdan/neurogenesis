@@ -21,7 +21,7 @@ class PyNNModel(SynaptogenesisModel):
         p.set_number_of_neurons_per_core("IF_cond_exp", self.N / 2)
 
         # Class variables for PyNN simulation variables
-        self.cm = 10. * mfarad
+        self.cm = 10. * mfarad * 2.
         self.i_offset = 0. * amp
         self.tau_refrac = 0. * ms
         self.tau_syn_E = 5. * ms
@@ -30,7 +30,7 @@ class PyNNModel(SynaptogenesisModel):
         self.e_rev_E = 0. * mV
         self.e_rev_I = -80. * mV
 
-        self.w = self.g_max / 2.
+        self.w = self.g_max
         self.delay = 0.1 * ms
         # Equate PyNN variables with Sim's variables
 
