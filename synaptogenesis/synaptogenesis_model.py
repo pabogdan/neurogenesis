@@ -152,6 +152,22 @@ class SynaptogenesisModel(object):
             _rates[x, y] = self.f_base + self.f_peak * np.e ** (-_d / (2 * self.sigma_stim ** 2))
         return _rates * Hz
 
+    def generate_spike_times(self, s, dt=.1 * ms, chunk=20 * ms, time_offset=0 * second, dimensions=2):
+        rates = self.generate_rates(s, dimensions)
+        spike_times = []
+        for rate in rates.ravel():
+            spikes = np.random.poisson(rate / Hz / 1000., int(chunk / dt))
+            spike_times.append((np.nonzero(spikes)[0] * dt + time_offset).tolist())
+        return spike_times
+
+    def formation_presynaptic_neuron(self, projection, postsynaptic_index):
+        potential_neurons = \
+            np.nonzero(np.invert(projection.synapse_connected.reshape(self.N, self.N)[:, postsynaptic_index]))[0]
+        if len(potential_neurons) == 0:
+            return None
+        random_index = potential_neurons[np.random.randint(0, len(potential_neurons))]
+        return random_index
+
     def statistics(self):
         # TODO
         raise NotImplementedError()
