@@ -22,13 +22,6 @@ class BrianModel(SynaptogenesisModel):
                     "You are trying to modify a simulation parameter that doesn't exist -- \"" + variable_name + "\"")
             setattr(self, variable_name, variable_value)
 
-    def formation_presynaptic_neuron(self, projection, postsynaptic_index):
-        potential_neurons = \
-            np.nonzero(np.invert(projection.synapse_connected.reshape(self.N, self.N)[:, postsynaptic_index]))[0]
-        if len(potential_neurons) == 0:
-            return None
-        random_index = potential_neurons[np.random.randint(0, len(potential_neurons))]
-        return random_index
 
     def simulate(self, duration=None, dt_=0.1 * ms):
         start = time.time() * second
@@ -183,7 +176,7 @@ class BrianModel(SynaptogenesisModel):
             else follow formation rule.
 
             '''
-            if self.case == 1 or self.case == 3:
+            if self.case == SynaptogenesisModel.CASE_CORR_AND_REW or self.case == SynaptogenesisModel.CASE_REW_NO_CORR:
                 self.rewire_trigger += 1
                 # First, choose a type of projection (FF or LAT)
                 projection_index = np.random.randint(0, len(projections))
@@ -204,7 +197,7 @@ class BrianModel(SynaptogenesisModel):
 
         @network_operation(dt=self.t_stim)
         def change_stimulus():
-            if self.case == 1 or self.case == 2:
+            if self.case == SynaptogenesisModel.CASE_CORR_AND_REW or self.case == SynaptogenesisModel.CASE_CORR_NO_REW:
                 self.stimulus_trigger += 1
                 location = np.random.randint(0, self.n, 2)
                 _rates = self.generate_rates(location)
@@ -288,6 +281,9 @@ class BrianModel(SynaptogenesisModel):
     @property
     def lateral_projection(self):
         return self.lateral
+
+    def statistics(self):
+        pass
 
 
 if __name__ == "__main__":

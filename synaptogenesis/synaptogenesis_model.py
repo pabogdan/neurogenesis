@@ -8,6 +8,9 @@ class SynaptogenesisModel(object):
     Simeon Bamford's synaptogenesis VLSI model re-created in Python package. This
     will be the base 'class' for the BRAIN2 and PyNN simulations.
     '''
+    CASE_CORR_AND_REW = 1
+    CASE_CORR_NO_REW = 2
+    CASE_REW_NO_CORR = 3
 
     def __init__(self, seed=None, **kwargs):
         if 'no_iterations' in kwargs:
@@ -25,7 +28,7 @@ class SynaptogenesisModel(object):
 
         self.dimensions = 2
 
-        self.case = 1
+        self.case = SynaptogenesisModel.CASE_CORR_AND_REW
 
         # Wiring
         self.n = 16
@@ -157,7 +160,7 @@ class SynaptogenesisModel(object):
         spike_times = []
         for rate in rates.ravel():
             spikes = np.random.poisson(rate / Hz / 1000., int(chunk / dt))
-            spike_times.append((np.nonzero(spikes)[0] * dt + time_offset).tolist())
+            spike_times.append(((np.nonzero(spikes)[0] * dt + time_offset)/ms).tolist())
         return spike_times
 
     def formation_presynaptic_neuron(self, projection, postsynaptic_index):
