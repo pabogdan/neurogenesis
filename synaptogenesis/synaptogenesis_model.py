@@ -61,7 +61,6 @@ class SynaptogenesisModel(object):
         self.f_peak = 152.8 * Hz
         self.sigma_stim = 2
         self.t_stim = 0.02 * second
-        self.rate = 200 * Hz
 
         # STDP
         self.a_plus = 0.1
@@ -129,7 +128,7 @@ class SynaptogenesisModel(object):
     @staticmethod
     def distance(s, t, grid_shape, dimensions):
         '''
-        Function that computes distance in a grid of neurons taking into account periodic boundry conditions.
+        Function that computes distance in a grid of neurons taking into account periodic boundary conditions.
 
         First, translate source into the center of the grid.
         Second, translate target by the same amount.
@@ -160,7 +159,7 @@ class SynaptogenesisModel(object):
         spike_times = []
         for rate in rates.ravel():
             spikes = np.random.poisson(rate / Hz / 1000., int(chunk / dt))
-            spike_times.append(((np.nonzero(spikes)[0] * dt + time_offset)/ms).tolist())
+            spike_times.append(((np.nonzero(spikes)[0] * dt + time_offset) / ms).tolist())
         return spike_times
 
     def formation_presynaptic_neuron(self, projection, postsynaptic_index):
@@ -184,3 +183,15 @@ class SynaptogenesisModel(object):
         :type value: bool, Default=True
         '''
         self.recordings[name] = value
+
+    @property
+    def state(self):
+        return self.statemon
+
+    @property
+    def spike(self):
+        return self.spikemon
+
+    @property
+    def rate(self):
+        return self.ratemon
