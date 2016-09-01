@@ -22,7 +22,6 @@ class BrianModel(SynaptogenesisModel):
                     "You are trying to modify a simulation parameter that doesn't exist -- \"" + variable_name + "\"")
             setattr(self, variable_name, variable_value)
 
-
     def simulate(self, duration=None, dt_=0.1 * ms):
         start = time.time() * second
         if not duration:
@@ -274,14 +273,6 @@ class BrianModel(SynaptogenesisModel):
     @property
     def target_spike_monitor(self):
         return self.spikemon
-
-    @property
-    def feedforward_projection(self):
-        return self.feedforward
-
-    @property
-    def lateral_projection(self):
-        return self.lateral
 
     def statistics(self):
         pass

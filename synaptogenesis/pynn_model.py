@@ -15,8 +15,8 @@ class PyNNModel(SynaptogenesisModel):
     Simeon Bamford's synaptogenesis VLSI model re-created in PyNN / sPyNNaker
     '''
 
-    def __init__(self, timestep=0.1 * ms, min_delay=0.1 * ms, max_delay=0.3 * ms, seed=None, **kwargs):
-        super(PyNNModel, self).__init__(seed=seed, **kwargs)
+    def __init__(self, N=16**2, timestep=0.1 * ms, min_delay=0.1 * ms, max_delay=0.3 * ms, seed=None, **kwargs):
+        super(PyNNModel, self).__init__(N=N, seed=seed, **kwargs)
         p.setup(timestep=timestep / ms, min_delay=min_delay / ms, max_delay=max_delay / ms)
         p.set_number_of_neurons_per_core("IF_cond_exp", self.N / 2)
 
@@ -83,36 +83,36 @@ class PyNNModel(SynaptogenesisModel):
         # This is done by splitting the entire duration of the simulation into chunks according to\
         #  t_stim and the preferred location if it is the case that the simulation has input correlation
         # TODO modify the way we control PoissonSpikeSource on SpiNNaker
-        self.spike_times = [[], ] * self.N
-        time_slot = 0
-        for time_slot in range(int(duration / self.t_stim)):
-            _sp = self.generate_spike_times(np.random.randint(0, 16, 2),
-                                            chunk=self.t_stim,
-                                            time_offset=time_slot * self.t_stim,
-                                            dimensions=self.dimensions)
-            for index, value in np.ndenumerate(_sp):
-                if hasattr(value , '__iter__'):
-                    for v in value:
-                        self.spike_times[index[0]].append(v)
-                else:
-                    self.spike_times[index[0]].append(value)
-        if not np.isclose(duration % self.t_stim / ms, 0):
-            _sp = self.generate_spike_times(np.random.randint(0, 16, 2),
-                                            chunk=duration % self.t_stim,
-                                            time_offset=time_slot * self.t_stim,
-                                            dimensions=self.dimensions)
-            for index, value in np.ndenumerate(_sp):
-                if hasattr(value, '__iter__'):
-                    for v in value:
-                        self.spike_times[index[0]].append(v)
-                else:
-                    self.spike_times[index[0]].append(value)
-        self.set_spike_times(self.spike_times)
+        # self.spike_times = [[], ] * self.N
+        # time_slot = 0
+        # for time_slot in range(int(duration / self.t_stim)):
+        #     _sp = self.generate_spike_times(np.random.randint(0, 16, 2),
+        #                                     chunk=self.t_stim,
+        #                                     time_offset=time_slot * self.t_stim,
+        #                                     dimensions=self.dimensions)
+        #     for index, value in np.ndenumerate(_sp):
+        #         if hasattr(value, '__iter__'):
+        #             for v in value:
+        #                 self.spike_times[index[0]].append(v)
+        #         else:
+        #             self.spike_times[index[0]].append(value)
+        # if not np.isclose(duration % self.t_stim / ms, 0):
+        #     _sp = self.generate_spike_times(np.random.randint(0, 16, 2),
+        #                                     chunk=duration % self.t_stim,
+        #                                     time_offset=time_slot * self.t_stim,
+        #                                     dimensions=self.dimensions)
+        #     for index, value in np.ndenumerate(_sp):
+        #         if hasattr(value, '__iter__'):
+        #             for v in value:
+        #                 self.spike_times[index[0]].append(v)
+        #         else:
+        #             self.spike_times[index[0]].append(value)
+        # self.set_spike_times(self.spike_times)
         self.source = p.Population(self.N, p.SpikeSourceArray, self.spike_array, label='source_layer')
 
-
         # Use saved connections from file
-        self.feedforward = p.Projection(self.source, self.target, p.AllToAllConnector(weights=self.g_max))
+        self.feedforward = p.Projection(self.source, self.target,
+                                        p.AllToAllConnector(weights=self.g_max))
         self.lateral = p.Projection(self.target, self.target, p.AllToAllConnector(weights=0.))
 
         if self.recordings['states']:
@@ -131,6 +131,14 @@ class PyNNModel(SynaptogenesisModel):
                              'v': pynn_model.target.get_v(compatible_output=True)}
         if autoend:
             self.end()
+
+    def generate_spike_times(self, s, dt=.1 * ms, chunk=20 * ms, time_offset=0 * second, dimensions=2):
+        rates = self.generate_rates(s, dimensions)
+        spike_times = []
+        for rate in rates.ravel():
+            spikes = np.random.poisson(rate / Hz / 1000., int(chunk / dt))
+            spike_times.append(((np.nonzero(spikes)[0] * dt + time_offset) / ms).tolist())
+        return spike_times
 
     def statistics(self):
         pass
@@ -152,10 +160,10 @@ class PyNNModel(SynaptogenesisModel):
 if __name__ == "__main__":
     case = 1
     duration = 100 * ms
-    # rate = 157.8 * Hz
-    # spike_times = np.linspace(0, duration, num=rate * duration) / ms
-    pynn_model = PyNNModel(seed=6, dimensions=1, case=case, N=1, n=1, S=(1,1))
-    # pynn_model.set_spike_times(spike_times)
+    rate = 157.8 * Hz
+    spike_times = np.linspace(0, duration, num=rate * duration) / ms
+    pynn_model = PyNNModel(seed=6, dimensions=1, case=case, N=256)
+    pynn_model.set_spike_times(spike_times)
     pynn_model.simulate(duration)
 
     v = pynn_model.state['v']
