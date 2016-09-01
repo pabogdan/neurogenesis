@@ -116,6 +116,12 @@ class BrianModel(SynaptogenesisModel):
         lateral.w = [0, ] * (self.N ** 2)
         projections.append(lateral)
 
+        self.statemon = statemon
+        self.spikemon = spikemon
+        self.feedforward = feedforward
+        self.lateral = lateral
+        self.ratemon = ratemon
+
         def elimination_rule(projection, synapse_index):
             '''
             Delete a synapse based on the elimination probability
@@ -249,11 +255,6 @@ class BrianModel(SynaptogenesisModel):
         # Save simulation results to a file
 
         output = (statemon, spikemon, feedforward, lateral)
-        self.statemon = statemon
-        self.spikemon = spikemon
-        self.feedforward = feedforward
-        self.lateral = lateral
-        self.ratemon = ratemon
         if self.recordings['use_files']:
             print "Saving simulation data..."
             self.save(prefix="save-",
