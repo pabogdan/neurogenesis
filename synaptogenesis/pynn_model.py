@@ -83,31 +83,32 @@ class PyNNModel(SynaptogenesisModel):
         # This is done by splitting the entire duration of the simulation into chunks according to\
         #  t_stim and the preferred location if it is the case that the simulation has input correlation
         # TODO modify the way we control PoissonSpikeSource on SpiNNaker
-        # self.spike_times = [[], ] * self.N
-        # time_slot = 0
-        # for time_slot in range(int(duration / self.t_stim)):
-        #     _sp = self.generate_spike_times(np.random.randint(0, 16, 2),
-        #                                     chunk=self.t_stim,
-        #                                     time_offset=time_slot * self.t_stim,
-        #                                     dimensions=self.dimensions)
-        #     for index, value in np.ndenumerate(_sp):
+        self.spike_times = [[], ] * self.N
+        time_slot = 0
+        for time_slot in range(int(duration / self.t_stim)):
+            _sp = self.generate_spike_times(np.random.randint(0, 16, 2),
+                                            chunk=self.t_stim,
+                                            time_offset=time_slot * self.t_stim,
+                                            dimensions=self.dimensions)
+            for index, value in np.ndenumerate(_sp):
         #         if hasattr(value, '__iter__'):
         #             for v in value:
         #                 self.spike_times[index[0]].append(v)
         #         else:
-        #             self.spike_times[index[0]].append(value)
-        # if not np.isclose(duration % self.t_stim / ms, 0):
-        #     _sp = self.generate_spike_times(np.random.randint(0, 16, 2),
-        #                                     chunk=duration % self.t_stim,
-        #                                     time_offset=time_slot * self.t_stim,
-        #                                     dimensions=self.dimensions)
-        #     for index, value in np.ndenumerate(_sp):
+                self.spike_times[index[0]].append(value)
+        if not np.isclose(duration % self.t_stim / ms, 0):
+            _sp = self.generate_spike_times(np.random.randint(0, 16, 2),
+                                            chunk=duration % self.t_stim,
+                                            time_offset=time_slot * self.t_stim,
+                                            dimensions=self.dimensions)
+            for index, value in np.ndenumerate(_sp):
         #         if hasattr(value, '__iter__'):
         #             for v in value:
         #                 self.spike_times[index[0]].append(v)
         #         else:
-        #             self.spike_times[index[0]].append(value)
-        # self.set_spike_times(self.spike_times)
+                self.spike_times[index[0]].append(value)
+        # TODO fix spike time generation
+        self.set_spike_times(self.spike_times[0])
         self.source = p.Population(self.N, p.SpikeSourceArray, self.spike_array, label='source_layer')
 
         # Use saved connections from file

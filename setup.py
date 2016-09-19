@@ -5,14 +5,14 @@ setup(
     version='2016.0.1',
     packages=find_packages(),
     url='pabogdan.com',
-    license='',
+    license="GNU GPLv3.0",
     author='Petrut Antoniu Bogdan',
     author_email='pab@cs.man.ac.uk',
     description='Simulating neurogenesis on SpiNNaker',
     # Requirements
     dependency_links=[],
 
-    install_requires=["numpy", "scipy", "brian2", "pynn==0.7.5", "spynnaker>=2016.1.1"],
+    install_requires=["numpy", "scipy", "brian2", "pynn==0.7.5", "spynnaker>= 3.0.0, < 4.0.0"],
     classifiers=[
         "Operating System :: POSIX :: Linux",
         "Operating System :: Microsoft :: Windows",
