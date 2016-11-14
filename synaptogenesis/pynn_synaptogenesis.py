@@ -10,13 +10,13 @@ import os
 from brian2.units import *
 
 
-class PyNNModel(SynaptogenesisModel):
+class PyNNSynaptogenesis(SynaptogenesisModel):
     '''
     Simeon Bamford's synaptogenesis VLSI model re-created in PyNN / sPyNNaker
     '''
 
     def __init__(self, N=16**2, timestep=0.1 * ms, min_delay=0.1 * ms, max_delay=0.3 * ms, seed=None, **kwargs):
-        super(PyNNModel, self).__init__(N=N, seed=seed, **kwargs)
+        super(PyNNSynaptogenesis, self).__init__(N=N, seed=seed, **kwargs)
         p.setup(timestep=timestep / ms, min_delay=min_delay / ms, max_delay=max_delay / ms)
         p.set_number_of_neurons_per_core("IF_cond_exp", self.N / 2)
 
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     duration = 100 * ms
     rate = 157.8 * Hz
     spike_times = np.linspace(0, duration, num=rate * duration) / ms
-    pynn_model = PyNNModel(seed=6, dimensions=1, case=case, N=256)
+    pynn_model = PyNNSynaptogenesis(seed=6, dimensions=1, case=case, N=256)
     pynn_model.set_spike_times(spike_times)
     pynn_model.simulate(duration)
 
