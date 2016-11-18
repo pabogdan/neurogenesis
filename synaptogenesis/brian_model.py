@@ -22,7 +22,6 @@ class BrianModel(SynaptogenesisModel):
                     "You are trying to modify a simulation parameter that doesn't exist -- \"" + variable_name + "\"")
             setattr(self, variable_name, variable_value)
 
-
     def simulate(self, duration=None, dt_=0.1 * ms):
         start = time.time() * second
         if not duration:
@@ -102,19 +101,27 @@ class BrianModel(SynaptogenesisModel):
         feedforward.add_attribute('synapse_connected')
         feedforward.synapse_connected = np.zeros(self.N ** 2, dtype=np.bool_)
         feedforward.w = [0, ] * (self.N ** 2)
+        feedforward.apre = [0, ] * (self.N ** 2)
+        feedforward.apost = [0, ] * (self.N ** 2)
         projections.append(feedforward)
 
         # Lateral connections (from target to target)
 
         lateral = Synapses(G, G, synapse_model,
-                           on_pre=on_pre_model,
-                           on_post=on_post_model,
+                           # on_pre=on_pre_model,
+                           # on_post=on_post_model,
                            dt=dt_, name="lateral_projections")
         lateral.connect()
         lateral.add_attribute('synapse_connected')
         lateral.synapse_connected = np.zeros(self.N ** 2, dtype=np.bool_)
         lateral.w = [0, ] * (self.N ** 2)
         projections.append(lateral)
+
+        self.statemon = statemon
+        self.spikemon = spikemon
+        self.feedforward = feedforward
+        self.lateral = lateral
+        self.ratemon = ratemon
 
         def elimination_rule(projection, synapse_index):
             '''
@@ -249,18 +256,17 @@ class BrianModel(SynaptogenesisModel):
         # Save simulation results to a file
 
         output = (statemon, spikemon, feedforward, lateral)
-        self.statemon = statemon
-        self.spikemon = spikemon
-        self.feedforward = feedforward
-        self.lateral = lateral
-        self.ratemon = ratemon
         if self.recordings['use_files']:
             print "Saving simulation data..."
+            _state = self.statemon.v if self.statemon else None
+            _spikes =self.spikemon.spike_trains() if self.spikemon else None
+            _rates = self.ratemon.smooth_rate(window='flat', width=0.5 * ms) if self.ratemon else None
+
             self.save(prefix="save-",
                       simulator="brian",
-                      state=self.statemon.v,
-                      spikes=self.spikemon.spike_trains(),
-                      rates=self.ratemon.smooth_rate(window='flat', width=0.5 * ms),
+                      state=_state,
+                      spikes=_spikes,
+                      rates=_rates,
                       ff_w=self.feedforward.w.variable.get_value(),
                       ff_conn=self.feedforward.synapse_connected,
                       lat_w=self.lateral.w.variable.get_value(),
@@ -274,14 +280,6 @@ class BrianModel(SynaptogenesisModel):
     def target_spike_monitor(self):
         return self.spikemon
 
-    @property
-    def feedforward_projection(self):
-        return self.feedforward
-
-    @property
-    def lateral_projection(self):
-        return self.lateral
-
     def statistics(self):
         pass
 
@@ -289,32 +287,41 @@ class BrianModel(SynaptogenesisModel):
 if __name__ == "__main__":
     case = 1
     # while case < 4:
-    duration = 200 * ms
-    brian_model = BrianModel(seed=7, dimensions=1, case=case)
+    duration = 1000 * ms
+    # brian_model = BrianModel(seed=7, dimensions=1, case=case)
+    brian_model = BrianModel(seed=7, dimensions=1, case=SynaptogenesisModel.CASE_CORR_AND_REW)
+    # brian_model.record('spikes', False)
+    # brian_model.record('states', False)
+    # brian_model.record('rates', False)
     state = brian_model.simulate(duration=duration)
-    print brian_model.target_spike_monitor.num_spikes / (duration) / (16 ** 2)
+    # print brian_model.target_spike_monitor.num_spikes / (duration) / (16 ** 2)
     print brian_model.spikemon.num_spikes / (duration) / (16 ** 2)
-    print brian_model.target_spike_monitor.num_spikes / (16 ** 2)
+    # print brian_model.target_spike_monitor.num_spikes / (16 ** 2)
     print brian_model.spikemon.num_spikes
     print
-    print brian_model.rewire_trigger
-    print brian_model.elim_trigger
-    print brian_model.form_trigger
-    print brian_model.formations
-    print brian_model.eliminations
-    print brian_model.stimulus_trigger
+    print "Rewire trigger:",brian_model.rewire_trigger
+    print "Elimination trigger:",brian_model.elim_trigger
+    print "Formation trigger:",brian_model.form_trigger
+    print "Formations:",brian_model.formations
+    print "Eliminations:",brian_model.eliminations
+    print "Stimulus change trigger:",brian_model.stimulus_trigger
 
-    print "Final mean target spike rate", \
-        np.mean(brian_model.ratemon.smooth_rate(window='flat', width=duration) / (16. ** 2))
+    # print "Final mean target spike rate", \
+    #     np.mean(brian_model.ratemon.smooth_rate(window='flat', width=duration) / (16. ** 2))
 
-    subplot(211)
-    plot(brian_model.statemon.t / ms, brian_model.statemon.v[0])
-    xlim(0, duration / ms)
+    if brian_model.statemon:
+        subplot(211)
+        plot(brian_model.statemon.t / ms, brian_model.statemon.v[0])
+        xlim(0, duration / ms)
 
-    xlabel('Time (ms)')
-    ylabel('v')
+        xlabel('Time (ms)')
+        ylabel('v')
 
-    subplot(212)
-    plot(brian_model.ratemon.t / ms, brian_model.ratemon.smooth_rate(window='flat', width=0.1 * ms) / Hz / (16. ** 2))
-    xlim(0, duration / ms)
-    show()
+
+    if brian_model.ratemon:
+        subplot(212)
+        plot(brian_model.ratemon.t / ms, brian_model.ratemon.smooth_rate(window='flat', width=0.1 * ms) / Hz / (16. ** 2))
+        xlim(0, duration / ms)
+
+    if brian_model.statemon or brian_model.ratemon:
+        show()

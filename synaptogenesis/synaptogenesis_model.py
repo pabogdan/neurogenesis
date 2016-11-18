@@ -12,7 +12,7 @@ class SynaptogenesisModel(object):
     CASE_CORR_NO_REW = 2
     CASE_REW_NO_CORR = 3
 
-    def __init__(self, seed=None, **kwargs):
+    def __init__(self, N=16 ** 2, seed=None, **kwargs):
         if 'no_iterations' in kwargs:
             self.no_iterations = kwargs['no_iterations']
         else:
@@ -31,8 +31,8 @@ class SynaptogenesisModel(object):
         self.case = SynaptogenesisModel.CASE_CORR_AND_REW
 
         # Wiring
-        self.n = 16
-        self.N = self.n ** 2
+        self.n = int(np.sqrt(N))
+        self.N = N
         self.S = (self.n, self.n)
 
         self.s_max = 32
@@ -61,7 +61,6 @@ class SynaptogenesisModel(object):
         self.f_peak = 152.8 * Hz
         self.sigma_stim = 2
         self.t_stim = 0.02 * second
-        self.rate = 200 * Hz
 
         # STDP
         self.a_plus = 0.1
@@ -129,7 +128,7 @@ class SynaptogenesisModel(object):
     @staticmethod
     def distance(s, t, grid_shape, dimensions):
         '''
-        Function that computes distance in a grid of neurons taking into account periodic boundry conditions.
+        Function that computes distance in a grid of neurons taking into account periodic boundary conditions.
 
         First, translate source into the center of the grid.
         Second, translate target by the same amount.
@@ -155,14 +154,6 @@ class SynaptogenesisModel(object):
             _rates[x, y] = self.f_base + self.f_peak * np.e ** (-_d / (2 * self.sigma_stim ** 2))
         return _rates * Hz
 
-    def generate_spike_times(self, s, dt=.1 * ms, chunk=20 * ms, time_offset=0 * second, dimensions=2):
-        rates = self.generate_rates(s, dimensions)
-        spike_times = []
-        for rate in rates.ravel():
-            spikes = np.random.poisson(rate / Hz / 1000., int(chunk / dt))
-            spike_times.append(((np.nonzero(spikes)[0] * dt + time_offset)/ms).tolist())
-        return spike_times
-
     def formation_presynaptic_neuron(self, projection, postsynaptic_index):
         potential_neurons = \
             np.nonzero(np.invert(projection.synapse_connected.reshape(self.N, self.N)[:, postsynaptic_index]))[0]
@@ -184,3 +175,23 @@ class SynaptogenesisModel(object):
         :type value: bool, Default=True
         '''
         self.recordings[name] = value
+
+    @property
+    def state(self):
+        return self.statemon
+
+    @property
+    def spike(self):
+        return self.spikemon
+
+    @property
+    def rate(self):
+        return self.ratemon
+
+    @property
+    def feedforward_projection(self):
+        return self.feedforward
+
+    @property
+    def lateral_projection(self):
+        return self.lateral

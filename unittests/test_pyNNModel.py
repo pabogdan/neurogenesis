@@ -1,0 +1,121 @@
+from unittest import TestCase
+from synaptogenesis.pynn_model import PyNNModel
+import numpy as np
+from brian2.units import *
+
+
+class TestPyNNModel(TestCase):
+    def test_simulate(self):
+        self.fail()
+
+    def test_set_spike_times(self):
+        self.fail()
+
+    def test_generate_spike_times_single_chunk_1(self):
+        '''
+        Should generate a sequence of times (floats) for spikes. This sequence *HAS* to be strictly monotonic and
+        ascending. Should generate this kind of sequence for each neuron and place all of them in a list.
+
+        '''
+        pynn_model = PyNNModel(N=1)
+        spike_times = pynn_model.generate_spike_times((0, 0))
+
+        _tst = np.asarray(spike_times)
+        self.assertEqual(_tst.shape[0], 1)
+
+        times = np.asarray(spike_times).ravel()
+        self.assertTrue(all(times[i] < times[i + 1] for i in xrange(len(times) - 1)),
+                        "Times are not ordered in a single chunk")
+
+    def test_generate_spike_times_single_chunk_256(self):
+        pynn_model = PyNNModel(N=256)
+        spike_times = pynn_model.generate_spike_times((0, 0))
+
+        _tst = np.asarray(spike_times)
+        self.assertEqual(_tst.shape[0], 256)
+        for lst in _tst:
+            self.assertTrue(len(lst) > 0)
+
+        times_array = np.asarray(spike_times)
+        for times in times_array.ravel():
+            self.assertTrue(all(times[i] < times[i + 1] for i in xrange(len(times) - 1)),
+                            "Times are not ordered in a single chunk")
+
+    def test_generate_spike_times_2_chunks_1(self):
+        pynn_model = PyNNModel(N=1)
+        spike_times = pynn_model.generate_spike_times((0, 0))
+        for value in pynn_model.generate_spike_times((0, 0), chunk=10 * ms, time_offset=20 * ms)[0]:
+            spike_times[0].append(value)
+
+        _tst = np.asarray(spike_times)
+        self.assertEqual(_tst.shape[0], 1)
+        self.assertTrue(_tst.shape[1] > 0)
+
+        times = np.asarray(spike_times).ravel()
+        self.assertTrue(all(times[i] < times[i + 1] for i in xrange(len(times) - 1)),
+                        "Times are not ordered between chunks")
+
+    def test_generate_spike_times_2_chunks_256(self):
+        pynn_model = PyNNModel(N=256)
+        spike_times = pynn_model.generate_spike_times((0, 0))
+        _temp_spikes = pynn_model.generate_spike_times((5, 5), chunk=10 * ms, time_offset=20 * ms)
+        for index, value in np.ndenumerate(_temp_spikes):
+            spike_times[index[0]].append(value)
+
+        _tst = np.asarray(spike_times)
+        self.assertEqual(_tst.shape[0], 256)
+        for lst in _tst:
+            self.assertTrue(len(lst) > 0)
+
+        times_array = np.asarray(spike_times)
+        for times in times_array.ravel():
+            self.assertTrue(all(times[i] < times[i + 1] for i in xrange(len(times) - 1)),
+                            "Times are not ordered between chunks")
+
+    def test_generate_spike_times_2_chunks_256_2(self):
+        pynn_model = PyNNModel(N=256)
+        spike_times = pynn_model.generate_spike_times((0, 0))
+        _temp_spikes = pynn_model.generate_spike_times((5, 5), chunk=10 * ms)
+        for index, value in np.ndenumerate(_temp_spikes):
+            if hasattr(value, '__iter__'):
+                for v in value:
+                    spike_times[index[0]].append(v)
+            else:
+                spike_times[index[0]].append(value)
+
+        _tst = np.asarray(spike_times)
+        self.assertEqual(_tst.shape[0], 256)
+        for lst in _tst:
+            self.assertTrue(len(lst) > 0)
+
+        times_array = np.asarray(spike_times)
+        for times in times_array.ravel():
+            self.assertTrue(all(times[i] < times[i + 1] for i in xrange(len(times) - 1)),
+                            "Times are not ordered between chunks")
+
+    def test_generate_spike_times_multiple_chunks_in_loop(self):
+        pynn_model = PyNNModel(N=256)
+        duration = 231 * ms
+        t_stim = 20 * ms
+        spike_times = [[], ] * 256
+        time_slot = 0
+        for time_slot in range(int(duration / t_stim)):
+            _temp_spikes = pynn_model.generate_spike_times(np.random.randint(0, 16, 2),
+                                                           chunk=t_stim,
+                                                           time_offset=time_slot * t_stim)
+
+            for index, value in np.ndenumerate(_temp_spikes):
+                spike_times[index[0]].append(value)
+
+        _tst = np.asarray(spike_times)
+        self.assertEqual(_tst.shape[0], 256)
+        for lst in _tst:
+            self.assertTrue(len(lst) > 0)
+            self.assertTrue(len(lst) < (200 * Hz) * duration, "Setting an upper limit to number of spikes --"
+                                                              " limit should be {}, but instead it's {}".format(
+                (200 * Hz) * duration, len(lst)))
+
+        times_array = np.asarray(spike_times)
+        for times in times_array.ravel():
+            self.assertTrue(all(times[i] < times[i + 1] for i in xrange(len(times) - 1)),
+                            "Times are not ordered between chunks")
