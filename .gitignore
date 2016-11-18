@@ -3,3 +3,13 @@
 *.npz
 
 .idea/
+
+*.pyc
+
+application_generated_data_files/*
+
+reports/*
+
+*.egg-info
+
+.cache
