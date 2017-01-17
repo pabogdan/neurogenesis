@@ -2,12 +2,12 @@ from setuptools import setup, find_packages
 
 setup(
     name='spinnaker_neurogenesis',
-    version='2016.0.1',
+    version='0.1.0',
     packages=find_packages(),
     url='pabogdan.com',
     license="GNU GPLv3.0",
     author='Petrut Antoniu Bogdan',
-    author_email='pab@cs.man.ac.uk',
+    author_email='petrut.bogdan@manchester.ac.uk',
     description='Simulating neurogenesis on SpiNNaker',
     # Requirements
     dependency_links=[],
