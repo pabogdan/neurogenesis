@@ -24,7 +24,7 @@ p.setup(timestep=1.0)
 cell_params_lif = {'cm': 0.25,
                    'i_offset': 0.0,
                    'tau_m': 20.0,
-                   'tau_refrac': 0.0,
+                   'tau_refrac': 2.0,
                    'tau_syn_E': 5.0,
                    'tau_syn_I': 5.0,
                    'v_reset': -70.0,
@@ -69,16 +69,14 @@ list_of_off_connections = []
 
 for i in range(GAME_WIDTH):
     for j in no_paddle_on_ids[:, i]:
-        if i < GAME_WIDTH // 2:
-            list_of_on_connections.append((j, 0, weight_to_spike, delay))
-        else:
-
+        if i < GAME_WIDTH // 3:
             list_of_on_connections.append((j, 1, weight_to_spike, delay))
+        elif i > (2 * GAME_WIDTH) // 3:
+            list_of_on_connections.append((j, 2, weight_to_spike, delay))
 
 for i in range(GAME_WIDTH):
     for j in no_paddle_off_ids[:, i]:
         list_of_off_connections.append((j, i, weight_to_spike, delay))
-
 
 no_paddle_on_population = p.Population(GAME_WIDTH, p.IF_curr_exp, cell_params_lif)
 no_paddle_off_population = p.Population(GAME_WIDTH, p.IF_curr_exp, cell_params_lif)
@@ -118,7 +116,7 @@ right_connections = []
 
 for i in range(GAME_WIDTH):
     if i < GAME_WIDTH // 2:
-        left_connections.append((i, 0 ,weight_to_spike, delay))
+        left_connections.append((i, 0, weight_to_spike, delay))
     else:
         right_connections.append((i, 1, weight_to_spike, delay))
 
