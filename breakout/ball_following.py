@@ -66,9 +66,14 @@ for i in range(GAME_WIDTH):
         elif i > (2 * GAME_WIDTH )// 3:
             list_of_on_connections.append((j, 2, weight_to_spike, delay))
 
+
 no_paddle_on_population = p.Population(GAME_WIDTH, p.IF_curr_exp, cell_params_lif)
 
-p.Projection(no_paddle_on_population, breakout_pop, p.FromListConnector(list_of_on_connections), label='left')
+p.Projection(breakout_pop, no_paddle_on_population, p.FromListConnector(list_of_on_connections),
+             label='Ball on x position')
+
+
+p.Projection(no_paddle_on_population, breakout_pop, p.OneToOneConnector(weight_to_spike), label='left')
 
 # Run simulation (non-blocking)
 p.run(None)
