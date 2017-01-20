@@ -21,6 +21,7 @@ UDP_PORT = 17893
 
 # Setup pyNN simulation
 p.setup(timestep=1.0)
+p.set_number_of_neurons_per_core("IF_curr_exp", 100)
 
 cell_params_lif = {'cm': 0.25,
                    'i_offset': 0.0,
@@ -53,6 +54,9 @@ visualiser = spinn_breakout.Visualiser(
     x_res=X_RESOLUTION, y_res=Y_RESOLUTION,
     x_bits=X_BITS, y_bits=Y_BITS)
 
+## YOUR CODE HERE
+
+
 ids = get_on_neuron_ids()
 
 no_paddle_on_ids = ids[0:-1, :]
@@ -61,19 +65,32 @@ list_of_on_connections = []
 
 for i in range(GAME_WIDTH):
     for j in no_paddle_on_ids[:, i]:
-        if i < GAME_WIDTH // 3:
-            list_of_on_connections.append((j, 1, weight_to_spike, delay))
-        elif i > (2 * GAME_WIDTH )// 3:
-            list_of_on_connections.append((j, 2, weight_to_spike, delay))
-
+        if i < GAME_WIDTH // 2:
+            list_of_on_connections.append((j, i, weight_to_spike, delay))
+        else:
+            list_of_on_connections.append((j, i, weight_to_spike, delay))
 
 no_paddle_on_population = p.Population(GAME_WIDTH, p.IF_curr_exp, cell_params_lif)
 
 p.Projection(breakout_pop, no_paddle_on_population, p.FromListConnector(list_of_on_connections),
              label='Ball on x position')
 
+left_right_connections = []
+for i in range(GAME_WIDTH):
+    if i < GAME_WIDTH // 2:
+        left_right_connections.append((i, 1, weight_to_spike, delay))
+    else:
+        left_right_connections.append((i, 2, weight_to_spike, delay))
 
-p.Projection(no_paddle_on_population, breakout_pop, p.OneToOneConnector(weight_to_spike), label='left')
+direction_population = p.Population(3, p.IF_curr_exp, cell_params_lif)
+
+p.Projection(no_paddle_on_population, direction_population, p.FromListConnector(left_right_connections),
+             label='left')
+
+p.Projection(direction_population, breakout_pop, p.FromListConnector(
+    [(1, 1, weight_to_spike, delay),
+     (2, 2, weight_to_spike, delay)]))
+# p.Projection(DIRECTION_FUCKING_POPULATION, breakout_pop, p.OneToOneConnector(weight_to_spike))
 
 # Run simulation (non-blocking)
 p.run(None)
