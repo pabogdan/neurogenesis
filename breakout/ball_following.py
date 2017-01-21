@@ -90,7 +90,6 @@ p.Projection(no_paddle_on_population, direction_population, p.FromListConnector(
 p.Projection(direction_population, breakout_pop, p.FromListConnector(
     [(1, 1, weight_to_spike, delay),
      (2, 2, weight_to_spike, delay)]))
-# p.Projection(DIRECTION_FUCKING_POPULATION, breakout_pop, p.OneToOneConnector(weight_to_spike))
 
 # Run simulation (non-blocking)
 p.run(None)
