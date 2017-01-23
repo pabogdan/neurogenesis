@@ -23,6 +23,7 @@ UDP_PORT = 17893
 p.setup(timestep=1.0)
 p.set_number_of_neurons_per_core("IF_curr_exp", 100)
 
+# Parameters
 cell_params_lif = {'cm': 0.25,
                    'i_offset': 0.0,
                    'tau_m': 20.0,
@@ -36,6 +37,7 @@ cell_params_lif = {'cm': 0.25,
 
 weight_to_spike = 2.
 delay = 1
+pool_size = 8
 
 # Create breakout population and activate live output for it
 breakout_pop = p.Population(1, spinn_breakout.Breakout, {}, label="breakout")
@@ -54,42 +56,68 @@ visualiser = spinn_breakout.Visualiser(
     x_res=X_RESOLUTION, y_res=Y_RESOLUTION,
     x_bits=X_BITS, y_bits=Y_BITS)
 
-## YOUR CODE HERE
-
-
-ids = get_on_neuron_ids()
-
-no_paddle_on_ids = ids[0:-1, :]
-
-list_of_on_connections = []
-
-for i in range(GAME_WIDTH):
-    for j in no_paddle_on_ids[:, i]:
-        if i < GAME_WIDTH // 2:
-            list_of_on_connections.append((j, i, weight_to_spike, delay))
-        else:
-            list_of_on_connections.append((j, i, weight_to_spike, delay))
-
-no_paddle_on_population = p.Population(GAME_WIDTH, p.IF_curr_exp, cell_params_lif)
-
-p.Projection(breakout_pop, no_paddle_on_population, p.FromListConnector(list_of_on_connections),
-             label='Ball on x position')
-
-left_right_connections = []
-for i in range(GAME_WIDTH):
-    if i < GAME_WIDTH // 2:
-        left_right_connections.append((i, 1, weight_to_spike, delay))
-    else:
-        left_right_connections.append((i, 2, weight_to_spike, delay))
-
 direction_population = p.Population(3, p.IF_curr_exp, cell_params_lif)
-
-p.Projection(no_paddle_on_population, direction_population, p.FromListConnector(left_right_connections),
-             label='left')
-
 p.Projection(direction_population, breakout_pop, p.FromListConnector(
     [(1, 1, weight_to_spike, delay),
      (2, 2, weight_to_spike, delay)]))
+
+## Code to implement https://trello.com/c/rLwRIOxq/111-hard-coded-breakout follows
+on_ids = get_on_neuron_ids()
+off_ids = get_off_neuron_ids()
+no_paddle_on_ids = on_ids[:-1, :]
+only_paddle_on_ids = on_ids[-1, :]
+only_paddle_off_ids = off_ids[-1, :]
+paddle_presence_weight = 1.
+ball_presence_weight = 1.
+
+# Create  all needed populations
+
+ball_position = p.Population(GAME_WIDTH // pool_size, p.IF_curr_exp, cell_params_lif,
+                             label="Ball position pop")
+paddle_position = p.Population(GAME_WIDTH // pool_size, p.IF_curr_exp, cell_params_lif,
+                               label="Paddle position pop")
+left_receptive_field = p.Population(GAME_WIDTH // pool_size, p.IF_curr_exp, cell_params_lif,
+                                    label="Left receptive field pop")
+right_receptive_field = p.Population(GAME_WIDTH // pool_size, p.IF_curr_exp, cell_params_lif,
+                                     label="Right receptive field pop")
+# TODO Wiring up breakout pop to ball position
+# TODO Wiring up breakout pop to paddle position rate generators (on & off neurons)
+# TODO Wiring up rate generators to paddle position pop
+
+# Wiring up paddle_position pop to L & R receptive fields
+p.Projection(paddle_position, left_receptive_field, p.OneToOneConnector(paddle_presence_weight),
+             label="Paddle -> Left connection")
+p.Projection(paddle_position, right_receptive_field, p.OneToOneConnector(paddle_presence_weight),
+             label="Paddle -> Right connection")
+
+# Wiring up ball position pop to L & R receptive fields
+left_receptive_field_connections = []
+right_receptive_field_connections = []
+for current_index in xrange(GAME_WIDTH//pool_size):
+    for left_index in xrange(current_index):
+        left_receptive_field_connections.append((left_index, current_index,
+                                                 ball_presence_weight, delay))
+    for right_index in xrange(current_index+1, GAME_WIDTH//pool_size):
+        right_receptive_field_connections.append((right_index, current_index,
+                                                 ball_presence_weight, delay))
+
+p.Projection(ball_position, left_receptive_field,
+             p.FromListConnector(left_receptive_field_connections), label="L receptive field conn")
+p.Projection(ball_position, right_receptive_field,
+             p.FromListConnector(right_receptive_field_connections), label="R receptive field conn")
+
+# Wiring up L & R receptive fields to direction controlling population
+left_direction = []
+right_direction = []
+
+for i in xrange(GAME_WIDTH//pool_size):
+    left_direction.append((i, 1, weight_to_spike, delay))
+    right_direction.append((i, 2, weight_to_spike, delay))
+
+p.Projection(left_receptive_field, direction_population, p.FromListConnector(left_direction),
+             label="Left direction conn")
+p.Projection(right_receptive_field, direction_population, p.FromListConnector(right_direction),
+             label="Right direction conn")
 
 # Run simulation (non-blocking)
 p.run(None)
@@ -97,12 +125,5 @@ p.run(None)
 # Show visualiser (blocking)
 visualiser.show()
 
-# v_p1 = p1.get_v(compatible_output=True)
-# gsyn_p1 = p1.get_gsyn(compatible_output=True)
-# spikes_p1 = p1.getSpikes(compatible_output=True)
 # End simulation
-
-# plt.plot(v_p1[:, 2])
-# plt.show()
-
 p.end()
