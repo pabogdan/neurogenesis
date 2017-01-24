@@ -39,7 +39,7 @@ weight_to_spike = 2.
 rate_weight = 1.5
 delay = 1
 rate_delay = 16
-pool_size = 8
+pool_size = 1
 
 # Create breakout population and activate live output for it
 breakout_pop = p.Population(1, spinn_breakout.Breakout, {}, label="breakout")
@@ -82,7 +82,7 @@ left_receptive_field = p.Population(GAME_WIDTH // pool_size, p.IF_curr_exp, cell
                                     label="Left receptive field pop")
 right_receptive_field = p.Population(GAME_WIDTH // pool_size, p.IF_curr_exp, cell_params_lif,
                                      label="Right receptive field pop")
-rate_generator = p.Population(GAME_WIDTH // pool_size, p.IF_curr_exp, cell_params_lif,
+rate_generator = p.Population(GAME_WIDTH, p.IF_curr_exp, cell_params_lif,
                               label="Rate generation population")
 p.Projection(rate_generator, rate_generator, p.OneToOneConnector(rate_weight, rate_delay), target='excitatory',
              label='rate_pop->rate_pop')
@@ -99,13 +99,16 @@ p.Projection(breakout_pop, ball_position, p.FromListConnector(list_of_on_connect
 paddle_on_connection = []
 paddle_off_connection = []
 for i in range(GAME_WIDTH):
-    paddle_on_connection.append((only_paddle_on_ids[i], i // pool_size, rate_weight, delay))
-    paddle_off_connection.append((only_paddle_off_ids[i], i // pool_size, rate_weight, delay))
+    paddle_on_connection.append((only_paddle_on_ids[i], i, rate_weight, delay))
+    paddle_off_connection.append((only_paddle_off_ids[i], i, rate_weight, delay))
 
 p.Projection(breakout_pop, rate_generator, p.FromListConnector(paddle_on_connection))
 p.Projection(breakout_pop, rate_generator, p.FromListConnector(paddle_off_connection), target='inhibitory')
 # TODO Wiring up rate generators to paddle position pop
-p.Projection(rate_generator, paddle_position, p.OneToOneConnector(rate_weight/2., delay), target='excitatory',
+subsampling_rate = []
+for i in range(GAME_WIDTH):
+    subsampling_rate.append((i, i // pool_size, rate_weight/8., delay))
+p.Projection(rate_generator, paddle_position, p.FromListConnector(subsampling_rate), target='excitatory',
              label='rate_pop->paddle_pop')
 
 # Wiring up paddle_position pop to L & R receptive fields
@@ -125,12 +128,18 @@ for current_index in xrange(GAME_WIDTH//pool_size):
     for right_index in xrange(current_index+1, GAME_WIDTH//pool_size):
         right_receptive_field_connections.append((right_index, current_index,
                                                  ball_presence_weight, delay))
-    aligned_field_connections.append((current_index, current_index, ball_presence_weight/2., delay))
+    aligned_field_connections.append((current_index, current_index, ball_presence_weight, delay))
+    aligned_field_connections.append((current_index, current_index, ball_presence_weight, delay))
 
 p.Projection(ball_position, left_receptive_field,
              p.FromListConnector(left_receptive_field_connections), label="L receptive field conn")
 p.Projection(ball_position, right_receptive_field,
              p.FromListConnector(right_receptive_field_connections), label="R receptive field conn")
+
+p.Projection(ball_position, left_receptive_field,
+             p.FromListConnector(aligned_field_connections), target='inhibitory', label="L receptive field inhib")
+p.Projection(ball_position, right_receptive_field,
+             p.FromListConnector(aligned_field_connections), target='inhibitory', label="R receptive field inhib")
 
 # Wiring up L & R receptive fields to direction controlling population
 left_direction = []
