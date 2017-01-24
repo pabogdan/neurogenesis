@@ -36,7 +36,7 @@ cell_params_lif = {'cm': 0.25,
                    }
 
 weight_to_spike = 2.
-paddle_weight = 1.5
+rate_weight = 1.5
 delay = 1
 rate_delay = 16
 pool_size = 8
@@ -84,7 +84,7 @@ right_receptive_field = p.Population(GAME_WIDTH // pool_size, p.IF_curr_exp, cel
                                      label="Right receptive field pop")
 rate_generator = p.Population(GAME_WIDTH // pool_size, p.IF_curr_exp, cell_params_lif,
                               label="Rate generation population")
-p.Projection(rate_generator, rate_generator, p.OneToOneConnector(paddle_weight, rate_delay), target='excitatory',
+p.Projection(rate_generator, rate_generator, p.OneToOneConnector(rate_weight, rate_delay), target='excitatory',
              label='rate_pop->rate_pop')
 # TODO Wiring up breakout pop to ball position
 list_of_on_connections = []
@@ -99,24 +99,25 @@ p.Projection(breakout_pop, ball_position, p.FromListConnector(list_of_on_connect
 paddle_on_connection = []
 paddle_off_connection = []
 for i in range(GAME_WIDTH):
-    paddle_on_connection.append((only_paddle_on_ids[i], i//pool_size, paddle_weight, delay))
-    paddle_off_connection.append((only_paddle_off_ids[i], i // pool_size, paddle_weight, delay))
+    paddle_on_connection.append((only_paddle_on_ids[i], i // pool_size, rate_weight, delay))
+    paddle_off_connection.append((only_paddle_off_ids[i], i // pool_size, rate_weight, delay))
 
 p.Projection(breakout_pop, rate_generator, p.FromListConnector(paddle_on_connection))
-p.Projection(breakout_pop, rate_generator, p.FromListConnector(paddle_off_connection))
+p.Projection(breakout_pop, rate_generator, p.FromListConnector(paddle_off_connection), target='inhibitory')
 # TODO Wiring up rate generators to paddle position pop
-p.Projection(rate_generator, paddle_position, p.OneToOneConnector(paddle_presence_weight/2., delay), target='excitatory',
+p.Projection(rate_generator, paddle_position, p.OneToOneConnector(rate_weight/2., delay), target='excitatory',
              label='rate_pop->paddle_pop')
 
 # Wiring up paddle_position pop to L & R receptive fields
-p.Projection(paddle_position, left_receptive_field, p.OneToOneConnector(paddle_presence_weight),
+p.Projection(paddle_position, left_receptive_field, p.OneToOneConnector(paddle_presence_weight, delay),
              label="Paddle -> Left connection")
-p.Projection(paddle_position, right_receptive_field, p.OneToOneConnector(paddle_presence_weight),
+p.Projection(paddle_position, right_receptive_field, p.OneToOneConnector(paddle_presence_weight, delay),
              label="Paddle -> Right connection")
 
 # Wiring up ball position pop to L & R receptive fields
 left_receptive_field_connections = []
 right_receptive_field_connections = []
+aligned_field_connections = []
 for current_index in xrange(GAME_WIDTH//pool_size):
     for left_index in xrange(current_index):
         left_receptive_field_connections.append((left_index, current_index,
@@ -124,6 +125,7 @@ for current_index in xrange(GAME_WIDTH//pool_size):
     for right_index in xrange(current_index+1, GAME_WIDTH//pool_size):
         right_receptive_field_connections.append((right_index, current_index,
                                                  ball_presence_weight, delay))
+    aligned_field_connections.append((current_index, current_index, ball_presence_weight/2., delay))
 
 p.Projection(ball_position, left_receptive_field,
              p.FromListConnector(left_receptive_field_connections), label="L receptive field conn")
