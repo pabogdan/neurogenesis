@@ -27,7 +27,7 @@ p.set_number_of_neurons_per_core("IF_curr_exp", 100)
 cell_params_lif = {'cm': 0.25,
                    'i_offset': 0.0,
                    'tau_m': 20.0,
-                   'tau_refrac': 2.0,
+                   'tau_refrac': 5.0,
                    'tau_syn_E': 5.0,
                    'tau_syn_I': 5.0,
                    'v_reset': -70.0,
@@ -36,7 +36,9 @@ cell_params_lif = {'cm': 0.25,
                    }
 
 weight_to_spike = 2.
+paddle_weight = 1.5
 delay = 1
+rate_delay = 16
 pool_size = 8
 
 # Create breakout population and activate live output for it
@@ -67,8 +69,8 @@ off_ids = get_off_neuron_ids()
 no_paddle_on_ids = on_ids[:-1, :]
 only_paddle_on_ids = on_ids[-1, :]
 only_paddle_off_ids = off_ids[-1, :]
-paddle_presence_weight = 1.
-ball_presence_weight = 1.
+paddle_presence_weight = .7
+ball_presence_weight = .7
 
 # Create  all needed populations
 
@@ -80,9 +82,31 @@ left_receptive_field = p.Population(GAME_WIDTH // pool_size, p.IF_curr_exp, cell
                                     label="Left receptive field pop")
 right_receptive_field = p.Population(GAME_WIDTH // pool_size, p.IF_curr_exp, cell_params_lif,
                                      label="Right receptive field pop")
+rate_generator = p.Population(GAME_WIDTH // pool_size, p.IF_curr_exp, cell_params_lif,
+                              label="Rate generation population")
+p.Projection(rate_generator, rate_generator, p.OneToOneConnector(paddle_weight, rate_delay), target='excitatory',
+             label='rate_pop->rate_pop')
 # TODO Wiring up breakout pop to ball position
+list_of_on_connections = []
+
+for i in range(GAME_WIDTH):
+    for j in no_paddle_on_ids[:, i]:
+        list_of_on_connections.append((j, i//pool_size, weight_to_spike, delay))
+
+p.Projection(breakout_pop, ball_position, p.FromListConnector(list_of_on_connections))
+
 # TODO Wiring up breakout pop to paddle position rate generators (on & off neurons)
+paddle_on_connection = []
+paddle_off_connection = []
+for i in range(GAME_WIDTH):
+    paddle_on_connection.append((only_paddle_on_ids[i], i//pool_size, paddle_weight, delay))
+    paddle_off_connection.append((only_paddle_off_ids[i], i // pool_size, paddle_weight, delay))
+
+p.Projection(breakout_pop, rate_generator, p.FromListConnector(paddle_on_connection))
+p.Projection(breakout_pop, rate_generator, p.FromListConnector(paddle_off_connection))
 # TODO Wiring up rate generators to paddle position pop
+p.Projection(rate_generator, paddle_position, p.OneToOneConnector(paddle_presence_weight/2., delay), target='excitatory',
+             label='rate_pop->paddle_pop')
 
 # Wiring up paddle_position pop to L & R receptive fields
 p.Projection(paddle_position, left_receptive_field, p.OneToOneConnector(paddle_presence_weight),
