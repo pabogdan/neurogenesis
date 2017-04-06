@@ -13,3 +13,5 @@ reports/*
 *.egg-info
 
 .cache
+
+*.h5
