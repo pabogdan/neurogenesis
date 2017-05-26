@@ -193,7 +193,7 @@ spike_times = [[], ] * N_layer
 
 for n_id in range(N_layer):
     for time in range(rates.shape[1]):
-        spike_times[n_id].append(poisson_generator(rates[n_id, time], time * t_stim, time * (t_stim + 1) - 1))
+        spike_times[n_id] += poisson_generator(rates[n_id, time], time * t_stim, time * (t_stim + 1) - 1)
 
 spikeArray = {'spike_times': spike_times}
 spike_source = sim.Population(N_layer, sim.SpikeSourceArray, spikeArray)
