@@ -13,8 +13,8 @@ except Exception as e:
     import spynnaker.pyNN as sim
 
 # SpiNNaker setup
-sim.setup(timestep=1.0, min_delay=1.0, max_delay=15.0)
-sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
+sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
+sim.set_number_of_neurons_per_core("IF_curr_exp", 20)
 
 
 # +-------------------------------------------------------------------+
@@ -175,10 +175,16 @@ stdp_model = sim.STDPMechanism(
 
 structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=0.0, s_max=32)
 
-plastic_projection = sim.Projection(
+ff_projection = sim.Projection(
     source_pop, target_pop, sim.FixedNumberPostConnector(32),  # TODO change to a FromListConnector
     synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-    label="plastic_projection"
+    label="plastic_ff_projection"
+)
+
+lat_projection = sim.Projection(
+    target_pop, target_pop, sim.FixedNumberPostConnector(32),  # TODO change to a FromListConnector
+    synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+    label="plastic_lat_projection"
 )
 
 # Need to setup the moving input
@@ -187,7 +193,7 @@ plastic_projection = sim.Projection(
 
 rates = np.zeros((16, 16, simtime // t_stim))
 for rate_id in range(simtime // t_stim):
-    rates[:, :, rate_id] = generate_rates(np.random.randint(0, n, size=2), grid)
+    rates[:, :, rate_id] = generate_rates(np.random.randint(0, n, size=2), grid) / 50.
 rates = rates.reshape(N_layer, simtime // t_stim)
 spike_times = [[], ] * N_layer
 
@@ -198,7 +204,10 @@ for n_id in range(N_layer):
 spikeArray = {'spike_times': spike_times}
 spike_source = sim.Population(N_layer, sim.SpikeSourceArray, spikeArray)
 
-sim.Projection(spike_source, source_pop, sim.OneToOneConnector(weights=0.1), target="excitatory",
+identity_connection = []
+for i in range(N_layer):
+    identity_connection.append((i,i,0.05,1))
+sim.Projection(spike_source, source_pop, sim.FromListConnector(identity_connection), target="excitatory",
                label="External Stimulus")
 
 # +-------------------------------------------------------------------+
@@ -216,7 +225,7 @@ source_pop.record()
 # Run simulation
 sim.run(simtime)
 
-print("Weights:", plastic_projection.getWeights())
+# print("Weights:", plastic_projection.getWeights())
 
 
 def plot_spikes(spikes, title):
@@ -235,8 +244,8 @@ def plot_spikes(spikes, title):
 pre_spikes = source_pop.getSpikes(compatible_output=True)
 post_spikes = target_pop.getSpikes(compatible_output=True)
 
-np.savez("structural_results_stdp", pre_spike=pre_spikes, post_spikes=post_spikes)
-
+np.savez("structural_results_stdp", pre_spike=pre_spikes, post_spikes=post_spikes,
+         ff_projection_w=ff_projection.getWeights())
 plot_spikes(pre_spikes, "pre-synaptic")
 plot_spikes(post_spikes, "post-synaptic")
 pylab.show()
