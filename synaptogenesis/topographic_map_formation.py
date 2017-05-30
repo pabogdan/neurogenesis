@@ -125,7 +125,7 @@ cell_params = {'cm': 0.2,
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
 # +-------------------------------------------------------------------+
-no_iterations = 10000
+no_iterations = 5000
 simtime = no_iterations
 # Wiring
 n = 16
@@ -159,47 +159,6 @@ tau_minus = 64  # ms
 # +-------------------------------------------------------------------+
 # | Initial network setup                                             |
 # +-------------------------------------------------------------------+
-
-# Neuron populations
-target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
-
-# Connections
-# Plastic Connections between pre_pop and post_pop
-stdp_model = sim.STDPMechanism(
-    timing_dependence=sim.SpikePairRule(tau_plus=20., tau_minus=64.0,
-                                        nearest=True),
-    weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=0.4,
-                                                   A_plus=0.02, A_minus=0.02)
-)
-
-structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=0.4, s_max=32)
-# structure_model_w_stdp = sim.StructuralMechanism(weight=0.2, s_max=20, grid=np.asarray([16,16]))
-
-source_pop = sim.Population(10,
-                            sim.SpikeSourcePoisson,
-                            {'rate': 20,
-                             'start': 0,
-                             'duration': simtime
-                             })
-
-# sim.Projection(poisson_pula, source_pop, sim.AllToAllConnector(.05))  # sim.FixedProbabilityConnector(.2, weights=0.1))
-
-ff_projection = sim.Projection(
-    source_pop, target_pop,
-    sim.FixedNumberPostConnector(16, weights=0.4),
-    # sim.FixedProbabilityConnector(0),  # TODO change to a FromListConnector
-    synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-    label="plastic_ff_projection"
-)
-
-lat_projection = sim.Projection(
-    target_pop, target_pop,
-    sim.FixedNumberPostConnector(16, weights=0.4),
-    # sim.FixedProbabilityConnector(0),  # TODO change to a FromListConnector
-    synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-    label="plastic_lat_projection"
-)
-
 # Need to setup the moving input
 
 # generate all rates
@@ -222,6 +181,49 @@ lat_projection = sim.Projection(
 #     identity_connection.append((i, i, 0.02, 1))
 # sim.Projection(spike_source, source_pop, sim.FromListConnector(identity_connection), target="excitatory",
 #                label="External Stimulus")
+rates = generate_rates((n//2,n//2), grid) / 100.
+source_pop = sim.Population(N_layer,
+                            sim.SpikeSourcePoisson,
+                            {'rate': rates.ravel(),
+                             'start': 0,
+                             'duration': simtime
+                             })
+
+# Neuron populations
+target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
+
+# Connections
+# Plastic Connections between pre_pop and post_pop
+stdp_model = sim.STDPMechanism(
+    timing_dependence=sim.SpikePairRule(tau_plus=20., tau_minus=64.0,
+                                        nearest=True),
+    weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=0.1,
+                                                   A_plus=0.02, A_minus=0.02)
+)
+
+structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=0.1, s_max=32)
+# structure_model_w_stdp = sim.StructuralMechanism(weight=0.2, s_max=20, grid=np.asarray([16,16]))
+
+
+
+# sim.Projection(poisson_pula, source_pop, sim.AllToAllConnector(.05))  # sim.FixedProbabilityConnector(.2, weights=0.1))
+
+ff_projection = sim.Projection(
+    source_pop, target_pop,
+    sim.FixedNumberPostConnector(16, weights=0.1),
+    # sim.FixedProbabilityConnector(0),  # TODO change to a FromListConnector
+    synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+    label="plastic_ff_projection"
+)
+
+lat_projection = sim.Projection(
+    target_pop, target_pop,
+    sim.FixedNumberPostConnector(16, weights=0.1),
+    # sim.FixedProbabilityConnector(0),  # TODO change to a FromListConnector
+    synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+    label="plastic_lat_projection"
+)
+
 
 
 
@@ -259,11 +261,25 @@ def plot_spikes(spikes, title):
 pre_spikes = source_pop.getSpikes(compatible_output=True)
 post_spikes = target_pop.getSpikes(compatible_output=True)
 
+pre_sources = np.asarray(ff_projection._get_synaptic_data(True, 'source')).T
+pre_targets = np.asarray(ff_projection._get_synaptic_data(True, 'target')).T
+pre_weights = np.asarray(ff_projection._get_synaptic_data(True, 'weight')).T
+
+dt = {'names':['source', 'target', 'weight'], 'formats':[np.int, np.int, np.float]}
+ff_proj = np.array([pre_sources, pre_targets, pre_weights], dtype=dt)
+
+
+post_sources = np.asarray(lat_projection._get_synaptic_data(True, 'source')).T
+post_targets = np.asarray(lat_projection._get_synaptic_data(True, 'target')).T
+post_weights = np.asarray(lat_projection._get_synaptic_data(True, 'weight')).T
+
+lat_proj = np.array([post_sources, post_targets, post_weights], dtype=dt)
+
 import time
 ## dd/mm/yyyy format
 suffix = time.strftime("_%H:%M:%S_%d%m%Y")
 np.savez("structural_results_stdp" + suffix, pre_spikes=pre_spikes, post_spikes=post_spikes,
-         ff_projection_w=ff_projection.getWeights(), lat_projection_w=lat_projection.getWeights())
+         ff_projection_w=ff_proj, lat_projection_w=lat_proj)
 
 # https://stackoverflow.com/questions/36809437/dynamic-marker-colour-in-matplotlib
 # pretty cool effect
