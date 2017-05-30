@@ -14,7 +14,7 @@ except Exception as e:
 
 # SpiNNaker setup
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
-sim.set_number_of_neurons_per_core("IF_curr_exp", 20)
+sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
 
 
 # +-------------------------------------------------------------------+
@@ -111,21 +111,21 @@ g_max = 0.2
 tau_m = 20  # ms
 tau_ex = 5  # ms
 
-cell_params = {'cm': 0.20,
+cell_params = {'cm': 0.2,
                'i_offset': 0.0,
                'tau_m': 20.0,
-               'tau_refrac': 0.0,
+               'tau_refrac': 5.0,
                'tau_syn_E': 5.0,
                'tau_syn_I': 5.0,
                'v_reset': -70.0,
-               'v_rest': -65.0,
+               'v_rest': -70.0,
                'v_thresh': -50.0
                }
 
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
 # +-------------------------------------------------------------------+
-no_iterations = 5000
+no_iterations = 10000
 simtime = no_iterations
 # Wiring
 n = 16
@@ -161,7 +161,6 @@ tau_minus = 64  # ms
 # +-------------------------------------------------------------------+
 
 # Neuron populations
-source_pop = sim.Population(N_layer, model, cell_params, label="SOURCE_POP")
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
 
 # Connections
@@ -169,20 +168,34 @@ target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
 stdp_model = sim.STDPMechanism(
     timing_dependence=sim.SpikePairRule(tau_plus=20., tau_minus=64.0,
                                         nearest=True),
-    weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=0.9,
+    weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=0.4,
                                                    A_plus=0.02, A_minus=0.02)
 )
 
-structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=0.0, s_max=32)
+structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=0.4, s_max=32)
+# structure_model_w_stdp = sim.StructuralMechanism(weight=0.2, s_max=20, grid=np.asarray([16,16]))
+
+source_pop = sim.Population(10,
+                            sim.SpikeSourcePoisson,
+                            {'rate': 20,
+                             'start': 0,
+                             'duration': simtime
+                             })
+
+# sim.Projection(poisson_pula, source_pop, sim.AllToAllConnector(.05))  # sim.FixedProbabilityConnector(.2, weights=0.1))
 
 ff_projection = sim.Projection(
-    source_pop, target_pop, sim.FixedNumberPostConnector(32),  # TODO change to a FromListConnector
+    source_pop, target_pop,
+    sim.FixedNumberPostConnector(16, weights=0.4),
+    # sim.FixedProbabilityConnector(0),  # TODO change to a FromListConnector
     synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
     label="plastic_ff_projection"
 )
 
 lat_projection = sim.Projection(
-    target_pop, target_pop, sim.FixedNumberPostConnector(32),  # TODO change to a FromListConnector
+    target_pop, target_pop,
+    sim.FixedNumberPostConnector(16, weights=0.4),
+    # sim.FixedProbabilityConnector(0),  # TODO change to a FromListConnector
     synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
     label="plastic_lat_projection"
 )
@@ -191,24 +204,26 @@ lat_projection = sim.Projection(
 
 # generate all rates
 
-rates = np.zeros((16, 16, simtime // t_stim))
-for rate_id in range(simtime // t_stim):
-    rates[:, :, rate_id] = generate_rates(np.random.randint(0, n, size=2), grid) / 50.
-rates = rates.reshape(N_layer, simtime // t_stim)
-spike_times = [[], ] * N_layer
+# rates = np.zeros((16, 16, simtime // t_stim))
+# for rate_id in range(simtime // t_stim):
+#     rates[:, :, rate_id] = generate_rates(np.random.randint(0, n, size=2), grid) / 500.
+# rates = rates.reshape(N_layer, simtime // t_stim)
+# spike_times = [[], ] * N_layer
+#
+# for n_id in range(N_layer):
+#     for time in range(rates.shape[1]):
+#         spike_times[n_id] += poisson_generator(rates[n_id, time], time * t_stim, time * (t_stim + 1) - 1)
+#
+# spikeArray = {'spike_times': spike_times}
+# spike_source = sim.Population(N_layer, sim.SpikeSourceArray, spikeArray)
+#
+# identity_connection = []
+# for i in range(N_layer):
+#     identity_connection.append((i, i, 0.02, 1))
+# sim.Projection(spike_source, source_pop, sim.FromListConnector(identity_connection), target="excitatory",
+#                label="External Stimulus")
 
-for n_id in range(N_layer):
-    for time in range(rates.shape[1]):
-        spike_times[n_id] += poisson_generator(rates[n_id, time], time * t_stim, time * (t_stim + 1) - 1)
 
-spikeArray = {'spike_times': spike_times}
-spike_source = sim.Population(N_layer, sim.SpikeSourceArray, spikeArray)
-
-identity_connection = []
-for i in range(N_layer):
-    identity_connection.append((i,i,0.05,1))
-sim.Projection(spike_source, source_pop, sim.FromListConnector(identity_connection), target="excitatory",
-               label="External Stimulus")
 
 # +-------------------------------------------------------------------+
 # | Simulation and results                                            |
@@ -216,14 +231,14 @@ sim.Projection(spike_source, source_pop, sim.FromListConnector(identity_connecti
 
 # Record neurons' potentials
 target_pop.record_v()
-source_pop.record_v()
 
 # Record spikes
-target_pop.record()
 source_pop.record()
+target_pop.record()
 
 # Run simulation
 sim.run(simtime)
+
 
 # print("Weights:", plastic_projection.getWeights())
 
@@ -244,9 +259,14 @@ def plot_spikes(spikes, title):
 pre_spikes = source_pop.getSpikes(compatible_output=True)
 post_spikes = target_pop.getSpikes(compatible_output=True)
 
-np.savez("structural_results_stdp", pre_spike=pre_spikes, post_spikes=post_spikes,
-         ff_projection_w=ff_projection.getWeights())
-plot_spikes(pre_spikes, "pre-synaptic")
+import time
+## dd/mm/yyyy format
+suffix = time.strftime("_%H:%M:%S_%d%m%Y")
+np.savez("structural_results_stdp" + suffix, pre_spikes=pre_spikes, post_spikes=post_spikes,
+         ff_projection_w=ff_projection.getWeights(), lat_projection_w=lat_projection.getWeights())
+
+# https://stackoverflow.com/questions/36809437/dynamic-marker-colour-in-matplotlib
+# pretty cool effect
 plot_spikes(post_spikes, "post-synaptic")
 pylab.show()
 
