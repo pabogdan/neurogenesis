@@ -15,6 +15,7 @@ except Exception as e:
 # SpiNNaker setup
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
 sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
+sim.set_number_of_neurons_per_core("IF_cond_exp", 50)
 
 
 # +-------------------------------------------------------------------+
@@ -101,7 +102,7 @@ def generate_spikes(rates):
 # +-------------------------------------------------------------------+
 
 # Population parameters
-model = sim.IF_curr_exp
+model = sim.IF_cond_exp
 
 # Membrane
 v_rest = -70  # mV
@@ -111,15 +112,17 @@ g_max = 0.2
 tau_m = 20  # ms
 tau_ex = 5  # ms
 
-cell_params = {'cm': 0.2,
+cell_params = {'cm': 0.25,
                'i_offset': 0.0,
                'tau_m': 20.0,
-               'tau_refrac': 5.0,
+               'tau_refrac': 2.0,
                'tau_syn_E': 5.0,
                'tau_syn_I': 5.0,
                'v_reset': -70.0,
                'v_rest': -70.0,
-               'v_thresh': -50.0
+               'v_thresh': -50.0,
+               'e_rev_E': 0.,
+               'e_rev_I': -80.
                }
 
 # +-------------------------------------------------------------------+
@@ -261,23 +264,22 @@ def plot_spikes(spikes, title):
 pre_spikes = source_pop.getSpikes(compatible_output=True)
 post_spikes = target_pop.getSpikes(compatible_output=True)
 
-pre_sources = np.asarray(ff_projection._get_synaptic_data(True, 'source')).T
-pre_targets = np.asarray(ff_projection._get_synaptic_data(True, 'target')).T
-pre_weights = np.asarray(ff_projection._get_synaptic_data(True, 'weight')).T
+pre_sources = np.asarray([ff_projection._get_synaptic_data(True, 'source')]).T
+pre_targets = np.asarray([ff_projection._get_synaptic_data(True, 'target')]).T
+pre_weights = np.asarray([ff_projection._get_synaptic_data(True, 'weight')]).T
 
-dt = {'names':['source', 'target', 'weight'], 'formats':[np.int, np.int, np.float]}
-ff_proj = np.array([pre_sources, pre_targets, pre_weights], dtype=dt)
+ff_proj = np.concatenate((pre_sources, pre_targets, pre_weights), axis=1)
 
 
-post_sources = np.asarray(lat_projection._get_synaptic_data(True, 'source')).T
-post_targets = np.asarray(lat_projection._get_synaptic_data(True, 'target')).T
-post_weights = np.asarray(lat_projection._get_synaptic_data(True, 'weight')).T
+post_sources = np.asarray([lat_projection._get_synaptic_data(True, 'source')]).T
+post_targets = np.asarray([lat_projection._get_synaptic_data(True, 'target')]).T
+post_weights = np.asarray([lat_projection._get_synaptic_data(True, 'weight')]).T
 
-lat_proj = np.array([post_sources, post_targets, post_weights], dtype=dt)
+lat_proj = np.concatenate((post_sources, post_targets, post_weights), axis=1)
 
 import time
 ## dd/mm/yyyy format
-suffix = time.strftime("_%H:%M:%S_%d%m%Y")
+suffix = time.strftime("_%H%M%S_%d%m%Y")
 np.savez("structural_results_stdp" + suffix, pre_spikes=pre_spikes, post_spikes=post_spikes,
          ff_projection_w=ff_proj, lat_projection_w=lat_proj)
 
