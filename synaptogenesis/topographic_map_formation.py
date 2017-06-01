@@ -112,7 +112,7 @@ g_max = 0.2
 tau_m = 20  # ms
 tau_ex = 5  # ms
 
-cell_params = {'cm': 0.25,
+cell_params = {'cm': 20.0,  # nF
                'i_offset': 0.0,
                'tau_m': 20.0,
                'tau_refrac': 2.0,
@@ -128,7 +128,7 @@ cell_params = {'cm': 0.25,
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
 # +-------------------------------------------------------------------+
-no_iterations = 5000
+no_iterations = 30000
 simtime = no_iterations
 # Wiring
 n = 16
@@ -156,8 +156,9 @@ t_stim = 20  # ms
 # STDP
 a_plus = 0.1
 b = 1.2
-tau_plus = 20  # ms
-tau_minus = 64  # ms
+tau_plus = 20.  # ms
+tau_minus = 64.  # ms
+a_minus = (a_plus * tau_plus * b) / tau_minus
 
 # +-------------------------------------------------------------------+
 # | Initial network setup                                             |
@@ -184,7 +185,7 @@ tau_minus = 64  # ms
 #     identity_connection.append((i, i, 0.02, 1))
 # sim.Projection(spike_source, source_pop, sim.FromListConnector(identity_connection), target="excitatory",
 #                label="External Stimulus")
-rates = generate_rates((n//2,n//2), grid) / 100.
+rates = generate_rates((n // 2, n // 2), grid) / 100.
 source_pop = sim.Population(N_layer,
                             sim.SpikeSourcePoisson,
                             {'rate': rates.ravel(),
@@ -198,13 +199,14 @@ target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
 # Connections
 # Plastic Connections between pre_pop and post_pop
 stdp_model = sim.STDPMechanism(
-    timing_dependence=sim.SpikePairRule(tau_plus=20., tau_minus=64.0,
+    timing_dependence=sim.SpikePairRule(tau_plus=tau_plus, tau_minus=tau_minus,
                                         nearest=True),
-    weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=0.1,
-                                                   A_plus=0.02, A_minus=0.02)
+    weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=0.2,
+                                                   # A_plus=0.02, A_minus=0.02
+                                                   A_plus=a_plus, A_minus=a_minus)
 )
 
-structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=0.1, s_max=32)
+structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=0.2, s_max=20)
 # structure_model_w_stdp = sim.StructuralMechanism(weight=0.2, s_max=20, grid=np.asarray([16,16]))
 
 
@@ -213,7 +215,7 @@ structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=0
 
 ff_projection = sim.Projection(
     source_pop, target_pop,
-    sim.FixedNumberPostConnector(16, weights=0.1),
+    sim.FixedNumberPostConnector(16, weights=0.2),
     # sim.FixedProbabilityConnector(0),  # TODO change to a FromListConnector
     synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
     label="plastic_ff_projection"
@@ -221,21 +223,18 @@ ff_projection = sim.Projection(
 
 lat_projection = sim.Projection(
     target_pop, target_pop,
-    sim.FixedNumberPostConnector(16, weights=0.1),
+    sim.FixedNumberPostConnector(16, weights=0.2),
     # sim.FixedProbabilityConnector(0),  # TODO change to a FromListConnector
     synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
     label="plastic_lat_projection"
 )
-
-
-
 
 # +-------------------------------------------------------------------+
 # | Simulation and results                                            |
 # +-------------------------------------------------------------------+
 
 # Record neurons' potentials
-target_pop.record_v()
+# target_pop.record_v()
 
 # Record spikes
 source_pop.record()
@@ -270,7 +269,6 @@ pre_weights = np.asarray([ff_projection._get_synaptic_data(True, 'weight')]).T
 
 ff_proj = np.concatenate((pre_sources, pre_targets, pre_weights), axis=1)
 
-
 post_sources = np.asarray([lat_projection._get_synaptic_data(True, 'source')]).T
 post_targets = np.asarray([lat_projection._get_synaptic_data(True, 'target')]).T
 post_weights = np.asarray([lat_projection._get_synaptic_data(True, 'weight')]).T
@@ -278,14 +276,14 @@ post_weights = np.asarray([lat_projection._get_synaptic_data(True, 'weight')]).T
 lat_proj = np.concatenate((post_sources, post_targets, post_weights), axis=1)
 
 import time
-## dd/mm/yyyy format
+
 suffix = time.strftime("_%H%M%S_%d%m%Y")
 np.savez("structural_results_stdp" + suffix, pre_spikes=pre_spikes, post_spikes=post_spikes,
-         ff_projection_w=ff_proj, lat_projection_w=lat_proj)
+         ff_projection_w=ff_proj, lat_projection_w=lat_proj, simtime=simtime)
 
 # https://stackoverflow.com/questions/36809437/dynamic-marker-colour-in-matplotlib
 # pretty cool effect
-plot_spikes(post_spikes, "post-synaptic")
+plot_spikes(post_spikes, "Target layer spikes")
 pylab.show()
 
 # End simulation on SpiNNaker
