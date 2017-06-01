@@ -24,7 +24,7 @@ sim.set_number_of_neurons_per_core("IF_cond_exp", 50)
 
 # Periodic boundaries
 # https://github.com/pabogdan/neurogenesis/blob/master/notebooks/neurogenesis-in-numbers/Periodic%20boundaries.ipynb
-def distance(x0, x1, grid, type='euclidian'):
+def distance(x0, x1, grid=np.asarray([16, 16]), type='euclidian'):
     x0 = np.asarray(x0)
     x1 = np.asarray(x1)
     delta = np.abs(x0 - x1)
@@ -97,6 +97,15 @@ def generate_spikes(rates):
     return spikes
 
 
+def formation_rule(potential_pre, post, sigma, p_form):
+    d = distance(potential_pre, post)
+    r = np.random.rand()
+    p = p_form * (np.e ** (-(d ** 2 / (2 * (sigma ** 2)))))
+    if r < p:
+        return True
+    return False
+
+
 # +-------------------------------------------------------------------+
 # | General Parameters                                                |
 # +-------------------------------------------------------------------+
@@ -135,9 +144,10 @@ n = 16
 N_layer = n ** 2
 S = (n, n)
 grid = np.asarray(S)
+g_max = 0.3
 
 s = (n // 2, n // 2)
-s_max = 32
+s_max = 16
 sigma_form_forward = 2.5
 sigma_form_lateral = 1
 p_form_lateral = 1
@@ -185,13 +195,50 @@ a_minus = (a_plus * tau_plus * b) / tau_minus
 #     identity_connection.append((i, i, 0.02, 1))
 # sim.Projection(spike_source, source_pop, sim.FromListConnector(identity_connection), target="excitatory",
 #                label="External Stimulus")
-rates = generate_rates((n // 2, n // 2), grid) / 100.
+rates = generate_rates((n // 2, n // 2), grid) / 50.
 source_pop = sim.Population(N_layer,
                             sim.SpikeSourcePoisson,
                             {'rate': rates.ravel(),
                              'start': 0,
                              'duration': simtime
                              })
+
+
+# Initial connectivity
+
+def generate_initial_connectivity(s, existing_pre, connections, sigma, p):
+    print "|", 256 // 4 * "-", "|"
+    print "|",
+    for postsynaptic_neuron_index in range(N_layer):
+        if postsynaptic_neuron_index % 8 == 0:
+            print "=",
+        post = (postsynaptic_neuron_index // n, postsynaptic_neuron_index % n)
+        while s[postsynaptic_neuron_index] < s_max:
+            potential_pre_index = np.random.randint(0, N_layer)
+            pre = (potential_pre_index // n, potential_pre_index % n)
+            if potential_pre_index not in existing_pre[postsynaptic_neuron_index]:
+                if formation_rule(pre, post, sigma, p):
+                    s[postsynaptic_neuron_index] += 1
+                    existing_pre[postsynaptic_neuron_index].append(potential_pre_index)
+                    connections.append((potential_pre_index, postsynaptic_neuron_index, g_max, 1))
+    print " |"
+
+
+ff_s = np.zeros(N_layer)
+lat_s = np.zeros(N_layer)
+
+existing_pre_ff = []
+existing_pre_lat = []
+for _ in range(N_layer):
+    existing_pre_ff.append([])
+    existing_pre_lat.append([])
+
+init_ff_connections = []
+init_lat_connections = []
+print "| Generating initial feedforward connectivity..."
+generate_initial_connectivity(ff_s, existing_pre_ff, init_ff_connections, sigma_form_forward, p_form_forward)
+print "| Generating initial lateral     connectivity..."
+generate_initial_connectivity(lat_s, existing_pre_lat, init_lat_connections, sigma_form_lateral, p_form_lateral)
 
 # Neuron populations
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
@@ -201,12 +248,12 @@ target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
 stdp_model = sim.STDPMechanism(
     timing_dependence=sim.SpikePairRule(tau_plus=tau_plus, tau_minus=tau_minus,
                                         nearest=True),
-    weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=0.2,
+    weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=0.3,
                                                    # A_plus=0.02, A_minus=0.02
                                                    A_plus=a_plus, A_minus=a_minus)
 )
 
-structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=0.2, s_max=20)
+structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=0.3, s_max=s_max)
 # structure_model_w_stdp = sim.StructuralMechanism(weight=0.2, s_max=20, grid=np.asarray([16,16]))
 
 
@@ -215,7 +262,8 @@ structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=0
 
 ff_projection = sim.Projection(
     source_pop, target_pop,
-    sim.FixedNumberPostConnector(16, weights=0.2),
+    sim.FromListConnector(init_ff_connections),
+    # sim.FixedNumberPreConnector(16, weights=0.2),
     # sim.FixedProbabilityConnector(0),  # TODO change to a FromListConnector
     synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
     label="plastic_ff_projection"
@@ -223,7 +271,8 @@ ff_projection = sim.Projection(
 
 lat_projection = sim.Projection(
     target_pop, target_pop,
-    sim.FixedNumberPostConnector(16, weights=0.2),
+    sim.FromListConnector(init_lat_connections),
+    # sim.FixedNumberPreConnector(16, weights=0.2),
     # sim.FixedProbabilityConnector(0),  # TODO change to a FromListConnector
     synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
     label="plastic_lat_projection"
@@ -266,14 +315,18 @@ post_spikes = target_pop.getSpikes(compatible_output=True)
 pre_sources = np.asarray([ff_projection._get_synaptic_data(True, 'source')]).T
 pre_targets = np.asarray([ff_projection._get_synaptic_data(True, 'target')]).T
 pre_weights = np.asarray([ff_projection._get_synaptic_data(True, 'weight')]).T
+# sanity check
+pre_delays = np.asarray([ff_projection._get_synaptic_data(True, 'delay')]).T
 
-ff_proj = np.concatenate((pre_sources, pre_targets, pre_weights), axis=1)
+ff_proj = np.concatenate((pre_sources, pre_targets, pre_weights, pre_delays), axis=1)
 
 post_sources = np.asarray([lat_projection._get_synaptic_data(True, 'source')]).T
 post_targets = np.asarray([lat_projection._get_synaptic_data(True, 'target')]).T
 post_weights = np.asarray([lat_projection._get_synaptic_data(True, 'weight')]).T
+# sanity check
+post_delays = np.asarray([lat_projection._get_synaptic_data(True, 'delay')]).T
 
-lat_proj = np.concatenate((post_sources, post_targets, post_weights), axis=1)
+lat_proj = np.concatenate((post_sources, post_targets, post_weights, post_delays), axis=1)
 
 import time
 
@@ -286,5 +339,43 @@ np.savez("structural_results_stdp" + suffix, pre_spikes=pre_spikes, post_spikes=
 plot_spikes(post_spikes, "Target layer spikes")
 pylab.show()
 
+connectivity_matrix = np.zeros((256, 256))
+for source, target, weight, delay in ff_proj:
+    assert delay == 1
+    connectivity_matrix[int(source), int(target)] = weight
+lat_connectivity_matrix = np.zeros((256, 256))
+for source, target, weight, delay in lat_proj:
+    assert delay == 1
+    lat_connectivity_matrix[int(source), int(target)] = weight
+
+init_ff_conn_network = np.zeros((256, 256))
+init_lat_conn_network = np.zeros((256, 256))
+for source, target, weight, delay in init_ff_connections:
+    init_ff_conn_network[int(source), int(target)] = weight
+for source, target, weight, delay in init_lat_connections:
+    init_lat_conn_network[int(source), int(target)] = weight
+
+f, (ax1, ax2) = pylab.subplots(1, 2, figsize=(16, 8))
+i = ax1.matshow(connectivity_matrix)
+i2 = ax2.matshow(lat_connectivity_matrix)
+ax1.grid(visible=False)
+ax1.set_title("Feedforward connectivity matrix", fontsize=16)
+ax2.set_title("Lateral connectivity matrix", fontsize=16)
+cbar_ax = f.add_axes([.91, 0.155, 0.025, 0.72])
+cbar = f.colorbar(i2, cax=cbar_ax)
+cbar.set_label("Synaptic conductance - $G_{syn}$", fontsize=16)
+pylab.show()
+
+
+f, (ax1, ax2) = pylab.subplots(1, 2, figsize=(16, 8))
+i = ax1.matshow(connectivity_matrix - init_ff_conn_network)
+i2 = ax2.matshow(lat_connectivity_matrix - init_lat_conn_network)
+ax1.grid(visible=False)
+ax1.set_title("Diff- Feedforward connectivity matrix", fontsize=16)
+ax2.set_title("Diff- Lateral connectivity matrix", fontsize=16)
+cbar_ax = f.add_axes([.91, 0.155, 0.025, 0.72])
+cbar = f.colorbar(i2, cax=cbar_ax)
+cbar.set_label("Synaptic conductance - $G_{syn}$", fontsize=16)
+pylab.show()
 # End simulation on SpiNNaker
 sim.end()
