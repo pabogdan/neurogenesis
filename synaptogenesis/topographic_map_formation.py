@@ -137,14 +137,14 @@ cell_params = {'cm': 20.0,  # nF
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
 # +-------------------------------------------------------------------+
-no_iterations = 30000
+no_iterations = 10000
 simtime = no_iterations
 # Wiring
 n = 16
 N_layer = n ** 2
 S = (n, n)
 grid = np.asarray(S)
-g_max = 0.3
+g_max = 0.2
 
 s = (n // 2, n // 2)
 s_max = 16
@@ -159,7 +159,7 @@ f_rew = 10 ** 4  # Hz
 # Inputs
 f_mean = 20  # Hz
 f_base = 5  # Hz
-f_peak = 152.8  # Hz
+f_peak = 20 #152.8  # Hz
 sigma_stim = 2
 t_stim = 20  # ms
 
@@ -195,7 +195,7 @@ a_minus = (a_plus * tau_plus * b) / tau_minus
 #     identity_connection.append((i, i, 0.02, 1))
 # sim.Projection(spike_source, source_pop, sim.FromListConnector(identity_connection), target="excitatory",
 #                label="External Stimulus")
-rates = generate_rates((n // 2, n // 2), grid) / 50.
+rates = generate_rates((n // 2, n // 2), grid)
 source_pop = sim.Population(N_layer,
                             sim.SpikeSourcePoisson,
                             {'rate': rates.ravel(),
@@ -248,12 +248,12 @@ target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
 stdp_model = sim.STDPMechanism(
     timing_dependence=sim.SpikePairRule(tau_plus=tau_plus, tau_minus=tau_minus,
                                         nearest=True),
-    weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=0.3,
+    weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=g_max,
                                                    # A_plus=0.02, A_minus=0.02
                                                    A_plus=a_plus, A_minus=a_minus)
 )
 
-structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=0.3, s_max=s_max)
+structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=g_max, s_max=s_max)
 # structure_model_w_stdp = sim.StructuralMechanism(weight=0.2, s_max=20, grid=np.asarray([16,16]))
 
 
