@@ -182,7 +182,7 @@ f_mean = 5  # Hz
 f_base = 5  # Hz
 f_peak = 5 #152.8  # Hz
 sigma_stim = 3#2
-t_stim = 20  # ms
+t_stim = 1000 #20  # ms
 
 # STDP
 a_plus = 0.1
@@ -294,8 +294,16 @@ source_pop.record()
 target_pop.record()
 
 # Run simulation
-sim.run(simtime)
-
+for run in range(simtime//t_stim):
+    rates = generate_rates(np.random.randint(0, 16, size=2), grid)
+    source_pop = sim.Population(N_layer,
+                                sim.SpikeSourcePoisson,
+                                {'rate': rates.ravel(),
+                                 'start': run * t_stim,
+                                 'duration': (run + 1)* t_stim
+                                 }, label="Poisson spike source")
+    sim.run(t_stim)
+# sim.run(simtime)
 
 # print("Weights:", plastic_projection.getWeights())
 
