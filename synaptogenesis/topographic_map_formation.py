@@ -7,6 +7,8 @@ http://hdl.handle.net/1842/3997
 import numpy as np
 import pylab
 
+from pacman.model.constraints.placer_constraints.placer_chip_and_core_constraint import PlacerChipAndCoreConstraint
+
 try:
     import pyNN.spiNNaker as sim
 except Exception as e:
@@ -15,7 +17,8 @@ except Exception as e:
 # SpiNNaker setup
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
 sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
-sim.set_number_of_neurons_per_core("IF_cond_exp", 50)
+sim.set_number_of_neurons_per_core("IF_cond_exp", 25)
+sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 100)
 
 
 # +-------------------------------------------------------------------+
@@ -83,7 +86,7 @@ def generate_rates(s, grid):
     for x in range(grid[0]):
         for y in range(grid[1]):
             _d = distance(s, (x, y), grid)
-            _rates[x, y] = f_base + f_peak * np.e ** (-_d / ((2 * sigma_stim) ** 2))
+            _rates[x, y] = f_base + f_peak * np.e ** (-_d / (2 * (sigma_stim ** 2)))
     return _rates
 
 
@@ -105,6 +108,24 @@ def formation_rule(potential_pre, post, sigma, p_form):
         return True
     return False
 
+# Initial connectivity
+
+def generate_initial_connectivity(s, existing_pre, connections, sigma, p):
+    print "|", 256 // 4 * "-", "|"
+    print "|",
+    for postsynaptic_neuron_index in range(N_layer):
+        if postsynaptic_neuron_index % 8 == 0:
+            print "=",
+        post = (postsynaptic_neuron_index // n, postsynaptic_neuron_index % n)
+        while s[postsynaptic_neuron_index] < s_max:
+            potential_pre_index = np.random.randint(0, N_layer)
+            pre = (potential_pre_index // n, potential_pre_index % n)
+            if potential_pre_index not in existing_pre[postsynaptic_neuron_index]:
+                if formation_rule(pre, post, sigma, p):
+                    s[postsynaptic_neuron_index] += 1
+                    existing_pre[postsynaptic_neuron_index].append(potential_pre_index)
+                    connections.append((potential_pre_index, postsynaptic_neuron_index, g_max, 1))
+    print " |"
 
 # +-------------------------------------------------------------------+
 # | General Parameters                                                |
@@ -124,7 +145,7 @@ tau_ex = 5  # ms
 cell_params = {'cm': 20.0,  # nF
                'i_offset': 0.0,
                'tau_m': 20.0,
-               'tau_refrac': 2.0,
+               'tau_refrac': 5.0,
                'tau_syn_E': 5.0,
                'tau_syn_I': 5.0,
                'v_reset': -70.0,
@@ -137,7 +158,7 @@ cell_params = {'cm': 20.0,  # nF
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
 # +-------------------------------------------------------------------+
-no_iterations = 10000
+no_iterations = 60000
 simtime = no_iterations
 # Wiring
 n = 16
@@ -157,10 +178,10 @@ p_elim_pot = 1.36 * np.e ** -4
 f_rew = 10 ** 4  # Hz
 
 # Inputs
-f_mean = 20  # Hz
+f_mean = 5  # Hz
 f_base = 5  # Hz
-f_peak = 20 #152.8  # Hz
-sigma_stim = 2
+f_peak = 5 #152.8  # Hz
+sigma_stim = 3#2
 t_stim = 20  # ms
 
 # STDP
@@ -201,27 +222,10 @@ source_pop = sim.Population(N_layer,
                             {'rate': rates.ravel(),
                              'start': 0,
                              'duration': simtime
-                             })
+                             }, label="Poisson spike source")
 
 
-# Initial connectivity
 
-def generate_initial_connectivity(s, existing_pre, connections, sigma, p):
-    print "|", 256 // 4 * "-", "|"
-    print "|",
-    for postsynaptic_neuron_index in range(N_layer):
-        if postsynaptic_neuron_index % 8 == 0:
-            print "=",
-        post = (postsynaptic_neuron_index // n, postsynaptic_neuron_index % n)
-        while s[postsynaptic_neuron_index] < s_max:
-            potential_pre_index = np.random.randint(0, N_layer)
-            pre = (potential_pre_index // n, potential_pre_index % n)
-            if potential_pre_index not in existing_pre[postsynaptic_neuron_index]:
-                if formation_rule(pre, post, sigma, p):
-                    s[postsynaptic_neuron_index] += 1
-                    existing_pre[postsynaptic_neuron_index].append(potential_pre_index)
-                    connections.append((potential_pre_index, postsynaptic_neuron_index, g_max, 1))
-    print " |"
 
 
 ff_s = np.zeros(N_layer)
@@ -242,7 +246,7 @@ generate_initial_connectivity(lat_s, existing_pre_lat, init_lat_connections, sig
 
 # Neuron populations
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
-
+target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
 # Connections
 # Plastic Connections between pre_pop and post_pop
 stdp_model = sim.STDPMechanism(
@@ -271,10 +275,10 @@ ff_projection = sim.Projection(
 
 lat_projection = sim.Projection(
     target_pop, target_pop,
-    sim.FromListConnector(init_lat_connections),
+    # sim.FromListConnector(init_lat_connections),
     # sim.FixedNumberPreConnector(16, weights=0.2),
-    # sim.FixedProbabilityConnector(0),  # TODO change to a FromListConnector
-    synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+    sim.FixedProbabilityConnector(0.3, weights=0),  # TODO change to a FromListConnector
+    # synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
     label="plastic_lat_projection"
 )
 
