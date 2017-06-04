@@ -294,16 +294,16 @@ source_pop.record()
 target_pop.record()
 
 # Run simulation
-for run in range(simtime//t_stim):
-    rates = generate_rates(np.random.randint(0, 16, size=2), grid)
-    source_pop = sim.Population(N_layer,
-                                sim.SpikeSourcePoisson,
-                                {'rate': rates.ravel(),
-                                 'start': run * t_stim,
-                                 'duration': (run + 1)* t_stim
-                                 }, label="Poisson spike source")
-    sim.run(t_stim)
-# sim.run(simtime)
+# for run in range(simtime//t_stim):
+#     rates = generate_rates(np.random.randint(0, 16, size=2), grid)
+#     source_pop = sim.Population(N_layer,
+#                                 sim.SpikeSourcePoisson,
+#                                 {'rate': rates.ravel(),
+#                                  'start': run * t_stim,
+#                                  'duration': (run + 1)* t_stim
+#                                  }, label="Poisson spike source")
+#     sim.run(t_stim)
+sim.run(simtime)
 
 # print("Weights:", plastic_projection.getWeights())
 
