@@ -9,10 +9,7 @@ import pylab
 
 from pacman.model.constraints.placer_constraints.placer_chip_and_core_constraint import PlacerChipAndCoreConstraint
 
-try:
-    import pyNN.spiNNaker as sim
-except Exception as e:
-    import spynnaker.pyNN as sim
+import spynnaker7.pyNN as sim
 
 # SpiNNaker setup
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
@@ -250,19 +247,14 @@ target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
 # Connections
 # Plastic Connections between pre_pop and post_pop
 stdp_model = sim.STDPMechanism(
-    timing_dependence=sim.SpikePairRule(tau_plus=tau_plus, tau_minus=tau_minus,
-                                        nearest=True),
+    timing_dependence=sim.SpikePairRule(tau_plus=tau_plus, tau_minus=tau_minus),
     weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=g_max,
                                                    # A_plus=0.02, A_minus=0.02
                                                    A_plus=a_plus, A_minus=a_minus)
 )
 
-structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=g_max, s_max=s_max)
-# structure_model_w_stdp = sim.StructuralMechanism(weight=0.2, s_max=20, grid=np.asarray([16,16]))
-
-
-
-# sim.Projection(poisson_pula, source_pop, sim.AllToAllConnector(.05))  # sim.FixedProbabilityConnector(.2, weights=0.1))
+# structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=g_max, s_max=s_max)
+structure_model_w_stdp = sim.StructuralMechanism(weight=g_max, s_max=s_max)
 
 ff_projection = sim.Projection(
     source_pop, target_pop,
@@ -294,16 +286,16 @@ source_pop.record()
 target_pop.record()
 
 # Run simulation
-for run in range(simtime//t_stim):
-    rates = generate_rates(np.random.randint(0, 16, size=2), grid)
-    source_pop = sim.Population(N_layer,
-                                sim.SpikeSourcePoisson,
-                                {'rate': rates.ravel(),
-                                 'start': run * t_stim,
-                                 'duration': (run + 1)* t_stim
-                                 }, label="Poisson spike source")
-    sim.run(t_stim)
-# sim.run(simtime)
+# for run in range(simtime//t_stim):
+#     rates = generate_rates(np.random.randint(0, 16, size=2), grid)
+#     source_pop = sim.Population(N_layer,
+#                                 sim.SpikeSourcePoisson,
+#                                 {'rate': rates.ravel(),
+#                                  'start': run * t_stim,
+#                                  'duration': (run + 1)* t_stim
+#                                  }, label="Poisson spike source")
+#     sim.run(t_stim)
+sim.run(simtime)
 
 # print("Weights:", plastic_projection.getWeights())
 
