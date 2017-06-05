@@ -195,24 +195,6 @@ a_minus = (a_plus * tau_plus * b) / tau_minus
 
 # generate all rates
 
-# rates = np.zeros((16, 16, simtime // t_stim))
-# for rate_id in range(simtime // t_stim):
-#     rates[:, :, rate_id] = generate_rates(np.random.randint(0, n, size=2), grid) / 500.
-# rates = rates.reshape(N_layer, simtime // t_stim)
-# spike_times = [[], ] * N_layer
-#
-# for n_id in range(N_layer):
-#     for time in range(rates.shape[1]):
-#         spike_times[n_id] += poisson_generator(rates[n_id, time], time * t_stim, time * (t_stim + 1) - 1)
-#
-# spikeArray = {'spike_times': spike_times}
-# spike_source = sim.Population(N_layer, sim.SpikeSourceArray, spikeArray)
-#
-# identity_connection = []
-# for i in range(N_layer):
-#     identity_connection.append((i, i, 0.02, 1))
-# sim.Projection(spike_source, source_pop, sim.FromListConnector(identity_connection), target="excitatory",
-#                label="External Stimulus")
 rates = generate_rates((n // 2, n // 2), grid)
 source_pop = sim.Population(N_layer,
                             sim.SpikeSourcePoisson,
@@ -253,8 +235,8 @@ stdp_model = sim.STDPMechanism(
                                                    A_plus=a_plus, A_minus=a_minus)
 )
 
-# structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=g_max, s_max=s_max)
-structure_model_w_stdp = sim.StructuralMechanism(weight=g_max, s_max=s_max)
+structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=g_max, s_max=s_max)
+# structure_model_w_stdp = sim.StructuralMechanism(weight=g_max, s_max=s_max)
 
 ff_projection = sim.Projection(
     source_pop, target_pop,
