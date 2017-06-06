@@ -15,7 +15,7 @@ import spynnaker7.pyNN as sim
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
 sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
 sim.set_number_of_neurons_per_core("IF_cond_exp", 25)
-sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 100)
+sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 300)
 
 
 # +-------------------------------------------------------------------+
@@ -105,6 +105,7 @@ def formation_rule(potential_pre, post, sigma, p_form):
         return True
     return False
 
+
 # Initial connectivity
 
 def generate_initial_connectivity(s, existing_pre, connections, sigma, p):
@@ -123,6 +124,7 @@ def generate_initial_connectivity(s, existing_pre, connections, sigma, p):
                     existing_pre[postsynaptic_neuron_index].append(potential_pre_index)
                     connections.append((potential_pre_index, postsynaptic_neuron_index, g_max, 1))
     print " |"
+
 
 # +-------------------------------------------------------------------+
 # | General Parameters                                                |
@@ -177,9 +179,9 @@ f_rew = 10 ** 4  # Hz
 # Inputs
 f_mean = 5  # Hz
 f_base = 5  # Hz
-f_peak = 5 #152.8  # Hz
-sigma_stim = 3#2
-t_stim = 1000 #20  # ms
+f_peak = 5  # 152.8  # Hz
+sigma_stim = 3  # 2
+t_stim = 1000  # 20  # ms
 
 # STDP
 a_plus = 0.1
@@ -200,12 +202,8 @@ source_pop = sim.Population(N_layer,
                             sim.SpikeSourcePoisson,
                             {'rate': rates.ravel(),
                              'start': 0,
-                             'duration': simtime
+                             'duration': t_stim
                              }, label="Poisson spike source")
-
-
-
-
 
 ff_s = np.zeros(N_layer)
 lat_s = np.zeros(N_layer)
@@ -268,16 +266,15 @@ source_pop.record()
 target_pop.record()
 
 # Run simulation
-# for run in range(simtime//t_stim):
-#     rates = generate_rates(np.random.randint(0, 16, size=2), grid)
-#     source_pop = sim.Population(N_layer,
-#                                 sim.SpikeSourcePoisson,
-#                                 {'rate': rates.ravel(),
-#                                  'start': run * t_stim,
-#                                  'duration': (run + 1)* t_stim
-#                                  }, label="Poisson spike source")
-#     sim.run(t_stim)
-sim.run(simtime)
+for run in range(simtime // t_stim):
+    sim.run(t_stim)
+    rates = generate_rates(np.random.randint(0, 16, size=2), grid)
+    source_pop.set("rate", rates.ravel())
+    source_pop.set('start', run * (simtime // t_stim))
+    source_pop.set('duration', t_stim)
+
+
+# sim.run(simtime)
 
 # print("Weights:", plastic_projection.getWeights())
 
@@ -351,7 +348,6 @@ cbar_ax = f.add_axes([.91, 0.155, 0.025, 0.72])
 cbar = f.colorbar(i2, cax=cbar_ax)
 cbar.set_label("Synaptic conductance - $G_{syn}$", fontsize=16)
 pylab.show()
-
 
 f, (ax1, ax2) = pylab.subplots(1, 2, figsize=(16, 8))
 i = ax1.matshow(connectivity_matrix - init_ff_conn_network)
