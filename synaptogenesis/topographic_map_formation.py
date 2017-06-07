@@ -202,7 +202,7 @@ source_pop = sim.Population(N_layer,
                             sim.SpikeSourcePoisson,
                             {'rate': rates.ravel(),
                              'start': 0,
-                             'duration': t_stim
+                             'duration': simtime
                              }, label="Poisson spike source")
 
 ff_s = np.zeros(N_layer)
@@ -247,7 +247,7 @@ ff_projection = sim.Projection(
 
 lat_projection = sim.Projection(
     target_pop, target_pop,
-    # sim.FromListConnector(init_lat_connections),
+    sim.FromListConnector(init_lat_connections),
     # sim.FixedNumberPreConnector(16, weights=0.2),
     sim.FixedProbabilityConnector(0.3, weights=0),  # TODO change to a FromListConnector
     # synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
@@ -266,17 +266,61 @@ source_pop.record()
 target_pop.record()
 
 # Run simulation
+pre_spikes = None
+post_spikes = None
+
+# pre_sources = np.asarray([ff_projection._get_synaptic_data(True, 'source')]).T
+# pre_targets = np.asarray([ff_projection._get_synaptic_data(True, 'target')]).T
+# pre_weights = np.asarray([ff_projection._get_synaptic_data(True, 'weight')]).T
+# # sanity check
+# pre_delays = np.asarray([ff_projection._get_synaptic_data(True, 'delay')]).T
+# 
+# 
+# post_sources = np.asarray([lat_projection._get_synaptic_data(True, 'source')]).T
+# post_targets = np.asarray([lat_projection._get_synaptic_data(True, 'target')]).T
+# post_weights = np.asarray([lat_projection._get_synaptic_data(True, 'weight')]).T
+# # sanity check
+# post_delays = np.asarray([lat_projection._get_synaptic_data(True, 'delay')]).T
+pre_sources = []
+pre_targets = []
+pre_weights = []
+pre_delays = []
+
+post_sources = []
+post_targets = []
+post_weights = []
+post_delays = []
+
 for run in range(simtime // t_stim):
     sim.run(t_stim)
     rates = generate_rates(np.random.randint(0, 16, size=2), grid)
     source_pop.set("rate", rates.ravel())
-    source_pop.set('start', run * (simtime // t_stim))
-    source_pop.set('duration', t_stim)
+    # source_pop.set('start', 0)
+    # source_pop.set('duration', t_stim)
+    # Retrieve data
+    if pre_spikes is None:
+        pre_spikes = source_pop.getSpikes(compatible_output=True)
+    else:
+        pre_spikes = np.append(pre_spikes, source_pop.getSpikes(compatible_output=True), axis=0)
+    if post_spikes is None:
+        post_spikes = target_pop.getSpikes(compatible_output=True)
+    else:
+        post_spikes = np.append(post_spikes, target_pop.getSpikes(compatible_output=True), axis=0)
+    pre_sources.append(ff_projection._get_synaptic_data(True, 'source'))
+    pre_targets.append(ff_projection._get_synaptic_data(True, 'target'))
+    pre_weights.append(ff_projection._get_synaptic_data(True, 'weight'))
+    pre_delays.append(ff_projection._get_synaptic_data(True, 'delay'))
+
+    post_sources.append(lat_projection._get_synaptic_data(True, 'source'))
+    post_targets.append(lat_projection._get_synaptic_data(True, 'target'))
+    post_weights.append(lat_projection._get_synaptic_data(True, 'weight'))
+    post_delays.append(lat_projection._get_synaptic_data(True, 'delay'))
 
 
 # sim.run(simtime)
 
 # print("Weights:", plastic_projection.getWeights())
+
 
 
 def plot_spikes(spikes, title):
@@ -292,33 +336,42 @@ def plot_spikes(spikes, title):
         print "No spikes received"
 
 
-pre_spikes = source_pop.getSpikes(compatible_output=True)
-post_spikes = target_pop.getSpikes(compatible_output=True)
-
-pre_sources = np.asarray([ff_projection._get_synaptic_data(True, 'source')]).T
-pre_targets = np.asarray([ff_projection._get_synaptic_data(True, 'target')]).T
-pre_weights = np.asarray([ff_projection._get_synaptic_data(True, 'weight')]).T
-# sanity check
-pre_delays = np.asarray([ff_projection._get_synaptic_data(True, 'delay')]).T
-
-ff_proj = np.concatenate((pre_sources, pre_targets, pre_weights, pre_delays), axis=1)
-
-post_sources = np.asarray([lat_projection._get_synaptic_data(True, 'source')]).T
-post_targets = np.asarray([lat_projection._get_synaptic_data(True, 'target')]).T
-post_weights = np.asarray([lat_projection._get_synaptic_data(True, 'weight')]).T
-# sanity check
-post_delays = np.asarray([lat_projection._get_synaptic_data(True, 'delay')]).T
-
-lat_proj = np.concatenate((post_sources, post_targets, post_weights, post_delays), axis=1)
+# pre_spikes = source_pop.getSpikes(compatible_output=True)
+# post_spikes = target_pop.getSpikes(compatible_output=True)
 
 import time
 
+# pre_sources = np.asarray([ff_projection._get_synaptic_data(True, 'source')]).T
+# pre_targets = np.asarray([ff_projection._get_synaptic_data(True, 'target')]).T
+# pre_weights = np.asarray([ff_projection._get_synaptic_data(True, 'weight')]).T
+# # sanity check
+# pre_delays = np.asarray([ff_projection._get_synaptic_data(True, 'delay')]).T
+#
+#
+# post_sources = np.asarray([lat_projection._get_synaptic_data(True, 'source')]).T
+# post_targets = np.asarray([lat_projection._get_synaptic_data(True, 'target')]).T
+# post_weights = np.asarray([lat_projection._get_synaptic_data(True, 'weight')]).T
+# # sanity check
+# post_delays = np.asarray([lat_projection._get_synaptic_data(True, 'delay')]).T
+
+
+ff_proj = np.concatenate(
+    (np.array([pre_sources[-1]]).T, np.array([pre_targets[-1]]).T, np.array([pre_weights[-1]]).T,
+     np.array([pre_delays[-1]]).T), axis=1)
+lat_proj = np.concatenate(
+    (np.array([post_sources[-1]]).T, np.array([post_targets[-1]]).T, np.array([post_weights[-1]]).T,
+     np.array([post_delays[-1]]).T), axis=1)
+
 suffix = time.strftime("_%H%M%S_%d%m%Y")
 np.savez("structural_results_stdp" + suffix, pre_spikes=pre_spikes, post_spikes=post_spikes,
-         ff_projection_w=ff_proj, lat_projection_w=lat_proj, simtime=simtime)
+         ff_projection_w=ff_proj, lat_projection_w=lat_proj,
+         pre_sources=pre_sources, pre_targets=pre_targets, pre_weights=pre_weights, pre_delays=pre_delays,
+         post_sources=post_sources, post_targets=post_targets, post_weights=post_weights, post_delays=post_delays,
+         simtime=simtime)
 
 # https://stackoverflow.com/questions/36809437/dynamic-marker-colour-in-matplotlib
 # pretty cool effect
+
 plot_spikes(post_spikes, "Target layer spikes")
 pylab.show()
 
