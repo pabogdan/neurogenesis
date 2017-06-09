@@ -14,8 +14,8 @@ import spynnaker7.pyNN as sim
 # SpiNNaker setup
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
 sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
-sim.set_number_of_neurons_per_core("IF_cond_exp", 25)
-sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 300)
+sim.set_number_of_neurons_per_core("IF_cond_exp", 15)
+sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256//8)
 
 
 # +-------------------------------------------------------------------+
@@ -122,7 +122,7 @@ def generate_initial_connectivity(s, existing_pre, connections, sigma, p):
                 if formation_rule(pre, post, sigma, p):
                     s[postsynaptic_neuron_index] += 1
                     existing_pre[postsynaptic_neuron_index].append(potential_pre_index)
-                    connections.append((potential_pre_index, postsynaptic_neuron_index, g_max, 1))
+                    connections.append((potential_pre_index, postsynaptic_neuron_index, g_max, 17))
     print " |"
 
 
@@ -157,12 +157,13 @@ cell_params = {'cm': 20.0,  # nF
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
 # +-------------------------------------------------------------------+
-no_iterations = 60000
+no_iterations = 80000
 simtime = no_iterations
 # Wiring
 n = 16
 N_layer = n ** 2
 S = (n, n)
+# S = (256, 1)
 grid = np.asarray(S)
 g_max = 0.2
 
@@ -179,8 +180,8 @@ f_rew = 10 ** 4  # Hz
 # Inputs
 f_mean = 5  # Hz
 f_base = 5  # Hz
-f_peak = 5  # 152.8  # Hz
-sigma_stim = 3  # 2
+f_peak = 152.8# 152.8  # Hz
+sigma_stim = 2  # 2
 t_stim = 1000  # 20  # ms
 
 # STDP
@@ -190,6 +191,14 @@ tau_plus = 20.  # ms
 tau_minus = 64.  # ms
 a_minus = (a_plus * tau_plus * b) / tau_minus
 
+# Reporting
+
+sim_params = {'g_max':g_max,
+              't_stim':t_stim,
+              'simtime':simtime,
+              'f_base':f_base,
+              'f_peak':f_peak}
+
 # +-------------------------------------------------------------------+
 # | Initial network setup                                             |
 # +-------------------------------------------------------------------+
@@ -197,7 +206,7 @@ a_minus = (a_plus * tau_plus * b) / tau_minus
 
 # generate all rates
 
-rates = generate_rates((n // 2, n // 2), grid)
+rates = generate_rates(np.random.randint(0, 16, size=2), grid)
 source_pop = sim.Population(N_layer,
                             sim.SpikeSourcePoisson,
                             {'rate': rates.ravel(),
@@ -223,7 +232,7 @@ generate_initial_connectivity(lat_s, existing_pre_lat, init_lat_connections, sig
 
 # Neuron populations
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
-target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
+# target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
 # Connections
 # Plastic Connections between pre_pop and post_pop
 stdp_model = sim.STDPMechanism(
@@ -233,7 +242,8 @@ stdp_model = sim.STDPMechanism(
                                                    A_plus=a_plus, A_minus=a_minus)
 )
 
-structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=g_max, s_max=s_max)
+structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=g_max,
+                                                 s_max=s_max, grid=grid)
 # structure_model_w_stdp = sim.StructuralMechanism(weight=g_max, s_max=s_max)
 
 ff_projection = sim.Projection(
@@ -247,10 +257,10 @@ ff_projection = sim.Projection(
 
 lat_projection = sim.Projection(
     target_pop, target_pop,
-    sim.FromListConnector(init_lat_connections),
     # sim.FixedNumberPreConnector(16, weights=0.2),
-    sim.FixedProbabilityConnector(0.3, weights=0),  # TODO change to a FromListConnector
-    # synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+    sim.FromListConnector(init_lat_connections),
+    # sim.FixedProbabilityConnector(0.2, weights=0),  # TODO change to a FromListConnector
+    synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
     label="plastic_lat_projection"
 )
 
@@ -291,32 +301,31 @@ post_targets = []
 post_weights = []
 post_delays = []
 
+rates_history = np.zeros((16,16,simtime // t_stim))
+
 for run in range(simtime // t_stim):
     sim.run(t_stim)
     rates = generate_rates(np.random.randint(0, 16, size=2), grid)
     source_pop.set("rate", rates.ravel())
+
+    rates_history[:,:, run] = rates
     # source_pop.set('start', 0)
     # source_pop.set('duration', t_stim)
     # Retrieve data
-    if pre_spikes is None:
-        pre_spikes = source_pop.getSpikes(compatible_output=True)
-    else:
-        pre_spikes = np.append(pre_spikes, source_pop.getSpikes(compatible_output=True), axis=0)
-    if post_spikes is None:
-        post_spikes = target_pop.getSpikes(compatible_output=True)
-    else:
-        post_spikes = np.append(post_spikes, target_pop.getSpikes(compatible_output=True), axis=0)
-    pre_sources.append(ff_projection._get_synaptic_data(True, 'source'))
-    pre_targets.append(ff_projection._get_synaptic_data(True, 'target'))
-    pre_weights.append(ff_projection._get_synaptic_data(True, 'weight'))
-    pre_delays.append(ff_projection._get_synaptic_data(True, 'delay'))
+    # NP DEEP COPY?
 
-    post_sources.append(lat_projection._get_synaptic_data(True, 'source'))
-    post_targets.append(lat_projection._get_synaptic_data(True, 'target'))
-    post_weights.append(lat_projection._get_synaptic_data(True, 'weight'))
-    post_delays.append(lat_projection._get_synaptic_data(True, 'delay'))
+    pre_sources.append(np.copy(ff_projection._get_synaptic_data(True, 'source')))
+    pre_targets.append(np.copy(ff_projection._get_synaptic_data(True, 'target')))
+    pre_weights.append(np.copy(ff_projection._get_synaptic_data(True, 'weight')))
+    pre_delays.append(np.copy(ff_projection._get_synaptic_data(True, 'delay')))
 
+    post_sources.append(np.copy(lat_projection._get_synaptic_data(True, 'source')))
+    post_targets.append(np.copy(lat_projection._get_synaptic_data(True, 'target')))
+    post_weights.append(np.copy(lat_projection._get_synaptic_data(True, 'weight')))
+    post_delays.append(np.copy(lat_projection._get_synaptic_data(True, 'delay')))
 
+pre_spikes = source_pop.getSpikes(compatible_output=True)
+post_spikes = target_pop.getSpikes(compatible_output=True)
 # sim.run(simtime)
 
 # print("Weights:", plastic_projection.getWeights())
@@ -325,12 +334,12 @@ for run in range(simtime // t_stim):
 
 def plot_spikes(spikes, title):
     if spikes is not None:
-        pylab.figure()
-        pylab.xlim((0, simtime))
-        pylab.plot([i[1] for i in spikes], [i[0] for i in spikes], ".")
-        pylab.xlabel('Time/ms')
-        pylab.ylabel('spikes')
-        pylab.title(title)
+        f, ax1 = pylab.subplots(1, 1, figsize=(16, 8))
+        ax1.set_xlim((0, simtime))
+        ax1.scatter([i[1] for i in spikes], [i[0] for i in spikes], s=.2)
+        ax1.set_xlabel('Time/ms')
+        ax1.set_ylabel('spikes')
+        ax1.set_title(title)
 
     else:
         print "No spikes received"
@@ -367,21 +376,21 @@ np.savez("structural_results_stdp" + suffix, pre_spikes=pre_spikes, post_spikes=
          ff_projection_w=ff_proj, lat_projection_w=lat_proj,
          pre_sources=pre_sources, pre_targets=pre_targets, pre_weights=pre_weights, pre_delays=pre_delays,
          post_sources=post_sources, post_targets=post_targets, post_weights=post_weights, post_delays=post_delays,
-         simtime=simtime)
+         simtime=simtime, rate_trace=rates_history, sim_params=sim_params)
 
 # https://stackoverflow.com/questions/36809437/dynamic-marker-colour-in-matplotlib
 # pretty cool effect
 
+plot_spikes(pre_spikes, "Source layer spikes")
+pylab.show()
 plot_spikes(post_spikes, "Target layer spikes")
 pylab.show()
 
 connectivity_matrix = np.zeros((256, 256))
 for source, target, weight, delay in ff_proj:
-    assert delay == 1
     connectivity_matrix[int(source), int(target)] = weight
 lat_connectivity_matrix = np.zeros((256, 256))
 for source, target, weight, delay in lat_proj:
-    assert delay == 1
     lat_connectivity_matrix[int(source), int(target)] = weight
 
 init_ff_conn_network = np.zeros((256, 256))
