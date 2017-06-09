@@ -4,18 +4,25 @@ Test for topographic map formation using STDP and synaptic rewiring.
 http://hdl.handle.net/1842/3997
 """
 # Imports
+import logging
+from syslog import LOG_INFO
+
 import numpy as np
 import pylab
 
-from pacman.model.constraints.placer_constraints.placer_chip_and_core_constraint import PlacerChipAndCoreConstraint
-
+from spinn_utilities.progress_bar import ProgressBar
+import time
+from pacman.model.constraints.placer_constraints.placer_chip_and_core_constraint import \
+    PlacerChipAndCoreConstraint
 import spynnaker7.pyNN as sim
 
 # SpiNNaker setup
+start_time = pylab.datetime.datetime.now()
+
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
 sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
-sim.set_number_of_neurons_per_core("IF_cond_exp", 15)
-sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256//8)
+sim.set_number_of_neurons_per_core("IF_cond_exp", 20)
+sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 8)
 
 
 # +-------------------------------------------------------------------+
@@ -83,7 +90,8 @@ def generate_rates(s, grid):
     for x in range(grid[0]):
         for y in range(grid[1]):
             _d = distance(s, (x, y), grid)
-            _rates[x, y] = f_base + f_peak * np.e ** (-_d / (2 * (sigma_stim ** 2)))
+            _rates[x, y] = f_base + f_peak * np.e ** (
+                -_d / (2 * (sigma_stim ** 2)))
     return _rates
 
 
@@ -108,24 +116,28 @@ def formation_rule(potential_pre, post, sigma, p_form):
 
 # Initial connectivity
 
-def generate_initial_connectivity(s, existing_pre, connections, sigma, p):
-    print "|", 256 // 4 * "-", "|"
-    print "|",
+def generate_initial_connectivity(s, existing_pre, connections, sigma, p, msg):
+    # print "|", 256 // 4 * "-", "|"
+    # print "|",
+    pbar = ProgressBar(total_number_of_things_to_do=N_layer,
+                       string_describing_what_being_progressed=msg)
     for postsynaptic_neuron_index in range(N_layer):
-        if postsynaptic_neuron_index % 8 == 0:
-            print "=",
+        # if postsynaptic_neuron_index % 8 == 0:
+        #     print "=",
+        pbar.update()
         post = (postsynaptic_neuron_index // n, postsynaptic_neuron_index % n)
         while s[postsynaptic_neuron_index] < s_max:
             potential_pre_index = np.random.randint(0, N_layer)
             pre = (potential_pre_index // n, potential_pre_index % n)
-            if potential_pre_index not in existing_pre[postsynaptic_neuron_index]:
+            if potential_pre_index not in existing_pre[
+                postsynaptic_neuron_index]:
                 if formation_rule(pre, post, sigma, p):
                     s[postsynaptic_neuron_index] += 1
-                    existing_pre[postsynaptic_neuron_index].append(potential_pre_index)
-                    connections.append((potential_pre_index, postsynaptic_neuron_index, g_max, 17))
-    print " |"
-
-
+                    existing_pre[postsynaptic_neuron_index].append(
+                        potential_pre_index)
+                    connections.append((potential_pre_index,
+                                        postsynaptic_neuron_index, g_max, 1))
+                    # print " |"
 # +-------------------------------------------------------------------+
 # | General Parameters                                                |
 # +-------------------------------------------------------------------+
@@ -157,7 +169,7 @@ cell_params = {'cm': 20.0,  # nF
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
 # +-------------------------------------------------------------------+
-no_iterations = 80000
+no_iterations = 160000
 simtime = no_iterations
 # Wiring
 n = 16
@@ -180,7 +192,7 @@ f_rew = 10 ** 4  # Hz
 # Inputs
 f_mean = 5  # Hz
 f_base = 5  # Hz
-f_peak = 152.8# 152.8  # Hz
+f_peak = 100  # 152.8  # Hz
 sigma_stim = 2  # 2
 t_stim = 1000  # 20  # ms
 
@@ -193,11 +205,12 @@ a_minus = (a_plus * tau_plus * b) / tau_minus
 
 # Reporting
 
-sim_params = {'g_max':g_max,
-              't_stim':t_stim,
-              'simtime':simtime,
-              'f_base':f_base,
-              'f_peak':f_peak}
+sim_params = {'g_max': g_max,
+              't_stim': t_stim,
+              'simtime': simtime,
+              'f_base': f_base,
+              'f_peak': f_peak,
+              'sigma_stim': sigma_stim}
 
 # +-------------------------------------------------------------------+
 # | Initial network setup                                             |
@@ -225,24 +238,33 @@ for _ in range(N_layer):
 
 init_ff_connections = []
 init_lat_connections = []
-print "| Generating initial feedforward connectivity..."
-generate_initial_connectivity(ff_s, existing_pre_ff, init_ff_connections, sigma_form_forward, p_form_forward)
-print "| Generating initial lateral     connectivity..."
-generate_initial_connectivity(lat_s, existing_pre_lat, init_lat_connections, sigma_form_lateral, p_form_lateral)
+# print "| Generating initial feedforward connectivity..."
+generate_initial_connectivity(
+    ff_s, existing_pre_ff, init_ff_connections,
+    sigma_form_forward, p_form_forward,
+    "\nGenerating initial feedforward connectivity...")
+generate_initial_connectivity(
+    lat_s, existing_pre_lat, init_lat_connections,
+    sigma_form_lateral, p_form_lateral,
+    "\nGenerating initial lateral connectivity...")
+logging.log(LOG_INFO, "\n")
 
 # Neuron populations
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
-# target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
+target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
 # Connections
 # Plastic Connections between pre_pop and post_pop
 stdp_model = sim.STDPMechanism(
-    timing_dependence=sim.SpikePairRule(tau_plus=tau_plus, tau_minus=tau_minus),
+    timing_dependence=sim.SpikePairRule(tau_plus=tau_plus,
+                                        tau_minus=tau_minus),
     weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=g_max,
                                                    # A_plus=0.02, A_minus=0.02
-                                                   A_plus=a_plus, A_minus=a_minus)
+                                                   A_plus=a_plus,
+                                                   A_minus=a_minus)
 )
 
-structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model, weight=g_max,
+structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model,
+                                                 weight=g_max,
                                                  s_max=s_max, grid=grid)
 # structure_model_w_stdp = sim.StructuralMechanism(weight=g_max, s_max=s_max)
 
@@ -301,36 +323,47 @@ post_targets = []
 post_weights = []
 post_delays = []
 
-rates_history = np.zeros((16,16,simtime // t_stim))
+rates_history = np.zeros((16, 16, simtime // t_stim))
 
 for run in range(simtime // t_stim):
     sim.run(t_stim)
     rates = generate_rates(np.random.randint(0, 16, size=2), grid)
     source_pop.set("rate", rates.ravel())
 
-    rates_history[:,:, run] = rates
+    rates_history[:, :, run] = rates
     # source_pop.set('start', 0)
     # source_pop.set('duration', t_stim)
     # Retrieve data
     # NP DEEP COPY?
 
-    pre_sources.append(np.copy(ff_projection._get_synaptic_data(True, 'source')))
-    pre_targets.append(np.copy(ff_projection._get_synaptic_data(True, 'target')))
-    pre_weights.append(np.copy(ff_projection._get_synaptic_data(True, 'weight')))
+    pre_sources.append(
+        np.copy(ff_projection._get_synaptic_data(True, 'source')))
+    pre_targets.append(
+        np.copy(ff_projection._get_synaptic_data(True, 'target')))
+    pre_weights.append(
+        np.copy(ff_projection._get_synaptic_data(True, 'weight')))
     pre_delays.append(np.copy(ff_projection._get_synaptic_data(True, 'delay')))
 
-    post_sources.append(np.copy(lat_projection._get_synaptic_data(True, 'source')))
-    post_targets.append(np.copy(lat_projection._get_synaptic_data(True, 'target')))
-    post_weights.append(np.copy(lat_projection._get_synaptic_data(True, 'weight')))
-    post_delays.append(np.copy(lat_projection._get_synaptic_data(True, 'delay')))
+    post_sources.append(
+        np.copy(lat_projection._get_synaptic_data(True, 'source')))
+    post_targets.append(
+        np.copy(lat_projection._get_synaptic_data(True, 'target')))
+    post_weights.append(
+        np.copy(lat_projection._get_synaptic_data(True, 'weight')))
+    post_delays.append(
+        np.copy(lat_projection._get_synaptic_data(True, 'delay')))
 
 pre_spikes = source_pop.getSpikes(compatible_output=True)
 post_spikes = target_pop.getSpikes(compatible_output=True)
+
+
 # sim.run(simtime)
 
 # print("Weights:", plastic_projection.getWeights())
+end_time = pylab.datetime.datetime.now()
+total_time = end_time - start_time
 
-
+print "Total time elapsed -- " + str(total_time)
 
 def plot_spikes(spikes, title):
     if spikes is not None:
@@ -348,7 +381,6 @@ def plot_spikes(spikes, title):
 # pre_spikes = source_pop.getSpikes(compatible_output=True)
 # post_spikes = target_pop.getSpikes(compatible_output=True)
 
-import time
 
 # pre_sources = np.asarray([ff_projection._get_synaptic_data(True, 'source')]).T
 # pre_targets = np.asarray([ff_projection._get_synaptic_data(True, 'target')]).T
@@ -365,18 +397,24 @@ import time
 
 
 ff_proj = np.concatenate(
-    (np.array([pre_sources[-1]]).T, np.array([pre_targets[-1]]).T, np.array([pre_weights[-1]]).T,
+    (np.array([pre_sources[-1]]).T, np.array([pre_targets[-1]]).T,
+     np.array([pre_weights[-1]]).T,
      np.array([pre_delays[-1]]).T), axis=1)
 lat_proj = np.concatenate(
-    (np.array([post_sources[-1]]).T, np.array([post_targets[-1]]).T, np.array([post_weights[-1]]).T,
+    (np.array([post_sources[-1]]).T, np.array([post_targets[-1]]).T,
+     np.array([post_weights[-1]]).T,
      np.array([post_delays[-1]]).T), axis=1)
 
 suffix = time.strftime("_%H%M%S_%d%m%Y")
-np.savez("structural_results_stdp" + suffix, pre_spikes=pre_spikes, post_spikes=post_spikes,
+np.savez("structural_results_stdp" + suffix, pre_spikes=pre_spikes,
+         post_spikes=post_spikes,
          ff_projection_w=ff_proj, lat_projection_w=lat_proj,
-         pre_sources=pre_sources, pre_targets=pre_targets, pre_weights=pre_weights, pre_delays=pre_delays,
-         post_sources=post_sources, post_targets=post_targets, post_weights=post_weights, post_delays=post_delays,
-         simtime=simtime, rate_trace=rates_history, sim_params=sim_params)
+         pre_sources=pre_sources, pre_targets=pre_targets,
+         pre_weights=pre_weights, pre_delays=pre_delays,
+         post_sources=post_sources, post_targets=post_targets,
+         post_weights=post_weights, post_delays=post_delays,
+         simtime=simtime, rate_trace=rates_history, sim_params=sim_params,
+         total_time=total_time)
 
 # https://stackoverflow.com/questions/36809437/dynamic-marker-colour-in-matplotlib
 # pretty cool effect
@@ -423,3 +461,4 @@ cbar.set_label("Synaptic conductance - $G_{syn}$", fontsize=16)
 pylab.show()
 # End simulation on SpiNNaker
 sim.end()
+print "Total time elapsed -- " + str(total_time)
