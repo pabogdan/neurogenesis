@@ -13,6 +13,25 @@ from pacman.model.constraints.placer_constraints.placer_chip_and_core_constraint
     PlacerChipAndCoreConstraint
 import spynnaker7.pyNN as sim
 
+import argparse
+
+
+# Constants
+case = None
+
+CASE_CORR_AND_REW = 1
+CASE_CORR_NO_REW = 2
+CASE_REW_NO_CORR = 3
+
+parser = argparse.ArgumentParser(description='Process arguments for testing topographic'
+                                             'map formation model on SpiNNaker.')
+parser.add_argument('--case', type=int, nargs='+',
+                    default=CASE_CORR_AND_REW, dest='case',
+                   help='an integer controlling the experimental setup')
+
+args = parser.parse_args()
+case = args.case[0]
+
 # SpiNNaker setup
 start_time = pylab.datetime.datetime.now()
 
@@ -52,16 +71,6 @@ def generate_rates(s, grid):
             _rates[x, y] = f_base + f_peak * np.e ** (
                 -_d / (2 * (sigma_stim ** 2)))
     return _rates
-
-
-def generate_spikes(rates):
-    spikes = np.zeros((16, 16, 21))
-    for x in range(16):
-        for y in range(16):
-            spikes_times_xy = poisson_generator(rates[x, y], 0, 20)
-            for time in spikes_times_xy:
-                spikes[x, y, int(time)] = 1
-    return spikes
 
 
 def formation_rule(potential_pre, post, sigma, p_form):
@@ -130,7 +139,7 @@ cell_params = {'cm': 20.0,  # nF
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
 # +-------------------------------------------------------------------+
-no_iterations = 160000
+no_iterations = 20000
 simtime = no_iterations
 # Wiring
 n = 16
@@ -150,7 +159,7 @@ p_elim_pot = 1.36 * np.e ** -4
 f_rew = 10 ** 4  # Hz
 
 # Inputs
-f_mean = 5  # Hz
+f_mean = 20  # Hz
 f_base = 5  # Hz
 f_peak = 100  # 152.8  # Hz
 sigma_stim = 2  # 2
@@ -174,14 +183,17 @@ sim_params = {'g_max': g_max,
               'sigma_stim': sigma_stim,
               't_record': t_record}
 
+
 # +-------------------------------------------------------------------+
 # | Initial network setup                                             |
 # +-------------------------------------------------------------------+
 # Need to setup the moving input
 
 # generate all rates
-
-rates = generate_rates(np.random.randint(0, 16, size=2), grid)
+if case == CASE_REW_NO_CORR:
+    rates = np.ones(grid) * f_mean
+else:
+    rates = generate_rates(np.random.randint(0, 16, size=2), grid)
 source_pop = sim.Population(N_layer,
                             sim.SpikeSourcePoisson,
                             {'rate': rates.ravel(),
@@ -215,6 +227,7 @@ target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
 target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
 # Connections
 # Plastic Connections between pre_pop and post_pop
+
 stdp_model = sim.STDPMechanism(
     timing_dependence=sim.SpikePairRule(tau_plus=tau_plus,
                                         tau_minus=tau_minus),
@@ -223,10 +236,13 @@ stdp_model = sim.STDPMechanism(
                                                    A_plus=a_plus,
                                                    A_minus=a_minus)
 )
-
-structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model,
+if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
+    structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model,
                                                  weight=g_max,
                                                  s_max=s_max, grid=grid)
+elif case == CASE_CORR_NO_REW:
+    structure_model_w_stdp = stdp_model
+
 # structure_model_w_stdp = sim.StructuralMechanism(weight=g_max, s_max=s_max)
 
 ff_projection = sim.Projection(
@@ -272,7 +288,10 @@ rates_history = np.zeros((16, 16, simtime // t_stim))
 
 for run in range(simtime // t_stim):
     sim.run(t_stim)
-    rates = generate_rates(np.random.randint(0, 16, size=2), grid)
+    if args.case == CASE_REW_NO_CORR:
+        rates = np.ones(grid) * f_mean
+    else:
+        rates = generate_rates(np.random.randint(0, 16, size=2), grid)
     source_pop.set("rate", rates.ravel())
 
     rates_history[:, :, run] = rates
