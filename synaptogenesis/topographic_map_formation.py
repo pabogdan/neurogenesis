@@ -139,7 +139,7 @@ cell_params = {'cm': 20.0,  # nF
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
 # +-------------------------------------------------------------------+
-no_iterations = 20000
+no_iterations = 80000
 simtime = no_iterations
 # Wiring
 n = 16
@@ -161,10 +161,10 @@ f_rew = 10 ** 4  # Hz
 # Inputs
 f_mean = 20  # Hz
 f_base = 5  # Hz
-f_peak = 100  # 152.8  # Hz
+f_peak = 152  # 152.8  # Hz
 sigma_stim = 2  # 2
-t_stim = 200  # 20  # ms
-t_record = 1000
+t_stim = 20 # 20  # ms
+t_record = 500
 
 # STDP
 a_plus = 0.1
