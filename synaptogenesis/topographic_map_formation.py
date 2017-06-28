@@ -15,7 +15,6 @@ import spynnaker7.pyNN as sim
 
 import argparse
 
-
 # Constants
 case = None
 
@@ -23,14 +22,19 @@ CASE_CORR_AND_REW = 1
 CASE_CORR_NO_REW = 2
 CASE_REW_NO_CORR = 3
 
-parser = argparse.ArgumentParser(description='Process arguments for testing topographic'
-                                             'map formation model on SpiNNaker.')
+parser = argparse.ArgumentParser(
+    description='Process arguments for testing topographic'
+                'map formation model on SpiNNaker.')
 parser.add_argument('--case', type=int, nargs='+',
                     default=CASE_CORR_AND_REW, dest='case',
-                   help='an integer controlling the experimental setup')
+                    help='an integer controlling the experimental setup')
 
 args = parser.parse_args()
-case = args.case[0]
+try:
+    case = args.case[0]
+except TypeError as e:
+    case = CASE_CORR_AND_REW
+    print "Defaulted to case ", case, ", i.e. input correlations and rewiring on"
 
 # SpiNNaker setup
 start_time = pylab.datetime.datetime.now()
@@ -56,6 +60,44 @@ def distance(x0, x1, grid=np.asarray([16, 16]), type='euclidian'):
     if type == 'manhattan':
         return np.abs(delta).sum(axis=-1)
     return np.sqrt((delta ** 2).sum(axis=-1))
+
+
+# Poisson spike source as from list spike source
+# https://github.com/project-rig/pynn_spinnaker_bcpnn/blob/master/examples/modular_attractor/network.py#L115-L148
+def poisson_generator(rate, t_start, t_stop):
+    n = int((t_stop - t_start) / 1000.0 * rate)
+    number = np.ceil(n + 3 * np.sqrt(n))
+    if number < 100:
+        number = min(5 + np.ceil(2 * n), 100)
+
+    if number > 0:
+        isi = np.random.exponential(1.0 / rate, int(number)) * 1000.0
+        if number > 1:
+            spikes = np.add.accumulate(isi)
+        else:
+            spikes = isi
+    else:
+        spikes = np.array([])
+
+    spikes += t_start
+    i = np.searchsorted(spikes, t_stop)
+
+    extra_spikes = []
+    if len(spikes) == i:
+        # ISI buf overrun
+
+        t_last = spikes[-1] + np.random.exponential(1.0 / rate, 1)[0] * 1000.0
+
+        while (t_last < t_stop):
+            extra_spikes.append(t_last)
+            t_last += np.random.exponential(1.0 / rate, 1)[0] * 1000.0
+
+            spikes = np.concatenate((spikes, extra_spikes))
+    else:
+        spikes = np.resize(spikes, (i,))
+
+    # Return spike times, rounded to millisecond boundaries
+    return [round(x) for x in spikes]
 
 
 def generate_rates(s, grid):
@@ -139,7 +181,7 @@ cell_params = {'cm': 20.0,  # nF
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
 # +-------------------------------------------------------------------+
-no_iterations = 80000
+no_iterations = 300000 # 3000000 # 3,000,000 iterations
 simtime = no_iterations
 # Wiring
 n = 16
@@ -163,8 +205,10 @@ f_mean = 20  # Hz
 f_base = 5  # Hz
 f_peak = 152  # 152.8  # Hz
 sigma_stim = 2  # 2
-t_stim = 20 # 20  # ms
-t_record = 500
+t_stim = 20  # 20  # ms
+t_record = 1000 # ms
+# t_stim = no_iterations
+# t_record = no_iterations
 
 # STDP
 a_plus = 0.1
@@ -182,7 +226,6 @@ sim_params = {'g_max': g_max,
               'f_peak': f_peak,
               'sigma_stim': sigma_stim,
               't_record': t_record}
-
 
 # +-------------------------------------------------------------------+
 # | Initial network setup                                             |
@@ -238,8 +281,9 @@ stdp_model = sim.STDPMechanism(
 )
 if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
     structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model,
-                                                 weight=g_max,
-                                                 s_max=s_max, grid=grid)
+                                                     weight=g_max,
+                                                     s_max=s_max * 2,
+                                                     grid=grid)
 elif case == CASE_CORR_NO_REW:
     structure_model_w_stdp = stdp_model
 
@@ -286,7 +330,9 @@ post_delays = []
 
 rates_history = np.zeros((16, 16, simtime // t_stim))
 
+print "Starting the sim"
 for run in range(simtime // t_stim):
+    print "run", run + 1, "of", simtime // t_stim
     sim.run(t_stim)
     if args.case == CASE_REW_NO_CORR:
         rates = np.ones(grid) * f_mean
@@ -302,10 +348,7 @@ for run in range(simtime // t_stim):
             np.array(ff_projection._get_synaptic_data(False, 'weight')))
         post_weights.append(
             np.array(lat_projection._get_synaptic_data(False, 'weight')))
-        # if run > 0 and np.count_nonzero(
-        #                 np.nan_to_num(pre_weights[run]) - np.nan_to_num(pre_weights[run - 1])) == 0:
-        #     print "We are done here"
-        #     break
+
 
 pre_spikes = source_pop.getSpikes(compatible_output=True)
 post_spikes = target_pop.getSpikes(compatible_output=True)
@@ -332,33 +375,6 @@ def plot_spikes(spikes, title):
         print "No spikes received"
 
 
-# pre_spikes = source_pop.getSpikes(compatible_output=True)
-# post_spikes = target_pop.getSpikes(compatible_output=True)
-
-
-# pre_sources = np.asarray([ff_projection._get_synaptic_data(True, 'source')]).T
-# pre_targets = np.asarray([ff_projection._get_synaptic_data(True, 'target')]).T
-# pre_weights = np.asarray([ff_projection._get_synaptic_data(True, 'weight')]).T
-# # sanity check
-# pre_delays = np.asarray([ff_projection._get_synaptic_data(True, 'delay')]).T
-#
-#
-# post_sources = np.asarray([lat_projection._get_synaptic_data(True, 'source')]).T
-# post_targets = np.asarray([lat_projection._get_synaptic_data(True, 'target')]).T
-# post_weights = np.asarray([lat_projection._get_synaptic_data(True, 'weight')]).T
-# # sanity check
-# post_delays = np.asarray([lat_projection._get_synaptic_data(True, 'delay')]).T
-
-
-# ff_proj = np.concatenate(
-#     (np.array([pre_sources[-1]]).T, np.array([pre_targets[-1]]).T,
-#      np.array([pre_weights[-1]]).T,
-#      np.array([pre_delays[-1]]).T), axis=1)
-# lat_proj = np.concatenate(
-#     (np.array([post_sources[-1]]).T, np.array([post_targets[-1]]).T,
-#      np.array([post_weights[-1]]).T,
-#      np.array([post_delays[-1]]).T), axis=1)
-
 init_ff_conn_network = np.ones((256, 256)) * np.nan
 init_lat_conn_network = np.ones((256, 256)) * np.nan
 for source, target, weight, delay in init_ff_connections:
@@ -369,12 +385,10 @@ for source, target, weight, delay in init_lat_connections:
 suffix = time.strftime("_%H%M%S_%d%m%Y")
 np.savez("structural_results_stdp" + suffix, pre_spikes=pre_spikes,
          post_spikes=post_spikes,
-         init_ff_connections=init_ff_conn_network, init_lat_connections=init_lat_conn_network,
-         # ff_projection_w=ff_proj, lat_projection_w=lat_proj,
-         # pre_sources=pre_sources, pre_targets=pre_targets,
-         pre_weights=pre_weights,  # pre_delays=pre_delays,
-         # post_sources=post_sources, post_targets=post_targets,
-         post_weights=post_weights,  # post_delays=post_delays,
+         init_ff_connections=init_ff_conn_network,
+         init_lat_connections=init_lat_conn_network,
+         pre_weights=pre_weights,
+         post_weights=post_weights,
          simtime=simtime, rate_trace=rates_history, sim_params=sim_params,
          total_time=total_time)
 
@@ -385,14 +399,6 @@ plot_spikes(pre_spikes, "Source layer spikes")
 pylab.show()
 plot_spikes(post_spikes, "Target layer spikes")
 pylab.show()
-
-# connectivity_matrix = np.zeros((256, 256))
-# for source, target, weight, delay in ff_proj:
-#     connectivity_matrix[int(source), int(target)] = weight
-# lat_connectivity_matrix = np.zeros((256, 256))
-# for source, target, weight, delay in lat_proj:
-#     lat_connectivity_matrix[int(source), int(target)] = weight
-
 
 
 f, (ax1, ax2) = pylab.subplots(1, 2, figsize=(16, 8))
@@ -407,8 +413,12 @@ cbar.set_label("Synaptic conductance - $G_{syn}$", fontsize=16)
 pylab.show()
 
 f, (ax1, ax2) = pylab.subplots(1, 2, figsize=(16, 8))
-i = ax1.matshow(np.nan_to_num(pre_weights[-1].reshape(256, 256)) - np.nan_to_num(init_ff_conn_network))
-i2 = ax2.matshow(np.nan_to_num(post_weights[-1].reshape(256, 256)) - np.nan_to_num(init_lat_conn_network))
+i = ax1.matshow(
+    np.nan_to_num(pre_weights[-1].reshape(256, 256)) - np.nan_to_num(
+        init_ff_conn_network))
+i2 = ax2.matshow(
+    np.nan_to_num(post_weights[-1].reshape(256, 256)) - np.nan_to_num(
+        init_lat_conn_network))
 ax1.grid(visible=False)
 ax1.set_title("Diff- Feedforward connectivity matrix", fontsize=16)
 ax2.set_title("Diff- Lateral connectivity matrix", fontsize=16)
