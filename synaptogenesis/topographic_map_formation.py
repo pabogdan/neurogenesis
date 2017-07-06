@@ -34,7 +34,7 @@ DEFAULT_SPIKE_SOURCE = SSP
 parser = argparse.ArgumentParser(
     description='Test for topographic map formation using STDP and synaptic rewiring'
                 ' on SpiNNaker.', formatter_class=argparse.RawTextHelpFormatter)
-parser.add_argument('--case', type=int,
+parser.add_argument("-c", '--case', type=int, choices=[CASE_CORR_AND_REW, CASE_CORR_NO_REW, CASE_REW_NO_CORR],
                     default=CASE_CORR_AND_REW, dest='case',
                     help='an integer controlling the experimental setup')
 
@@ -58,12 +58,17 @@ parser.add_argument('--no_iterations', type=int,
                     default=DEFAULT_NO_INTERATIONS, dest='no_iterations',
                     help='total number of iterations (or time steps) for the simulation (technically, ms)')
 
-parser.add_argument('--spike_source', type=int,
+parser.add_argument("-s", '--spike_source', type=int, choices=[SSP, SSA],
                     default=DEFAULT_SPIKE_SOURCE, dest='spike_source',
                     help='choice of input spike source: \n'
                          '[' + str(SSP) + '] poisson spike source \n'
-                                          '[' + str(SSA) + '] spike source array'
+                         '[' + str(SSA) + '] spike source array'
                     )
+
+parser.add_argument('--no_plot', help="don't display any plots", action="store_true")
+
+parser.add_argument('-o', '--output', type=str, help="name of the numpy archive storing simulation results",
+                    dest='filename')
 
 args = parser.parse_args()
 
@@ -440,7 +445,8 @@ for run in range(no_runs):
 
 pre_spikes = source_pop.getSpikes(compatible_output=True)
 post_spikes = target_pop.getSpikes(compatible_output=True)
-
+# End simulation on SpiNNaker
+sim.end()
 # print("Weights:", plastic_projection.getWeights())
 end_time = pylab.datetime.datetime.now()
 total_time = end_time - start_time
@@ -469,12 +475,16 @@ for source, target, weight, delay in init_lat_connections:
     init_lat_conn_network[int(source), int(target)] = weight
 
 suffix = end_time.strftime("_%H%M%S_%d%m%Y")
-np.savez("structural_results_stdp" + suffix, pre_spikes=pre_spikes,
+
+if args.filename:
+    filename = args.filename
+else:
+    filename = "structural_results_stdp" + str(suffix)
+
+np.savez(filename, pre_spikes=pre_spikes,
          post_spikes=post_spikes,
          init_ff_connections=init_ff_conn_network,
          init_lat_connections=init_lat_conn_network,
-         # pre_weights=pre_weights,
-         # post_weights=post_weights,
          final_pre_weights=pre_weights,
          final_post_weights=post_weights,
          simtime=simtime,
@@ -482,37 +492,36 @@ np.savez("structural_results_stdp" + suffix, pre_spikes=pre_spikes,
          total_time=total_time)
 
 # Plotting
+if not args.no_plot:
+    plot_spikes(pre_spikes, "Source layer spikes")
+    pylab.show()
+    plot_spikes(post_spikes, "Target layer spikes")
+    pylab.show()
 
-plot_spikes(pre_spikes, "Source layer spikes")
-pylab.show()
-plot_spikes(post_spikes, "Target layer spikes")
-pylab.show()
+    f, (ax1, ax2) = pylab.subplots(1, 2, figsize=(16, 8))
+    i = ax1.matshow(np.nan_to_num(pre_weights[-1].reshape(256, 256)))
+    i2 = ax2.matshow(np.nan_to_num(post_weights[-1].reshape(256, 256)))
+    ax1.grid(visible=False)
+    ax1.set_title("Feedforward connectivity matrix", fontsize=16)
+    ax2.set_title("Lateral connectivity matrix", fontsize=16)
+    cbar_ax = f.add_axes([.91, 0.155, 0.025, 0.72])
+    cbar = f.colorbar(i2, cax=cbar_ax)
+    cbar.set_label("Synaptic conductance - $G_{syn}$", fontsize=16)
+    pylab.show()
 
-f, (ax1, ax2) = pylab.subplots(1, 2, figsize=(16, 8))
-i = ax1.matshow(np.nan_to_num(pre_weights[-1].reshape(256, 256)))
-i2 = ax2.matshow(np.nan_to_num(post_weights[-1].reshape(256, 256)))
-ax1.grid(visible=False)
-ax1.set_title("Feedforward connectivity matrix", fontsize=16)
-ax2.set_title("Lateral connectivity matrix", fontsize=16)
-cbar_ax = f.add_axes([.91, 0.155, 0.025, 0.72])
-cbar = f.colorbar(i2, cax=cbar_ax)
-cbar.set_label("Synaptic conductance - $G_{syn}$", fontsize=16)
-pylab.show()
+    f, (ax1, ax2) = pylab.subplots(1, 2, figsize=(16, 8))
+    i = ax1.matshow(
+        np.nan_to_num(pre_weights[-1].reshape(256, 256)) - np.nan_to_num(
+            init_ff_conn_network))
+    i2 = ax2.matshow(
+        np.nan_to_num(post_weights[-1].reshape(256, 256)) - np.nan_to_num(
+            init_lat_conn_network))
+    ax1.grid(visible=False)
+    ax1.set_title("Diff- Feedforward connectivity matrix", fontsize=16)
+    ax2.set_title("Diff- Lateral connectivity matrix", fontsize=16)
+    cbar_ax = f.add_axes([.91, 0.155, 0.025, 0.72])
+    cbar = f.colorbar(i2, cax=cbar_ax)
+    cbar.set_label("Synaptic conductance - $G_{syn}$", fontsize=16)
+    pylab.show()
 
-f, (ax1, ax2) = pylab.subplots(1, 2, figsize=(16, 8))
-i = ax1.matshow(
-    np.nan_to_num(pre_weights[-1].reshape(256, 256)) - np.nan_to_num(
-        init_ff_conn_network))
-i2 = ax2.matshow(
-    np.nan_to_num(post_weights[-1].reshape(256, 256)) - np.nan_to_num(
-        init_lat_conn_network))
-ax1.grid(visible=False)
-ax1.set_title("Diff- Feedforward connectivity matrix", fontsize=16)
-ax2.set_title("Diff- Lateral connectivity matrix", fontsize=16)
-cbar_ax = f.add_axes([.91, 0.155, 0.025, 0.72])
-cbar = f.colorbar(i2, cax=cbar_ax)
-cbar.set_label("Synaptic conductance - $G_{syn}$", fontsize=16)
-pylab.show()
-# End simulation on SpiNNaker
-sim.end()
 print "Total time elapsed -- " + str(total_time)
