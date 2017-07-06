@@ -6,7 +6,16 @@
 
 *.pyc
 
-application_generated_data_files/*
+synaptogenesis/application_generated_data_files/*
+synaptogenesis/reports/*
+
+unittests/application_generated_data_files/*
+unittests/reports/*
+
+breakout/application_generated_data_files/*
+breakout/reports/*
+
+phd_venv/*
 
 reports/*
 

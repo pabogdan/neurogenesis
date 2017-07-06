@@ -16,25 +16,59 @@ import spynnaker7.pyNN as sim
 import argparse
 
 # Constants
-case = None
-
 CASE_CORR_AND_REW = 1
 CASE_CORR_NO_REW = 2
 CASE_REW_NO_CORR = 3
 
+SSP = 1
+SSA = 2
+
+DEFAULT_TAU_REFRAC = 5.0
+DEFAULT_T_RECORD = 1000
+DEFAULT_F_PEAK = 152.8
+DEFAULT_NO_INTERATIONS = 3000000
+DEFAULT_T_STIM = 20
+
+DEFAULT_SPIKE_SOURCE = SSP
+
 parser = argparse.ArgumentParser(
-    description='Process arguments for testing topographic'
-                'map formation model on SpiNNaker.')
-parser.add_argument('--case', type=int, nargs='+',
+    description='Test for topographic map formation using STDP and synaptic rewiring'
+                ' on SpiNNaker.', formatter_class=argparse.RawTextHelpFormatter)
+parser.add_argument('--case', type=int,
                     default=CASE_CORR_AND_REW, dest='case',
                     help='an integer controlling the experimental setup')
 
+parser.add_argument('--tau_refract', type=float,
+                    default=DEFAULT_TAU_REFRAC, dest='tau_refrac',
+                    help='refractory time constant (ms)')
+
+parser.add_argument('--t_record', type=int,
+                    default=DEFAULT_T_RECORD, dest='t_record',
+                    help='time between retrieval of recordings (ms)')
+
+parser.add_argument('--t_stim', type=int,
+                    default=DEFAULT_T_STIM, dest='t_stim',
+                    help='time between stimulus location change (ms)')
+
+parser.add_argument('--f_peak', type=float,
+                    default=DEFAULT_F_PEAK, dest='f_peak',
+                    help='peak input spike rate (Hz)')
+
+parser.add_argument('--no_iterations', type=int,
+                    default=DEFAULT_NO_INTERATIONS, dest='no_iterations',
+                    help='total number of iterations (or time steps) for the simulation (technically, ms)')
+
+parser.add_argument('--spike_source', type=int,
+                    default=DEFAULT_SPIKE_SOURCE, dest='spike_source',
+                    help='choice of input spike source: \n'
+                         '[' + str(SSP) + '] poisson spike source \n'
+                                          '[' + str(SSA) + '] spike source array'
+                    )
+
 args = parser.parse_args()
-try:
-    case = args.case[0]
-except TypeError as e:
-    case = CASE_CORR_AND_REW
-    print "Defaulted to case ", case, ", i.e. input correlations and rewiring on"
+
+case = args.case
+print "Case", case, "selected!"
 
 # SpiNNaker setup
 start_time = pylab.datetime.datetime.now()
@@ -42,7 +76,8 @@ start_time = pylab.datetime.datetime.now()
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
 sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
 sim.set_number_of_neurons_per_core("IF_cond_exp", 256 // 13)
-sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 8)
+sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 15)
+sim.set_number_of_neurons_per_core("SpikeSourceArray", 256 // 8)
 
 
 # +-------------------------------------------------------------------+
@@ -97,7 +132,8 @@ def poisson_generator(rate, t_start, t_stop):
         spikes = np.resize(spikes, (i,))
 
     # Return spike times, rounded to millisecond boundaries
-    return [round(x) for x in spikes]
+    unique_rounded_times = np.unique(np.array([round(x) for x in spikes]))
+    return unique_rounded_times[unique_rounded_times < t_stop]
 
 
 def generate_rates(s, grid):
@@ -168,7 +204,7 @@ tau_ex = 5  # ms
 cell_params = {'cm': 20.0,  # nF
                'i_offset': 0.0,
                'tau_m': 20.0,
-               'tau_refrac': 5.0,
+               'tau_refrac': args.tau_refrac,
                'tau_syn_E': 5.0,
                'tau_syn_I': 5.0,
                'v_reset': -70.0,
@@ -181,7 +217,7 @@ cell_params = {'cm': 20.0,  # nF
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
 # +-------------------------------------------------------------------+
-no_iterations = 300000 # 3000000 # 3,000,000 iterations
+no_iterations = args.no_iterations  # 300000 # 3000000 # 3,000,000 iterations
 simtime = no_iterations
 # Wiring
 n = 16
@@ -203,12 +239,10 @@ f_rew = 10 ** 4  # Hz
 # Inputs
 f_mean = 20  # Hz
 f_base = 5  # Hz
-f_peak = 152  # 152.8  # Hz
+f_peak = args.f_peak  # 152.8  # Hz
 sigma_stim = 2  # 2
-t_stim = 20  # 20  # ms
-t_record = 1000 # ms
-# t_stim = no_iterations
-# t_record = no_iterations
+t_stim = args.t_stim  # 20  # ms
+t_record = args.t_record  # ms
 
 # STDP
 a_plus = 0.1
@@ -225,24 +259,48 @@ sim_params = {'g_max': g_max,
               'f_base': f_base,
               'f_peak': f_peak,
               'sigma_stim': sigma_stim,
-              't_record': t_record}
+              't_record': t_record,
+              'cell_params': cell_params
+              }
 
 # +-------------------------------------------------------------------+
 # | Initial network setup                                             |
 # +-------------------------------------------------------------------+
 # Need to setup the moving input
 
-# generate all rates
-if case == CASE_REW_NO_CORR:
-    rates = np.ones(grid) * f_mean
+if args.spike_source == SSP:
+    if case == CASE_REW_NO_CORR:
+        rates = np.ones(grid) * f_mean
+    else:
+        rates = generate_rates(np.random.randint(0, 16, size=2), grid)
+    source_pop = sim.Population(N_layer,
+                                sim.SpikeSourcePoisson,
+                                {'rate': rates.ravel(),
+                                 'start': 0,
+                                 'duration': simtime
+                                 }, label="Poisson spike source")
 else:
-    rates = generate_rates(np.random.randint(0, 16, size=2), grid)
-source_pop = sim.Population(N_layer,
-                            sim.SpikeSourcePoisson,
-                            {'rate': rates.ravel(),
-                             'start': 0,
-                             'duration': simtime
-                             }, label="Poisson spike source")
+    if case == CASE_REW_NO_CORR:
+        rates = np.ones((grid[0], grid[1], t_record // t_stim)) * f_mean
+    else:
+        rates = np.zeros((grid[0], grid[1], t_record // t_stim))
+    for rate_id in range(t_record // t_stim):
+        rates[:, :, rate_id] = generate_rates(np.random.randint(0, 16, size=2),
+                                              grid)
+    rates = rates.reshape(N_layer, t_record // t_stim)
+    spike_times = []
+    for _ in range(N_layer):
+        spike_times.append([])
+
+    for n_id in range(N_layer):
+        for t in range(t_record // t_stim):
+            spike_times[n_id].append(poisson_generator(rates[n_id, t], t * t_stim, t_stim * (t + 1)))
+        spike_times[n_id] = np.concatenate(spike_times[n_id])
+    spikeArray = {'spike_times': spike_times}
+    source_pop = sim.Population(N_layer,
+                                sim.SpikeSourceArray,
+                                spikeArray,
+                                label="Array spike source")
 
 ff_s = np.zeros(N_layer)
 lat_s = np.zeros(N_layer)
@@ -267,7 +325,7 @@ print "\n"
 
 # Neuron populations
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
-target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
+# target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
 # Connections
 # Plastic Connections between pre_pop and post_pop
 
@@ -311,6 +369,7 @@ lat_projection = sim.Projection(
 # target_pop.record_v()
 
 # Record spikes
+# if case == CASE_REW_NO_CORR:
 source_pop.record()
 target_pop.record()
 
@@ -328,32 +387,59 @@ post_targets = []
 post_weights = []
 post_delays = []
 
-rates_history = np.zeros((16, 16, simtime // t_stim))
+# rates_history = np.zeros((16, 16, simtime // t_stim))
 
 print "Starting the sim"
-for run in range(simtime // t_stim):
-    print "run", run + 1, "of", simtime // t_stim
-    sim.run(t_stim)
-    if args.case == CASE_REW_NO_CORR:
-        rates = np.ones(grid) * f_mean
-    else:
-        rates = generate_rates(np.random.randint(0, 16, size=2), grid)
-    source_pop.set("rate", rates.ravel())
 
-    rates_history[:, :, run] = rates
+no_runs = None
+run_duration = None
+if args.spike_source == SSP and not case == CASE_REW_NO_CORR:
+    no_runs = simtime // t_stim
+    run_duration = t_stim
+else:
+    no_runs = simtime // t_record
+    run_duration = t_record
+
+for run in range(no_runs):
+    print "run", run + 1, "of", no_runs
+    sim.run(run_duration)
+    spike_times = []
+    if args.spike_source == SSP:
+        if case == CASE_REW_NO_CORR:
+            rates = np.ones(grid) * f_mean
+        else:
+            rates = generate_rates(np.random.randint(0, 16, size=2), grid)
+        source_pop.set("rate", rates.ravel())
+    else:
+        if case == CASE_REW_NO_CORR:
+            rates = np.ones((grid[0], grid[1], t_record // t_stim)) * f_mean
+        else:
+            rates = np.zeros((grid[0], grid[1], t_record // t_stim))
+        for rate_id in range(t_record // t_stim):
+            rates[:, :, rate_id] = generate_rates(np.random.randint(0, 16, size=2),
+                                                  grid)
+        rates = rates.reshape(N_layer, t_record // t_stim)
+        spike_times = []
+        for _ in range(N_layer):
+            spike_times.append([])
+
+        for n_id in range(N_layer):
+            for t in range(t_record // t_stim):
+                spike_times[n_id].append(poisson_generator(rates[n_id, t], t * t_stim, t_stim * (t + 1)))
+            spike_times[n_id] = np.concatenate(spike_times[n_id])
+        source_pop.set("spike_times", spike_times)
+
     # Retrieve data
 
-    if run * t_stim % t_record == 0:
+    # if run * t_stim % t_record == 0:
+    if run == no_runs - 1:
         pre_weights.append(
             np.array(ff_projection._get_synaptic_data(False, 'weight')))
         post_weights.append(
             np.array(lat_projection._get_synaptic_data(False, 'weight')))
 
-
 pre_spikes = source_pop.getSpikes(compatible_output=True)
 post_spikes = target_pop.getSpikes(compatible_output=True)
-
-# sim.run(simtime)
 
 # print("Weights:", plastic_projection.getWeights())
 end_time = pylab.datetime.datetime.now()
@@ -382,24 +468,25 @@ for source, target, weight, delay in init_ff_connections:
 for source, target, weight, delay in init_lat_connections:
     init_lat_conn_network[int(source), int(target)] = weight
 
-suffix = time.strftime("_%H%M%S_%d%m%Y")
+suffix = end_time.strftime("_%H%M%S_%d%m%Y")
 np.savez("structural_results_stdp" + suffix, pre_spikes=pre_spikes,
          post_spikes=post_spikes,
          init_ff_connections=init_ff_conn_network,
          init_lat_connections=init_lat_conn_network,
-         pre_weights=pre_weights,
-         post_weights=post_weights,
-         simtime=simtime, rate_trace=rates_history, sim_params=sim_params,
+         # pre_weights=pre_weights,
+         # post_weights=post_weights,
+         final_pre_weights=pre_weights,
+         final_post_weights=post_weights,
+         simtime=simtime,
+         sim_params=sim_params,
          total_time=total_time)
 
-# https://stackoverflow.com/questions/36809437/dynamic-marker-colour-in-matplotlib
-# pretty cool effect
+# Plotting
 
 plot_spikes(pre_spikes, "Source layer spikes")
 pylab.show()
 plot_spikes(post_spikes, "Target layer spikes")
 pylab.show()
-
 
 f, (ax1, ax2) = pylab.subplots(1, 2, figsize=(16, 8))
 i = ax1.matshow(np.nan_to_num(pre_weights[-1].reshape(256, 256)))
