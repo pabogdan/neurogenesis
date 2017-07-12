@@ -380,8 +380,8 @@ source_pop.record()
 target_pop.record()
 
 # Run simulation
-pre_spikes = None
-post_spikes = None
+pre_spikes = []
+post_spikes = []
 
 pre_sources = []
 pre_targets = []
@@ -394,7 +394,7 @@ post_weights = []
 post_delays = []
 
 # rates_history = np.zeros((16, 16, simtime // t_stim))
-
+e = None
 print "Starting the sim"
 
 no_runs = None
@@ -406,48 +406,52 @@ else:
     no_runs = simtime // t_record
     run_duration = t_record
 
-for run in range(no_runs):
-    print "run", run + 1, "of", no_runs
-    sim.run(run_duration)
-    spike_times = []
-    if args.spike_source == SSP:
-        if case == CASE_REW_NO_CORR:
-            rates = np.ones(grid) * f_mean
-        else:
-            rates = generate_rates(np.random.randint(0, 16, size=2), grid)
-        source_pop.set("rate", rates.ravel())
-    else:
-        if case == CASE_REW_NO_CORR:
-            rates = np.ones((grid[0], grid[1], t_record // t_stim)) * f_mean
-        else:
-            rates = np.zeros((grid[0], grid[1], t_record // t_stim))
-        for rate_id in range(t_record // t_stim):
-            rates[:, :, rate_id] = generate_rates(np.random.randint(0, 16, size=2),
-                                                  grid)
-        rates = rates.reshape(N_layer, t_record // t_stim)
+try:
+    for run in range(no_runs):
+        print "run", run + 1, "of", no_runs
+        sim.run(run_duration)
         spike_times = []
-        for _ in range(N_layer):
-            spike_times.append([])
+        if args.spike_source == SSP:
+            if case == CASE_REW_NO_CORR:
+                rates = np.ones(grid) * f_mean
+            else:
+                rates = generate_rates(np.random.randint(0, 16, size=2), grid)
+            source_pop.set("rate", rates.ravel())
+        else:
+            if case == CASE_REW_NO_CORR:
+                rates = np.ones((grid[0], grid[1], t_record // t_stim)) * f_mean
+            else:
+                rates = np.zeros((grid[0], grid[1], t_record // t_stim))
+            for rate_id in range(t_record // t_stim):
+                rates[:, :, rate_id] = generate_rates(np.random.randint(0, 16, size=2),
+                                                      grid)
+            rates = rates.reshape(N_layer, t_record // t_stim)
+            spike_times = []
+            for _ in range(N_layer):
+                spike_times.append([])
 
-        for n_id in range(N_layer):
-            for t in range(t_record // t_stim):
-                spike_times[n_id].append(poisson_generator(rates[n_id, t], t * t_stim, t_stim * (t + 1)))
-            spike_times[n_id] = np.concatenate(spike_times[n_id])
-        source_pop.set("spike_times", spike_times)
+            for n_id in range(N_layer):
+                for t in range(t_record // t_stim):
+                    spike_times[n_id].append(poisson_generator(rates[n_id, t], t * t_stim, t_stim * (t + 1)))
+                spike_times[n_id] = np.concatenate(spike_times[n_id])
+            source_pop.set("spike_times", spike_times)
 
-    # Retrieve data
+        # Retrieve data
 
-    # if run * t_stim % t_record == 0:
-    if run == no_runs - 1:
-        pre_weights.append(
-            np.array(ff_projection._get_synaptic_data(False, 'weight')))
-        post_weights.append(
-            np.array(lat_projection._get_synaptic_data(False, 'weight')))
+        # if run * t_stim % t_record == 0:
+        if run == no_runs - 1:
+            pre_weights.append(
+                np.array(ff_projection._get_synaptic_data(False, 'weight')))
+            post_weights.append(
+                np.array(lat_projection._get_synaptic_data(False, 'weight')))
 
-pre_spikes = source_pop.getSpikes(compatible_output=True)
-post_spikes = target_pop.getSpikes(compatible_output=True)
-# End simulation on SpiNNaker
-sim.end()
+
+    pre_spikes = source_pop.getSpikes(compatible_output=True)
+    post_spikes = target_pop.getSpikes(compatible_output=True)
+    # End simulation on SpiNNaker
+    sim.end()
+except Exception as e:
+    print e
 # print("Weights:", plastic_projection.getWeights())
 end_time = pylab.datetime.datetime.now()
 total_time = end_time - start_time
@@ -490,7 +494,8 @@ np.savez(filename, pre_spikes=pre_spikes,
          final_post_weights=post_weights,
          simtime=simtime,
          sim_params=sim_params,
-         total_time=total_time)
+         total_time=total_time,
+         exception=str(e))
 
 # Plotting
 if not args.no_plot:
