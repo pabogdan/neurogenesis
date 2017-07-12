@@ -495,7 +495,7 @@ np.savez(filename, pre_spikes=pre_spikes,
          simtime=simtime,
          sim_params=sim_params,
          total_time=total_time,
-         exception=str(e))
+         exception=e)
 
 # Plotting
 if not args.no_plot:
