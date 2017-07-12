@@ -62,7 +62,7 @@ parser.add_argument("-s", '--spike_source', type=int, choices=[SSP, SSA],
                     default=DEFAULT_SPIKE_SOURCE, dest='spike_source',
                     help='choice of input spike source: \n'
                          '[' + str(SSP) + '] poisson spike source \n'
-                         '[' + str(SSA) + '] spike source array'
+                                          '[' + str(SSA) + '] spike source array'
                     )
 
 parser.add_argument('--no_plot', help="don't display any plots", action="store_true")
@@ -265,7 +265,8 @@ sim_params = {'g_max': g_max,
               'f_peak': f_peak,
               'sigma_stim': sigma_stim,
               't_record': t_record,
-              'cell_params': cell_params
+              'cell_params': cell_params,
+              'case': args.case
               }
 
 # +-------------------------------------------------------------------+
@@ -479,7 +480,7 @@ suffix = end_time.strftime("_%H%M%S_%d%m%Y")
 if args.filename:
     filename = args.filename
 else:
-    filename = "structural_results_stdp" + str(suffix)
+    filename = "topographic_map_results" + str(suffix)
 
 np.savez(filename, pre_spikes=pre_spikes,
          post_spikes=post_spikes,
