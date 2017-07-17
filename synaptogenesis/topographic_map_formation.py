@@ -231,7 +231,6 @@ S = (n, n)
 # S = (256, 1)
 grid = np.asarray(S)
 
-s = (n // 2, n // 2)
 s_max = 16
 sigma_form_forward = 2.5
 sigma_form_lateral = 1
@@ -266,7 +265,16 @@ sim_params = {'g_max': g_max,
               'sigma_stim': sigma_stim,
               't_record': t_record,
               'cell_params': cell_params,
-              'case': args.case
+              'case': args.case,
+              'grid': grid,
+              's_max': s_max,
+              'sigma_form_forward': sigma_form_forward,
+              'sigma_form_lateral': sigma_form_lateral,
+              'p_form_lateral': p_form_lateral,
+              'p_form_forward': p_form_forward,
+              'p_elim_dep': p_elim_dep,
+              'p_elim_pot': p_elim_pot,
+              'f_rew': f_rew
               }
 
 # +-------------------------------------------------------------------+
@@ -444,7 +452,6 @@ try:
                 np.array(ff_projection._get_synaptic_data(False, 'weight')))
             post_weights.append(
                 np.array(lat_projection._get_synaptic_data(False, 'weight')))
-
 
     pre_spikes = source_pop.getSpikes(compatible_output=True)
     post_spikes = target_pop.getSpikes(compatible_output=True)
