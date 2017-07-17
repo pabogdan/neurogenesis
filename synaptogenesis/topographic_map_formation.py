@@ -33,8 +33,11 @@ DEFAULT_SPIKE_SOURCE = SSP
 
 parser = argparse.ArgumentParser(
     description='Test for topographic map formation using STDP and synaptic rewiring'
-                ' on SpiNNaker.', formatter_class=argparse.RawTextHelpFormatter)
-parser.add_argument("-c", '--case', type=int, choices=[CASE_CORR_AND_REW, CASE_CORR_NO_REW, CASE_REW_NO_CORR],
+                ' on SpiNNaker.',
+    formatter_class=argparse.RawTextHelpFormatter)
+parser.add_argument("-c", '--case', type=int,
+                    choices=[CASE_CORR_AND_REW, CASE_CORR_NO_REW,
+                             CASE_REW_NO_CORR],
                     default=CASE_CORR_AND_REW, dest='case',
                     help='an integer controlling the experimental setup')
 
@@ -62,12 +65,15 @@ parser.add_argument("-s", '--spike_source', type=int, choices=[SSP, SSA],
                     default=DEFAULT_SPIKE_SOURCE, dest='spike_source',
                     help='choice of input spike source: \n'
                          '[' + str(SSP) + '] poisson spike source \n'
-                                          '[' + str(SSA) + '] spike source array'
+                                          '[' + str(
+                        SSA) + '] spike source array'
                     )
 
-parser.add_argument('--no_plot', help="don't display any plots", action="store_true")
+parser.add_argument('--no_plot', help="don't display any plots",
+                    action="store_true")
 
-parser.add_argument('-o', '--output', type=str, help="name of the numpy archive storing simulation results",
+parser.add_argument('-o', '--output', type=str,
+                    help="name of the numpy archive storing simulation results",
                     dest='filename')
 
 args = parser.parse_args()
@@ -308,7 +314,9 @@ else:
 
     for n_id in range(N_layer):
         for t in range(t_record // t_stim):
-            spike_times[n_id].append(poisson_generator(rates[n_id, t], t * t_stim, t_stim * (t + 1)))
+            spike_times[n_id].append(
+                poisson_generator(rates[n_id, t], t * t_stim,
+                                  t_stim * (t + 1)))
         spike_times[n_id] = np.concatenate(spike_times[n_id])
     spikeArray = {'spike_times': spike_times}
     source_pop = sim.Population(N_layer,
@@ -427,12 +435,14 @@ try:
             source_pop.set("rate", rates.ravel())
         else:
             if case == CASE_REW_NO_CORR:
-                rates = np.ones((grid[0], grid[1], t_record // t_stim)) * f_mean
+                rates = np.ones(
+                    (grid[0], grid[1], t_record // t_stim)) * f_mean
             else:
                 rates = np.zeros((grid[0], grid[1], t_record // t_stim))
             for rate_id in range(t_record // t_stim):
-                rates[:, :, rate_id] = generate_rates(np.random.randint(0, 16, size=2),
-                                                      grid)
+                rates[:, :, rate_id] = generate_rates(
+                    np.random.randint(0, 16, size=2),
+                    grid)
             rates = rates.reshape(N_layer, t_record // t_stim)
             spike_times = []
             for _ in range(N_layer):
@@ -440,14 +450,16 @@ try:
 
             for n_id in range(N_layer):
                 for t in range(t_record // t_stim):
-                    spike_times[n_id].append(poisson_generator(rates[n_id, t], t * t_stim, t_stim * (t + 1)))
+                    spike_times[n_id].append(
+                        poisson_generator(rates[n_id, t], t * t_stim,
+                                          t_stim * (t + 1)))
                 spike_times[n_id] = np.concatenate(spike_times[n_id])
             source_pop.set("spike_times", spike_times)
 
         # Retrieve data
 
         # if run * t_stim % t_record == 0:
-        if run == no_runs - 1:
+        if run * run_duration % t_record == 0:
             pre_weights.append(
                 np.array(ff_projection._get_synaptic_data(False, 'weight')))
             post_weights.append(
@@ -497,8 +509,10 @@ np.savez(filename, pre_spikes=pre_spikes,
          post_spikes=post_spikes,
          init_ff_connections=init_ff_conn_network,
          init_lat_connections=init_lat_conn_network,
-         final_pre_weights=pre_weights,
-         final_post_weights=post_weights,
+         ff_connections=pre_weights,
+         lat_connections=post_weights,
+         final_pre_weights=pre_weights[-1],
+         final_post_weights=post_weights[-1],
          simtime=simtime,
          sim_params=sim_params,
          total_time=total_time,
