@@ -227,8 +227,8 @@ for file in paths:
             shuf_weights,
             unitary_weights=False,
             resolution=1.)
-        wsr_sigma_fin_conn_fin_conn_shuffle = stats.wilcoxon(fin_stds_weight.ravel(), fin_stds_weight_shuf.ravel())
-        wsr_AD_fin_conn_fin_conn_shuffle = stats.wilcoxon(fin_AD_weight.ravel(), fin_AD_weight_shuf.ravel())
+        wsr_sigma_fin_weight_fin_weight_shuffle = stats.wilcoxon(fin_stds_weight.ravel(), fin_stds_weight_shuf.ravel())
+        wsr_AD_fin_weight_fin_weight_shuffle = stats.wilcoxon(fin_AD_weight.ravel(), fin_AD_weight_shuf.ravel())
 
         pp(simdata)
         print "'%-60s'" % "Target neuron spike rate", total_target_neuron_mean_spike_rate, "Hz"
@@ -242,14 +242,14 @@ for file in paths:
         print "'%-60s'" % "p(WSR sigma aff fin conn vs sigma aff fin conn shuffle)", wsr_sigma_fin_conn_fin_conn_shuffle.pvalue
         print "'%-60s'" % "Mean sigma aff fin weight shuffle", fin_mean_std_weight_shuf
         print "'%-60s'" % "Mean sigma aff fin weight", fin_mean_std_weight
-        print "'%-60s'" % "p(WSR sigma aff fin weight vs sigma aff fin weight shuffle)", wsr_sigma_fin_conn_fin_conn_shuffle.pvalue
+        print "'%-60s'" % "p(WSR sigma aff fin weight vs sigma aff fin weight shuffle)", wsr_sigma_fin_weight_fin_weight_shuffle.pvalue
         print "'%-60s'" % "Mean AD init", init_mean_AD
         print "'%-60s'" % "Mean AD fin conn shuffle", fin_mean_AD_conn_shuf
         print "'%-60s'" % "Mean AD fin conn", fin_mean_AD_conn
         print "'%-60s'" % "p(WSR AD fin conn vs AD fin conn shuffle)", wsr_AD_fin_conn_fin_conn_shuffle.pvalue
         print "'%-60s'" % "Mean AD fin weight shuffle", fin_mean_AD_weight_shuf
         print "'%-60s'" % "Mean AD fin weight", fin_mean_AD_weight
-        print "'%-60s'" % "p(WSR AD fin weight vs AD fin weight shuffle)", wsr_AD_fin_conn_fin_conn_shuffle.pvalue
+        print "'%-60s'" % "p(WSR AD fin weight vs AD fin weight shuffle)", wsr_AD_fin_weight_fin_weight_shuffle.pvalue
 
         end_time = pylab.datetime.datetime.now()
         suffix = end_time.strftime("_%H%M%S_%d%m%Y")
@@ -271,8 +271,30 @@ for file in paths:
                  init_lat_connections=init_lat_weights,
                  final_pre_weights=ff_last,
                  final_post_weights=lat_last,
+                 # a
                  init_mean_std=init_mean_std, init_stds=init_stds, init_mean_AD=init_mean_AD,
                  init_AD=init_AD, init_min_variances=init_min_variances,
+                 # b
+                 fin_mean_std_conn=fin_mean_std_conn, fin_stds_conn=fin_stds_conn, fin_mean_AD_conn=fin_mean_AD_conn,
+                 fin_AD_conn=fin_AD_conn, fin_min_variances_conn=fin_min_variances_conn,
+                 # c
+                 generated_ff_conn=generated_ff_conn,
+                 fin_mean_std_conn_shuf=fin_mean_std_conn_shuf, fin_stds_conn_shuf=fin_stds_conn_shuf,
+                 fin_mean_AD_conn_shuf=fin_mean_AD_conn_shuf, fin_AD_conn_shuf=fin_AD_conn_shuf,
+                 fin_min_variances_conn_shuf=fin_min_variances_conn_shuf,
+                 wsr_sigma_fin_conn_fin_conn_shuffle=wsr_sigma_fin_conn_fin_conn_shuffle,
+                 wsr_AD_fin_conn_fin_conn_shuffle=wsr_AD_fin_conn_fin_conn_shuffle,
+                 # d
+                 fin_mean_std_weight=fin_mean_std_weight, fin_stds_weight=fin_stds_weight,
+                 fin_mean_AD_weight=fin_mean_AD_weight, fin_AD_weight=fin_AD_weight,
+                 fin_min_variances_weight=fin_min_variances_weight,
+                 # e
+                 shuf_weights=shuf_weights,
+                 fin_mean_std_weight_shuf=fin_mean_std_weight_shuf, fin_stds_weight_shuf=fin_stds_weight_shuf,
+                 fin_mean_AD_weight_shuf=fin_mean_AD_weight_shuf, fin_AD_weight_shuf=fin_AD_weight_shuf,
+                 fin_min_variances_weight_shuf=fin_min_variances_weight_shuf,
+                 wsr_sigma_fin_weight_fin_weight_shuffle=wsr_sigma_fin_weight_fin_weight_shuffle,
+                 wsr_AD_fin_weight_fin_weight_shuffle=wsr_AD_fin_weight_fin_weight_shuffle,
                  total_time=elapsed_time)
     except Exception as e:
         print "Error:", e
