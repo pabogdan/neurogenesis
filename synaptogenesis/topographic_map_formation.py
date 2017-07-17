@@ -505,7 +505,7 @@ np.savez(filename, pre_spikes=pre_spikes,
          exception=e)
 
 # Plotting
-if not args.no_plot:
+if not args.no_plot and e is None:
     plot_spikes(pre_spikes, "Source layer spikes")
     pylab.show()
     plot_spikes(post_spikes, "Target layer spikes")

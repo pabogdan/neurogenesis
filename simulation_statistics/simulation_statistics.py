@@ -231,25 +231,26 @@ for file in paths:
         wsr_AD_fin_weight_fin_weight_shuffle = stats.wilcoxon(fin_AD_weight.ravel(), fin_AD_weight_shuf.ravel())
 
         pp(simdata)
-        print "'%-60s'" % "Target neuron spike rate", total_target_neuron_mean_spike_rate, "Hz"
-        print "'%-60s'" % "Final mean number of feedforward synapses", final_mean_number_ff_synapses
-        print "'%-60s'" % "Initial ff weight mean", initial_weight_mean, "(should be .2, obviously)"
-        print "'%-60s'" % "Final ff weight mean", final_weight_mean
-        print "'%-60s'" % "Weight as proportion of max", final_weight_proportion
-        print "'%-60s'" % "Mean sigma aff init", init_mean_std
-        print "'%-60s'" % "Mean sigma aff fin conn shuffle", fin_mean_std_conn_shuf
-        print "'%-60s'" % "Mean sigma aff fin conn", fin_mean_std_conn
-        print "'%-60s'" % "p(WSR sigma aff fin conn vs sigma aff fin conn shuffle)", wsr_sigma_fin_conn_fin_conn_shuffle.pvalue
-        print "'%-60s'" % "Mean sigma aff fin weight shuffle", fin_mean_std_weight_shuf
-        print "'%-60s'" % "Mean sigma aff fin weight", fin_mean_std_weight
-        print "'%-60s'" % "p(WSR sigma aff fin weight vs sigma aff fin weight shuffle)", wsr_sigma_fin_weight_fin_weight_shuffle.pvalue
-        print "'%-60s'" % "Mean AD init", init_mean_AD
-        print "'%-60s'" % "Mean AD fin conn shuffle", fin_mean_AD_conn_shuf
-        print "'%-60s'" % "Mean AD fin conn", fin_mean_AD_conn
-        print "'%-60s'" % "p(WSR AD fin conn vs AD fin conn shuffle)", wsr_AD_fin_conn_fin_conn_shuffle.pvalue
-        print "'%-60s'" % "Mean AD fin weight shuffle", fin_mean_AD_weight_shuf
-        print "'%-60s'" % "Mean AD fin weight", fin_mean_AD_weight
-        print "'%-60s'" % "p(WSR AD fin weight vs AD fin weight shuffle)", wsr_AD_fin_weight_fin_weight_shuffle.pvalue
+        print
+        print "%-60s" % "Target neuron spike rate", total_target_neuron_mean_spike_rate, "Hz"
+        print "%-60s" % "Final mean number of feedforward synapses", final_mean_number_ff_synapses
+        print "%-60s" % "Initial ff weight mean", initial_weight_mean, "(should be .2, obviously)"
+        print "%-60s" % "Final ff weight mean", final_weight_mean
+        print "%-60s" % "Weight as proportion of max", final_weight_proportion
+        print "%-60s" % "Mean sigma aff init", init_mean_std
+        print "%-60s" % "Mean sigma aff fin conn shuffle", fin_mean_std_conn_shuf
+        print "%-60s" % "Mean sigma aff fin conn", fin_mean_std_conn
+        print "%-60s" % "p(WSR sigma aff fin conn vs sigma aff fin conn shuffle)", wsr_sigma_fin_conn_fin_conn_shuffle.pvalue
+        print "%-60s" % "Mean sigma aff fin weight shuffle", fin_mean_std_weight_shuf
+        print "%-60s" % "Mean sigma aff fin weight", fin_mean_std_weight
+        print "%-60s" % "p(WSR sigma aff fin weight vs sigma aff fin weight shuffle)", wsr_sigma_fin_weight_fin_weight_shuffle.pvalue
+        print "%-60s" % "Mean AD init", init_mean_AD
+        print "%-60s" % "Mean AD fin conn shuffle", fin_mean_AD_conn_shuf
+        print "%-60s" % "Mean AD fin conn", fin_mean_AD_conn
+        print "%-60s" % "p(WSR AD fin conn vs AD fin conn shuffle)", wsr_AD_fin_conn_fin_conn_shuffle.pvalue
+        print "%-60s" % "Mean AD fin weight shuffle", fin_mean_AD_weight_shuf
+        print "%-60s" % "Mean AD fin weight", fin_mean_AD_weight
+        print "%-60s" % "p(WSR AD fin weight vs AD fin weight shuffle)", wsr_AD_fin_weight_fin_weight_shuffle.pvalue
 
         end_time = pylab.datetime.datetime.now()
         suffix = end_time.strftime("_%H%M%S_%d%m%Y")
