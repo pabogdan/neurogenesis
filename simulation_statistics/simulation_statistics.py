@@ -1,3 +1,4 @@
+from __future__ import division
 import argparse
 from collections import Iterable
 
@@ -20,6 +21,10 @@ parser.add_argument('-o', '--output', type=str,
                     dest='filename')
 parser.add_argument('--plot', help="display plots",
                     action="store_true")
+
+parser.add_argument('-r', '--resolution', dest="resolution", type=int,
+                    help='grid resolution used to resolve preferred location',
+                    default=1)
 args = parser.parse_args()
 
 # Wiring
@@ -73,7 +78,7 @@ def sigma_and_ad(connectivity_matrix, unitary_weights=False, N_layer=256, n=16,
                     other_source, target_location]
 
             variances[
-                target_location, source_location] = top_sum / sum_of_weights
+                target_location, source_location] = np.true_divide(top_sum, sum_of_weights)
     min_variances = np.nanmin(variances, axis=1).reshape(16, 16)
     #     print min_variances.shape
     stds = np.sqrt(min_variances)
@@ -160,194 +165,200 @@ for file in paths:
         simtime = int(data['simtime'])
         post_spikes = data['post_spikes']
 
-        count_spikes = np.zeros(256)
-        for id, time in post_spikes:
-            count_spikes[int(id)] += 1
+        if not args.plot:
+            count_spikes = np.zeros(256)
+            for id, time in post_spikes:
+                count_spikes[int(id)] += 1
 
-        target_neuron_mean_spike_rate = count_spikes / float(simtime) * 1000.
+            target_neuron_mean_spike_rate = count_spikes / float(simtime) * 1000.
 
-        total_target_neuron_mean_spike_rate = np.mean(
-            target_neuron_mean_spike_rate)
+            total_target_neuron_mean_spike_rate = np.mean(
+                target_neuron_mean_spike_rate)
 
-        ff_last = data['final_pre_weights'].reshape(256, 256)
-        lat_last = data['final_post_weights'].reshape(256, 256)
-        init_ff_weights = data['init_ff_connections']
-        init_lat_weights = data['init_lat_connections']
-        g_max = simdata['g_max']
+            ff_last = data['final_pre_weights'].reshape(256, 256)
+            lat_last = data['final_post_weights'].reshape(256, 256)
+            init_ff_weights = data['init_ff_connections']
+            init_lat_weights = data['init_lat_connections']
+            g_max = simdata['g_max']
 
-        try:
-            # retrieve some important sim params
-            grid = simdata['grid']
-            s_max = simdata['s_max']
-            sigma_form_forward = simdata['sigma_form_forward']
-            sigma_form_lateral = simdata['sigma_form_lateral']
-            p_form_lateral = simdata['p_form_lateral']
-            p_form_forward = simdata['p_form_forward']
-            p_elim_dep = simdata['p_elim_dep']
-            p_elim_pot = simdata['p_elim_pot']
-            f_rew = simdata['f_rew']
-        except:
-            # use defaults
-            grid = np.asarray([16, 16])
-            s_max = 16
-            sigma_form_forward = 2.5
-            sigma_form_lateral = 1
-            p_form_lateral = 1
-            p_form_forward = 0.16
-            p_elim_dep = 0.0245
-            p_elim_pot = 1.36 * np.e ** -4
-            f_rew = 10 ** 4  # Hz
-
-        number_ff_incoming_connections = np.count_nonzero(np.isfinite(ff_last),
-                                                          axis=0)
-        final_mean_number_ff_synapses = np.mean(number_ff_incoming_connections)
-
-        initial_weight_mean = np.nanmean(init_ff_weights)
-
-        final_weight_mean = np.nanmean(ff_last)
-
-        final_weight_proportion = final_weight_mean / initial_weight_mean
-
-        # a
-        init_mean_std, init_stds, init_mean_AD, init_AD, init_min_variances = sigma_and_ad(
-            init_ff_weights,
-            unitary_weights=True,
-            resolution=1.)
-        # b
-        fin_mean_std_conn, fin_stds_conn, fin_mean_AD_conn, fin_AD_conn, fin_min_variances_conn = sigma_and_ad(
-            ff_last,
-            unitary_weights=True,
-            resolution=1.)
-
-        # c
-        generated_ff_conn = generate_initial_connectivity(
-            number_ff_incoming_connections, grid[0] * grid[1],
-            sigma_form_forward, p_form_forward, g_max)
-
-        fin_mean_std_conn_shuf, fin_stds_conn_shuf, fin_mean_AD_conn_shuf, fin_AD_conn_shuf, fin_min_variances_conn_shuf = sigma_and_ad(
-            generated_ff_conn,
-            unitary_weights=True,
-            resolution=1.)
-
-        wsr_sigma_fin_conn_fin_conn_shuffle = stats.wilcoxon(
-            fin_stds_conn.ravel(), fin_stds_conn_shuf.ravel())
-        wsr_AD_fin_conn_fin_conn_shuffle = stats.wilcoxon(
-            fin_AD_conn.ravel(),
-            fin_AD_conn_shuf.ravel())
-        # d
-        fin_mean_std_weight, fin_stds_weight, fin_mean_AD_weight, fin_AD_weight, fin_min_variances_weight = sigma_and_ad(
-            ff_last,
-            unitary_weights=False,
-            resolution=1.)
-
-        # e
-        shuf_weights = weight_shuffle(ff_last)
-        fin_mean_std_weight_shuf, fin_stds_weight_shuf, fin_mean_AD_weight_shuf, fin_AD_weight_shuf, fin_min_variances_weight_shuf = sigma_and_ad(
-            shuf_weights,
-            unitary_weights=False,
-            resolution=1.)
-        wsr_sigma_fin_weight_fin_weight_shuffle = stats.wilcoxon(
-            fin_stds_weight.ravel(), fin_stds_weight_shuf.ravel())
-        wsr_AD_fin_weight_fin_weight_shuffle = stats.wilcoxon(
-            fin_AD_weight.ravel(), fin_AD_weight_shuf.ravel())
-
-        pp(simdata)
-        print
-        print "%-60s" % "Target neuron spike rate", total_target_neuron_mean_spike_rate, "Hz"
-        print "%-60s" % "Final mean number of feedforward synapses", final_mean_number_ff_synapses
-        # print "%-60s" % "Initial ff weight mean", initial_weight_mean, "(should be .2, obviously)"
-        print "%-60s" % "Final ff weight mean", final_weight_mean
-        print "%-60s" % "Weight as proportion of max", final_weight_proportion
-        print "%-60s" % "Mean sigma aff init", init_mean_std
-        print "%-60s" % "Mean sigma aff fin conn shuffle", fin_mean_std_conn_shuf
-        print "%-60s" % "Mean sigma aff fin conn", fin_mean_std_conn
-        print "%-60s" % "p(WSR sigma aff fin conn vs sigma aff fin conn shuffle)", wsr_sigma_fin_conn_fin_conn_shuffle.pvalue
-        print "%-60s" % "Mean sigma aff fin weight shuffle", fin_mean_std_weight_shuf
-        print "%-60s" % "Mean sigma aff fin weight", fin_mean_std_weight
-        print "%-60s" % "p(WSR sigma aff fin weight vs sigma aff fin weight shuffle)", wsr_sigma_fin_weight_fin_weight_shuffle.pvalue
-        print "%-60s" % "Mean AD init", init_mean_AD
-        print "%-60s" % "Mean AD fin conn shuffle", fin_mean_AD_conn_shuf
-        print "%-60s" % "Mean AD fin conn", fin_mean_AD_conn
-        print "%-60s" % "p(WSR AD fin conn vs AD fin conn shuffle)", wsr_AD_fin_conn_fin_conn_shuffle.pvalue
-        print "%-60s" % "Mean AD fin weight shuffle", fin_mean_AD_weight_shuf
-        print "%-60s" % "Mean AD fin weight", fin_mean_AD_weight
-        print "%-60s" % "p(WSR AD fin weight vs AD fin weight shuffle)", wsr_AD_fin_weight_fin_weight_shuffle.pvalue
-
-        end_time = pylab.datetime.datetime.now()
-        suffix = end_time.strftime("_%H%M%S_%d%m%Y")
-
-        elapsed_time = end_time - start_time
-
-        print "Total time elapsed -- " + str(elapsed_time)
-
-        if args.filename:
-            filename = args.filename
-        else:
-            filename = "analysis_" + str(suffix)
-
-        np.savez(filename, recording_archive_name=file,
-                 target_neurom_mean_spike_rate=target_neuron_mean_spike_rate,
-                 final_mean_number_ff_synapses=final_mean_number_ff_synapses,
-                 final_weight_proportion=final_weight_proportion,
-                 init_ff_weights=init_ff_weights,
-                 init_lat_connections=init_lat_weights,
-                 final_pre_weights=ff_last,
-                 final_post_weights=lat_last,
-                 # a
-                 init_mean_std=init_mean_std, init_stds=init_stds,
-                 init_mean_AD=init_mean_AD,
-                 init_AD=init_AD, init_min_variances=init_min_variances,
-                 # b
-                 fin_mean_std_conn=fin_mean_std_conn,
-                 fin_stds_conn=fin_stds_conn,
-                 fin_mean_AD_conn=fin_mean_AD_conn,
-                 fin_AD_conn=fin_AD_conn,
-                 fin_min_variances_conn=fin_min_variances_conn,
-                 # c
-                 generated_ff_conn=generated_ff_conn,
-                 fin_mean_std_conn_shuf=fin_mean_std_conn_shuf,
-                 fin_stds_conn_shuf=fin_stds_conn_shuf,
-                 fin_mean_AD_conn_shuf=fin_mean_AD_conn_shuf,
-                 fin_AD_conn_shuf=fin_AD_conn_shuf,
-                 fin_min_variances_conn_shuf=fin_min_variances_conn_shuf,
-                 wsr_sigma_fin_conn_fin_conn_shuffle=wsr_sigma_fin_conn_fin_conn_shuffle,
-                 wsr_AD_fin_conn_fin_conn_shuffle=wsr_AD_fin_conn_fin_conn_shuffle,
-                 # d
-                 fin_mean_std_weight=fin_mean_std_weight,
-                 fin_stds_weight=fin_stds_weight,
-                 fin_mean_AD_weight=fin_mean_AD_weight,
-                 fin_AD_weight=fin_AD_weight,
-                 fin_min_variances_weight=fin_min_variances_weight,
-                 # e
-                 shuf_weights=shuf_weights,
-                 fin_mean_std_weight_shuf=fin_mean_std_weight_shuf,
-                 fin_stds_weight_shuf=fin_stds_weight_shuf,
-                 fin_mean_AD_weight_shuf=fin_mean_AD_weight_shuf,
-                 fin_AD_weight_shuf=fin_AD_weight_shuf,
-                 fin_min_variances_weight_shuf=fin_min_variances_weight_shuf,
-                 wsr_sigma_fin_weight_fin_weight_shuffle=wsr_sigma_fin_weight_fin_weight_shuffle,
-                 wsr_AD_fin_weight_fin_weight_shuffle=wsr_AD_fin_weight_fin_weight_shuffle,
-                 total_time=elapsed_time)
-
-        if args.plot:
             try:
-                all_ff_connections = data['ff_connections']
-                number_of_recordings = all_ff_connections.shape[-1]
-                all_mean_sigmas = np.ones(number_of_recordings) * np.nan
-                all_mean_ADs = np.ones(number_of_recordings) * np.nan
-                for index in range(number_of_recordings):
-                    mean_std, stds, mean_AD, AD, variances = sigma_and_ad(
-                        all_ff_connections[:,:,index],
-                        unitary_weights=False,
-                        resolution=1.)
-                    all_mean_sigmas[index] = mean_std
-                    all_mean_ADs[index] = mean_AD
-                pylab.plot(all_mean_sigmas)
-                pylab.show()
-                pylab.plot(all_mean_ADs)
-                pylab.show()
-            except MemoryError:
-                print "Out of memory. Did you use HDF5 slices to read in data?"
+                # retrieve some important sim params
+                grid = simdata['grid']
+                s_max = simdata['s_max']
+                sigma_form_forward = simdata['sigma_form_forward']
+                sigma_form_lateral = simdata['sigma_form_lateral']
+                p_form_lateral = simdata['p_form_lateral']
+                p_form_forward = simdata['p_form_forward']
+                p_elim_dep = simdata['p_elim_dep']
+                p_elim_pot = simdata['p_elim_pot']
+                f_rew = simdata['f_rew']
+            except:
+                # use defaults
+                grid = np.asarray([16, 16])
+                s_max = 16
+                sigma_form_forward = 2.5
+                sigma_form_lateral = 1
+                p_form_lateral = 1
+                p_form_forward = 0.16
+                p_elim_dep = 0.0245
+                p_elim_pot = 1.36 * np.e ** -4
+                f_rew = 10 ** 4  # Hz
+            finally:
+                data.close()
 
-    except Exception as e:
-        print "Error:", e
+            number_ff_incoming_connections = np.count_nonzero(np.isfinite(ff_last),
+                                                              axis=0)
+            final_mean_number_ff_synapses = np.mean(number_ff_incoming_connections)
+
+            initial_weight_mean = np.nanmean(init_ff_weights)
+
+            final_weight_mean = np.nanmean(ff_last)
+
+            final_weight_proportion = final_weight_mean / initial_weight_mean
+
+            # a
+            init_mean_std, init_stds, init_mean_AD, init_AD, init_min_variances = sigma_and_ad(
+                init_ff_weights,
+                unitary_weights=True,
+                resolution=args.resolution)
+            # b
+            fin_mean_std_conn, fin_stds_conn, fin_mean_AD_conn, fin_AD_conn, fin_min_variances_conn = sigma_and_ad(
+                ff_last,
+                unitary_weights=True,
+                resolution=args.resolution)
+
+            # c
+            generated_ff_conn = generate_initial_connectivity(
+                number_ff_incoming_connections, grid[0] * grid[1],
+                sigma_form_forward, p_form_forward, g_max)
+
+            fin_mean_std_conn_shuf, fin_stds_conn_shuf, fin_mean_AD_conn_shuf, fin_AD_conn_shuf, fin_min_variances_conn_shuf = sigma_and_ad(
+                generated_ff_conn,
+                unitary_weights=True,
+                resolution=args.resolution)
+
+            wsr_sigma_fin_conn_fin_conn_shuffle = stats.wilcoxon(
+                fin_stds_conn.ravel(), fin_stds_conn_shuf.ravel())
+            wsr_AD_fin_conn_fin_conn_shuffle = stats.wilcoxon(
+                fin_AD_conn.ravel(),
+                fin_AD_conn_shuf.ravel())
+            # d
+            fin_mean_std_weight, fin_stds_weight, fin_mean_AD_weight, fin_AD_weight, fin_min_variances_weight = sigma_and_ad(
+                ff_last,
+                unitary_weights=False,
+                resolution=args.resolution)
+
+            # e
+            shuf_weights = weight_shuffle(ff_last)
+            fin_mean_std_weight_shuf, fin_stds_weight_shuf, fin_mean_AD_weight_shuf, fin_AD_weight_shuf, fin_min_variances_weight_shuf = sigma_and_ad(
+                shuf_weights,
+                unitary_weights=False,
+                resolution=args.resolution)
+            wsr_sigma_fin_weight_fin_weight_shuffle = stats.wilcoxon(
+                fin_stds_weight.ravel(), fin_stds_weight_shuf.ravel())
+            wsr_AD_fin_weight_fin_weight_shuffle = stats.wilcoxon(
+                fin_AD_weight.ravel(), fin_AD_weight_shuf.ravel())
+
+            pp(simdata)
+            print
+            print "%-60s" % "Target neuron spike rate", total_target_neuron_mean_spike_rate, "Hz"
+            print "%-60s" % "Final mean number of feedforward synapses", final_mean_number_ff_synapses
+            # print "%-60s" % "Initial ff weight mean", initial_weight_mean, "(should be .2, obviously)"
+            print "%-60s" % "Final ff weight mean", final_weight_mean
+            print "%-60s" % "Weight as proportion of max", final_weight_proportion
+            print "%-60s" % "Mean sigma aff init", init_mean_std
+            print "%-60s" % "Mean sigma aff fin conn shuffle", fin_mean_std_conn_shuf
+            print "%-60s" % "Mean sigma aff fin conn", fin_mean_std_conn
+            print "%-60s" % "p(WSR sigma aff fin conn vs sigma aff fin conn shuffle)", wsr_sigma_fin_conn_fin_conn_shuffle.pvalue
+            print "%-60s" % "Mean sigma aff fin weight shuffle", fin_mean_std_weight_shuf
+            print "%-60s" % "Mean sigma aff fin weight", fin_mean_std_weight
+            print "%-60s" % "p(WSR sigma aff fin weight vs sigma aff fin weight shuffle)", wsr_sigma_fin_weight_fin_weight_shuffle.pvalue
+            print "%-60s" % "Mean AD init", init_mean_AD
+            print "%-60s" % "Mean AD fin conn shuffle", fin_mean_AD_conn_shuf
+            print "%-60s" % "Mean AD fin conn", fin_mean_AD_conn
+            print "%-60s" % "p(WSR AD fin conn vs AD fin conn shuffle)", wsr_AD_fin_conn_fin_conn_shuffle.pvalue
+            print "%-60s" % "Mean AD fin weight shuffle", fin_mean_AD_weight_shuf
+            print "%-60s" % "Mean AD fin weight", fin_mean_AD_weight
+            print "%-60s" % "p(WSR AD fin weight vs AD fin weight shuffle)", wsr_AD_fin_weight_fin_weight_shuffle.pvalue
+
+            end_time = pylab.datetime.datetime.now()
+            suffix = end_time.strftime("_%H%M%S_%d%m%Y")
+
+            elapsed_time = end_time - start_time
+
+            print "Total time elapsed -- " + str(elapsed_time)
+
+            if args.filename:
+                filename = args.filename
+            else:
+                filename = "analysis_" + str(suffix)
+
+            np.savez(filename, recording_archive_name=file,
+                     target_neurom_mean_spike_rate=target_neuron_mean_spike_rate,
+                     final_mean_number_ff_synapses=final_mean_number_ff_synapses,
+                     final_weight_proportion=final_weight_proportion,
+                     init_ff_weights=init_ff_weights,
+                     init_lat_connections=init_lat_weights,
+                     final_pre_weights=ff_last,
+                     final_post_weights=lat_last,
+                     # a
+                     init_mean_std=init_mean_std, init_stds=init_stds,
+                     init_mean_AD=init_mean_AD,
+                     init_AD=init_AD, init_min_variances=init_min_variances,
+                     # b
+                     fin_mean_std_conn=fin_mean_std_conn,
+                     fin_stds_conn=fin_stds_conn,
+                     fin_mean_AD_conn=fin_mean_AD_conn,
+                     fin_AD_conn=fin_AD_conn,
+                     fin_min_variances_conn=fin_min_variances_conn,
+                     # c
+                     generated_ff_conn=generated_ff_conn,
+                     fin_mean_std_conn_shuf=fin_mean_std_conn_shuf,
+                     fin_stds_conn_shuf=fin_stds_conn_shuf,
+                     fin_mean_AD_conn_shuf=fin_mean_AD_conn_shuf,
+                     fin_AD_conn_shuf=fin_AD_conn_shuf,
+                     fin_min_variances_conn_shuf=fin_min_variances_conn_shuf,
+                     wsr_sigma_fin_conn_fin_conn_shuffle=wsr_sigma_fin_conn_fin_conn_shuffle,
+                     wsr_AD_fin_conn_fin_conn_shuffle=wsr_AD_fin_conn_fin_conn_shuffle,
+                     # d
+                     fin_mean_std_weight=fin_mean_std_weight,
+                     fin_stds_weight=fin_stds_weight,
+                     fin_mean_AD_weight=fin_mean_AD_weight,
+                     fin_AD_weight=fin_AD_weight,
+                     fin_min_variances_weight=fin_min_variances_weight,
+                     # e
+                     shuf_weights=shuf_weights,
+                     fin_mean_std_weight_shuf=fin_mean_std_weight_shuf,
+                     fin_stds_weight_shuf=fin_stds_weight_shuf,
+                     fin_mean_AD_weight_shuf=fin_mean_AD_weight_shuf,
+                     fin_AD_weight_shuf=fin_AD_weight_shuf,
+                     fin_min_variances_weight_shuf=fin_min_variances_weight_shuf,
+                     wsr_sigma_fin_weight_fin_weight_shuffle=wsr_sigma_fin_weight_fin_weight_shuffle,
+                     wsr_AD_fin_weight_fin_weight_shuffle=wsr_AD_fin_weight_fin_weight_shuffle,
+                     total_time=elapsed_time)
+
+        elif args.plot:
+            all_ff_connections = data['ff_connections']
+            number_of_recordings = all_ff_connections.shape[-1]
+            all_mean_sigmas = np.ones(number_of_recordings) * np.nan
+            all_mean_ADs = np.ones(number_of_recordings) * np.nan
+            for index in range(number_of_recordings):
+                mean_std, stds, mean_AD, AD, variances = sigma_and_ad(
+                    all_ff_connections[:,:,index],
+                    unitary_weights=False,
+                    resolution=args.resolution)
+                all_mean_sigmas[index] = mean_std
+                all_mean_ADs[index] = mean_AD
+            pylab.plot(all_mean_sigmas)
+            pylab.show()
+            pylab.plot(all_mean_ADs)
+            pylab.show()
+
+    except IOError as e:
+        print "IOError:", e
+    except MemoryError:
+        print "Out of memory. Did you use HDF5 slices to read in data?", e
+    finally:
+        if data:
+            data.close()
+
