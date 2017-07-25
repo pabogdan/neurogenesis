@@ -78,7 +78,8 @@ def sigma_and_ad(connectivity_matrix, unitary_weights=False, N_layer=256, n=16,
                     other_source, target_location]
 
             variances[
-                target_location, source_location] = np.true_divide(top_sum, sum_of_weights)
+                target_location, source_location] = np.true_divide(top_sum,
+                                                                   sum_of_weights)
     min_variances = np.nanmin(variances, axis=1).reshape(16, 16)
     #     print min_variances.shape
     stds = np.sqrt(min_variances)
@@ -91,7 +92,7 @@ def sigma_and_ad(connectivity_matrix, unitary_weights=False, N_layer=256, n=16,
                              grid)
 
     # return mean std, stds, mean AD, ADs
-    return np.mean(stds), stds, np.mean(AD), AD, min_variances
+    return np.nanmean(stds), stds, np.nanmean(AD), AD, min_variances
 
 
 def formation_rule(potential_pre, post, sigma, p_form):
@@ -170,7 +171,8 @@ for file in paths:
             for id, time in post_spikes:
                 count_spikes[int(id)] += 1
 
-            target_neuron_mean_spike_rate = count_spikes / float(simtime) * 1000.
+            target_neuron_mean_spike_rate = count_spikes / float(
+                simtime) * 1000.
 
             total_target_neuron_mean_spike_rate = np.mean(
                 target_neuron_mean_spike_rate)
@@ -206,9 +208,11 @@ for file in paths:
             finally:
                 data.close()
 
-            number_ff_incoming_connections = np.count_nonzero(np.isfinite(ff_last),
-                                                              axis=0)
-            final_mean_number_ff_synapses = np.mean(number_ff_incoming_connections)
+            number_ff_incoming_connections = np.count_nonzero(
+                np.isfinite(ff_last),
+                axis=0)
+            final_mean_number_ff_synapses = np.mean(
+                number_ff_incoming_connections)
 
             initial_weight_mean = np.nanmean(init_ff_weights)
 
@@ -339,12 +343,14 @@ for file in paths:
 
         elif args.plot:
             all_ff_connections = data['ff_connections']
+            if data:
+                data.close()
             number_of_recordings = all_ff_connections.shape[-1]
             all_mean_sigmas = np.ones(number_of_recordings) * np.nan
             all_mean_ADs = np.ones(number_of_recordings) * np.nan
             for index in range(number_of_recordings):
                 mean_std, stds, mean_AD, AD, variances = sigma_and_ad(
-                    all_ff_connections[:,:,index],
+                    all_ff_connections[:, :, index],
                     unitary_weights=False,
                     resolution=args.resolution)
                 all_mean_sigmas[index] = mean_std
@@ -353,12 +359,11 @@ for file in paths:
             pylab.show()
             pylab.plot(all_mean_ADs)
             pylab.show()
+            np.savez("last_std_ad_evo", recording_archive_name=file,
+                     all_mean_sigmas=all_mean_sigmas,
+                     all_mean_ads=all_mean_ADs)
 
     except IOError as e:
         print "IOError:", e
     except MemoryError:
         print "Out of memory. Did you use HDF5 slices to read in data?", e
-    finally:
-        if data:
-            data.close()
-
