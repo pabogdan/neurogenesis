@@ -327,8 +327,8 @@ else:
                                 spikeArray,
                                 label="Array spike source")
 
-ff_s = np.zeros(N_layer)
-lat_s = np.zeros(N_layer)
+ff_s = np.zeros(N_layer, dtype=np.uint)
+lat_s = np.zeros(N_layer, dtype=np.uint)
 
 existing_pre_ff = []
 existing_pre_lat = []

@@ -345,12 +345,12 @@ for file in paths:
             all_ff_connections = data['ff_connections']
             if data:
                 data.close()
-            number_of_recordings = all_ff_connections.shape[-1]
+            number_of_recordings = all_ff_connections.shape[0]
             all_mean_sigmas = np.ones(number_of_recordings) * np.nan
             all_mean_ADs = np.ones(number_of_recordings) * np.nan
             for index in range(number_of_recordings):
                 mean_std, stds, mean_AD, AD, variances = sigma_and_ad(
-                    all_ff_connections[:, :, index],
+                    all_ff_connections[index, :, :],
                     unitary_weights=False,
                     resolution=args.resolution)
                 all_mean_sigmas[index] = mean_std
