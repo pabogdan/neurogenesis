@@ -24,10 +24,12 @@ SSP = 1
 SSA = 2
 
 DEFAULT_TAU_REFRAC = 5.0
-DEFAULT_T_RECORD = 1000
+DEFAULT_T_RECORD = 30000
 DEFAULT_F_PEAK = 152.8
-DEFAULT_NO_INTERATIONS = 3000000
+DEFAULT_NO_INTERATIONS = 30000000
 DEFAULT_T_STIM = 20
+DEFAULT_S_MAX = 32
+DEFAULT_F_MEAN = 20
 
 DEFAULT_SPIKE_SOURCE = SSP
 
@@ -56,6 +58,14 @@ parser.add_argument('--t_stim', type=int,
 parser.add_argument('--f_peak', type=float,
                     default=DEFAULT_F_PEAK, dest='f_peak',
                     help='peak input spike rate (Hz)')
+
+parser.add_argument('--f_mean', type=float,
+                    default=DEFAULT_F_MEAN, dest='f_mean',
+                    help='input spike rate (Hz) used with case 3')
+
+parser.add_argument('--s_max', type=int,
+                    default=DEFAULT_S_MAX, dest='s_max',
+                    help='maximum synaptic capacity')
 
 parser.add_argument('--no_iterations', type=int,
                     default=DEFAULT_NO_INTERATIONS, dest='no_iterations',
@@ -240,7 +250,7 @@ S = (n, n)
 # S = (256, 1)
 grid = np.asarray(S)
 
-s_max = 16
+s_max = args.s_max // 2
 sigma_form_forward = 2.5
 sigma_form_lateral = 1
 p_form_lateral = 1
@@ -250,7 +260,7 @@ p_elim_pot = 1.36 * np.e ** -4
 f_rew = 10 ** 4  # Hz
 
 # Inputs
-f_mean = 20  # Hz
+f_mean = args.f_mean  # Hz
 f_base = 5  # Hz
 f_peak = args.f_peak  # 152.8  # Hz
 sigma_stim = 2  # 2
@@ -350,6 +360,7 @@ print "\n"
 
 # Neuron populations
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
+
 # target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
 # Connections
 # Plastic Connections between pre_pop and post_pop
@@ -383,7 +394,8 @@ lat_projection = sim.Projection(
     target_pop, target_pop,
     sim.FromListConnector(init_lat_connections),
     synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-    label="plastic_lat_projection"
+    label="plastic_lat_projection",
+    target="inhibitory"
 )
 
 # +-------------------------------------------------------------------+
