@@ -36,6 +36,179 @@ grid = np.asarray(S)
 
 
 # Function definitions
+def conn_matrix_to_fan_in(conn_matrix, mode):
+    conn_matrix = np.copy(conn_matrix)
+    ys = int(np.sqrt(conn_matrix.shape[0]))
+    xs = int(np.sqrt(conn_matrix.shape[1]))
+    fan_in = np.zeros((ys ** 2, xs ** 2))
+    locations = np.asarray(np.where(np.isfinite(conn_matrix)))
+
+
+    for row in range(ys):
+        for column in range(xs):
+            if 'conn' in mode:
+                fan_in[ys * row:ys * (row + 1),
+                xs * column: xs * (column + 1)] = np.nan_to_num(
+                    conn_matrix[:, row * xs + column].reshape(16, 16))/g_max
+            else:
+                fan_in[ys * row:ys * (row + 1),
+                xs * column: xs * (column + 1)] = np.nan_to_num(
+                    conn_matrix[:, row * xs + column].reshape(16, 16))
+    return fan_in
+
+
+def centre_weights(in_star_all, n1d):
+    in_star_all = np.copy(in_star_all)
+    global debug_var
+    half_range = n1d // 2
+    mean_projection = np.zeros((n1d + 1, n1d + 1))
+    mean_centred_projection = np.zeros((n1d + 1, n1d + 1))
+    positions = np.arange(-half_range, half_range + 1)
+    means_and_std_devs = np.zeros((n1d ** 2, 8))
+    means_for_plot = np.zeros((n1d ** 2 * 2 - 1, 2))
+    std_devs_xs = np.zeros(n1d)
+    std_devs_ys = np.zeros(n1d)
+    std_devs_xs_fine = np.zeros(11)
+    std_devs_ys_fine = np.zeros(11)
+
+    for y in range(n1d):
+        for x in range(n1d):
+            in_star = np.copy(
+                in_star_all[y * n1d:(y + 1) * n1d, x * n1d:(x + 1) * n1d])
+            in_star_extended = np.tile(in_star, [3, 3])
+            if np.sum(in_star) > 0:
+                # Add to the mean projection
+                ideal_centred = np.copy(in_star_extended[
+                                        n1d + y - half_range: n1d + y + half_range + 1,
+                                        n1d + x - half_range:n1d + x + half_range + 1])
+                ideal_centred[0, :] = ideal_centred[0, :] / 2.
+                ideal_centred[n1d, :] = ideal_centred[n1d, :] / 2.
+                ideal_centred[:, 0] = ideal_centred[:, 0] / 2.
+                ideal_centred[:, n1d] = ideal_centred[:, n1d] / 2.
+
+                mean_projection += ideal_centred
+
+                #  ^^ So far so good ^^
+                # Find the coarse centre of mass
+                for pos in range(n1d):
+                    temp_centred = np.copy(in_star_extended[
+                                           n1d + pos - half_range: n1d + pos + half_range + 1,
+                                           n1d + pos - half_range:n1d + pos + half_range + 1])
+                    # correct the edges of centred
+                    temp_centred[0, :] = temp_centred[0, :] / 2.
+                    temp_centred[n1d, :] = temp_centred[n1d, :] / 2.
+                    temp_centred[:, 0] = temp_centred[:, 0] / 2.
+                    temp_centred[:, n1d] = temp_centred[:, n1d] / 2.
+                    # calculate the StdDev
+                    centred_x = np.sum(temp_centred, axis=0)
+                    centred_y = np.sum(temp_centred, axis=1)
+                    std_devs_xs[pos] = np.sqrt(
+                        np.sum(centred_x * (positions ** 2)) / np.sum(
+                            centred_x));
+                    std_devs_ys[pos] = np.sqrt(
+                        np.sum(centred_y * (positions ** 2)) / np.sum(
+                            centred_y));
+
+                std_dev_x = np.min(std_devs_xs)
+                pos_x = np.argmin(std_devs_xs)
+                std_dev_y = np.min(std_devs_ys)
+                pos_y = np.argmin(std_devs_ys)
+
+                #                 print pos_x, pos_y
+                #                 print std_dev_x, std_dev_y
+
+
+
+                # reconstruct the coarsely centred receptive field
+                centred_coarse = np.copy(in_star_extended[
+                                         n1d + pos_y - half_range: n1d + pos_y + half_range + 1,
+                                         n1d + pos_x - half_range:n1d + pos_x + half_range + 1])
+                centred_coarse[0, :] = centred_coarse[0, :] / 2.
+                centred_coarse[n1d, :] = centred_coarse[n1d, :] / 2.
+                centred_coarse[:, 0] = centred_coarse[:, 0] / 2.
+                centred_coarse[:, n1d] = centred_coarse[:, n1d] / 2.
+
+                for pos_fine in np.linspace(-.5, .5, 11):
+                    assert std_devs_xs[
+                               pos_x] == std_dev_x, "{0} != {1}".format(
+                        std_devs_xs[pos_x], std_dev_x)
+                    assert std_devs_ys[
+                               pos_y] == std_dev_y, "{0} != {1}".format(
+                        std_devs_ys[pos_y], std_dev_y)
+
+                    temp_centred_fine = np.copy(in_star_extended[
+                                                n1d + pos_y - half_range: n1d + pos_y + half_range + 1,
+                                                n1d + pos_x - half_range:n1d + pos_x + half_range + 1])
+                    # correct the edges of centred
+                    temp_centred_fine[0, :] = temp_centred_fine[0, :] * (
+                    .5 - pos_fine)
+                    temp_centred_fine[n1d, :] = temp_centred_fine[n1d, :] * (
+                    .5 + pos_fine)
+                    temp_centred_fine[:, 0] = temp_centred_fine[:, 0] * (
+                    .5 - pos_fine)
+                    temp_centred_fine[:, n1d] = temp_centred_fine[:, n1d] * (
+                    .5 + pos_fine)
+
+                    # calculate the StdDev
+                    centred_x = np.sum(temp_centred_fine, axis=0)
+                    centred_y = np.sum(temp_centred_fine, axis=1)
+                    positions_fine = np.arange(-half_range,
+                                               half_range + 1) - pos_fine
+                    positions_fine = positions_fine.flatten()
+                    std_devs_xs_fine[
+                        int(np.round(pos_fine * 10) + 5)] = np.sqrt(
+                        np.sum(centred_x * (positions_fine ** 2)) / np.sum(
+                            centred_x))
+                    std_devs_ys_fine[
+                        int(np.round(pos_fine * 10) + 5)] = np.sqrt(
+                        np.sum(centred_y * (positions_fine ** 2)) / np.sum(
+                            centred_y))
+
+                assert np.isclose(std_dev_x, std_devs_xs_fine[5]), "{0} != {1}".format(
+                    std_dev_x, std_devs_xs_fine[5])
+                assert np.isclose(std_dev_y, std_devs_ys_fine[5]), "{0} != {1}".format(
+                    std_dev_y, std_devs_ys_fine[5])
+                std_dev_x = np.min(std_devs_xs_fine)
+                pos_x_fine = np.argmin(std_devs_xs_fine)
+                std_dev_y = np.min(std_devs_ys_fine)
+                pos_y_fine = np.argmin(std_devs_ys_fine)
+                pos_x_fine = (pos_x_fine - 5) / 10.
+                pos_y_fine = (pos_y_fine - 5) / 10.
+
+                std_dev = np.mean([std_dev_x, std_dev_y])
+
+                mean_x = pos_x + pos_x_fine - x
+                mean_y = pos_y + pos_y_fine - y
+                if mean_x > half_range:
+                    mean_x = mean_x - n1d
+                if mean_x < -half_range:
+                    mean_x = mean_x + n1d
+                if mean_y > half_range:
+                    mean_y = mean_y - n1d
+                if mean_y < -half_range:
+                    mean_y = mean_y + n1d
+                mean_dist = np.sqrt(mean_x ** 2 + mean_y ** 2)
+            else:
+                mean_x = 0;
+                mean_y = 0;
+                mean_dist = 0;
+                std_dev = 0;
+            # For quiver plots
+            if mean_dist == 0:
+                means_and_std_devs[y * n1d + x, :] = np.asarray(
+                    [x, y, mean_x, mean_y, mean_dist, std_dev, 0, 0])
+            else:
+                means_and_std_devs[y * n1d + x, :] = np.asarray(
+                    [x, y, mean_x, mean_y, mean_dist, std_dev,
+                     mean_x / mean_dist, mean_y / mean_dist])
+                # For mapping plots
+
+                #     return (mean_projection/(n1d**2), std_dev)
+    mean_projection = mean_projection / (n1d ** 2)
+    mean_centred_projection = mean_centred_projection / (n1d ** 2)
+    return (mean_projection, means_and_std_devs, means_for_plot,
+            mean_centred_projection)
+
 
 def distance(x0, x1, grid=np.asarray([16, 16]), type='euclidian'):
     x0 = np.asarray(x0)
@@ -221,25 +394,37 @@ for file in paths:
             final_weight_proportion = final_weight_mean / initial_weight_mean
 
             # a
-            init_mean_std, init_stds, init_mean_AD, init_AD, init_min_variances = sigma_and_ad(
-                init_ff_weights,
-                unitary_weights=True,
-                resolution=args.resolution)
+
+            init_fan_in = conn_matrix_to_fan_in(init_ff_weights, mode='conn')
+            mean_projection, means_and_std_devs, means_for_plot, mean_centred_projection = centre_weights(
+                init_fan_in, 16)
+
+            init_mean_std = np.mean(means_and_std_devs[:, 5])
+            init_mean_AD = np.mean(means_and_std_devs[:, 4])
+            init_stds = means_and_std_devs[:, 5]
+            init_AD = means_and_std_devs[:, 4]
             # b
-            fin_mean_std_conn, fin_stds_conn, fin_mean_AD_conn, fin_AD_conn, fin_min_variances_conn = sigma_and_ad(
-                ff_last,
-                unitary_weights=True,
-                resolution=args.resolution)
+            final_fan_in = conn_matrix_to_fan_in(ff_last, mode='conn')
+            fin_mean_projection, fin_means_and_std_devs, fin_means_for_plot, fin_mean_centred_projection = centre_weights(
+                final_fan_in, 16)
+            fin_mean_std_conn = np.mean(fin_means_and_std_devs[:, 5])
+            fin_mean_AD_conn = np.mean(fin_means_and_std_devs[:, 4])
+            fin_stds_conn = fin_means_and_std_devs[:, 5]
+            fin_AD_conn = fin_means_and_std_devs[:, 4]
 
             # c
             generated_ff_conn = generate_initial_connectivity(
                 number_ff_incoming_connections, grid[0] * grid[1],
                 sigma_form_forward, p_form_forward, g_max)
 
-            fin_mean_std_conn_shuf, fin_stds_conn_shuf, fin_mean_AD_conn_shuf, fin_AD_conn_shuf, fin_min_variances_conn_shuf = sigma_and_ad(
-                generated_ff_conn,
-                unitary_weights=True,
-                resolution=args.resolution)
+            generated_ff_conn = conn_matrix_to_fan_in(generated_ff_conn, mode='conn')
+
+            fin_mean_projection_shuf, fin_means_and_std_devs_shuf, fin_means_for_plot_shuf, fin_mean_centred_projection_shuf = centre_weights(generated_ff_conn, 16)
+
+            fin_mean_std_conn_shuf = np.mean(fin_means_and_std_devs_shuf[:, 5])
+            fin_mean_AD_conn_shuf = np.mean(fin_means_and_std_devs_shuf[:, 4])
+            fin_stds_conn_shuf = fin_means_and_std_devs_shuf[:, 5]
+            fin_AD_conn_shuf = fin_means_and_std_devs_shuf[:, 4]
 
             wsr_sigma_fin_conn_fin_conn_shuffle = stats.wilcoxon(
                 fin_stds_conn.ravel(), fin_stds_conn_shuf.ravel())
@@ -247,17 +432,35 @@ for file in paths:
                 fin_AD_conn.ravel(),
                 fin_AD_conn_shuf.ravel())
             # d
-            fin_mean_std_weight, fin_stds_weight, fin_mean_AD_weight, fin_AD_weight, fin_min_variances_weight = sigma_and_ad(
-                ff_last,
-                unitary_weights=False,
-                resolution=args.resolution)
+            final_fan_in_weight = conn_matrix_to_fan_in(ff_last, mode='weight')
+            fin_mean_projection_weight, fin_means_and_std_devs_weight, fin_means_for_plot_weight, fin_mean_centred_projection_weight = centre_weights(
+                final_fan_in_weight, 16)
+            fin_mean_std_weight = np.mean(fin_means_and_std_devs_weight[:, 5])
+            fin_mean_AD_weight = np.mean(fin_means_and_std_devs_weight[:, 4])
+            fin_stds_weight = fin_means_and_std_devs_weight[:, 5]
+            fin_AD_weight = fin_means_and_std_devs_weight[:, 4]
+
+            # fin_mean_std_weight, fin_stds_weight, fin_mean_AD_weight, fin_AD_weight, fin_min_variances_weight = sigma_and_ad(
+            #     ff_last,
+            #     unitary_weights=False,
+            #     resolution=args.resolution)
 
             # e
             shuf_weights = weight_shuffle(ff_last)
-            fin_mean_std_weight_shuf, fin_stds_weight_shuf, fin_mean_AD_weight_shuf, fin_AD_weight_shuf, fin_min_variances_weight_shuf = sigma_and_ad(
-                shuf_weights,
-                unitary_weights=False,
-                resolution=args.resolution)
+            shuf_weights = conn_matrix_to_fan_in(shuf_weights, mode='weight')
+
+            fin_mean_projection_weight_shuf, fin_means_and_std_devs_weight_shuf, fin_means_for_plot_weight_shuf, fin_mean_centred_projection_weight_shuf = centre_weights(
+                shuf_weights, 16)
+            fin_mean_std_weight_shuf = np.mean(fin_means_and_std_devs_weight_shuf[:, 5])
+            fin_mean_AD_weight_shuf = np.mean(fin_means_and_std_devs_weight_shuf[:, 4])
+            fin_stds_weight_shuf = fin_means_and_std_devs_weight_shuf[:, 5]
+            fin_AD_weight_shuf = fin_means_and_std_devs_weight_shuf[:, 4]
+            # fin_mean_std_weight_shuf, fin_stds_weight_shuf, fin_mean_AD_weight_shuf, fin_AD_weight_shuf, fin_min_variances_weight_shuf = sigma_and_ad(
+            #     shuf_weights,
+            #     unitary_weights=False,
+            #     resolution=args.resolution)
+            
+            
             wsr_sigma_fin_weight_fin_weight_shuffle = stats.wilcoxon(
                 fin_stds_weight.ravel(), fin_stds_weight_shuf.ravel())
             wsr_AD_fin_weight_fin_weight_shuffle = stats.wilcoxon(
@@ -268,7 +471,7 @@ for file in paths:
             print "%-60s" % "Target neuron spike rate", total_target_neuron_mean_spike_rate, "Hz"
             print "%-60s" % "Final mean number of feedforward synapses", final_mean_number_ff_synapses
             # print "%-60s" % "Initial ff weight mean", initial_weight_mean, "(should be .2, obviously)"
-            print "%-60s" % "Final ff weight mean", final_weight_mean
+            # print "%-60s" % "Final ff weight mean", final_weight_mean
             print "%-60s" % "Weight as proportion of max", final_weight_proportion
             print "%-60s" % "Mean sigma aff init", init_mean_std
             print "%-60s" % "Mean sigma aff fin conn shuffle", fin_mean_std_conn_shuf
@@ -308,20 +511,18 @@ for file in paths:
                      # a
                      init_mean_std=init_mean_std, init_stds=init_stds,
                      init_mean_AD=init_mean_AD,
-                     init_AD=init_AD, init_min_variances=init_min_variances,
+                     init_AD=init_AD,
                      # b
                      fin_mean_std_conn=fin_mean_std_conn,
                      fin_stds_conn=fin_stds_conn,
                      fin_mean_AD_conn=fin_mean_AD_conn,
                      fin_AD_conn=fin_AD_conn,
-                     fin_min_variances_conn=fin_min_variances_conn,
                      # c
                      generated_ff_conn=generated_ff_conn,
                      fin_mean_std_conn_shuf=fin_mean_std_conn_shuf,
                      fin_stds_conn_shuf=fin_stds_conn_shuf,
                      fin_mean_AD_conn_shuf=fin_mean_AD_conn_shuf,
                      fin_AD_conn_shuf=fin_AD_conn_shuf,
-                     fin_min_variances_conn_shuf=fin_min_variances_conn_shuf,
                      wsr_sigma_fin_conn_fin_conn_shuffle=wsr_sigma_fin_conn_fin_conn_shuffle,
                      wsr_AD_fin_conn_fin_conn_shuffle=wsr_AD_fin_conn_fin_conn_shuffle,
                      # d
@@ -329,14 +530,12 @@ for file in paths:
                      fin_stds_weight=fin_stds_weight,
                      fin_mean_AD_weight=fin_mean_AD_weight,
                      fin_AD_weight=fin_AD_weight,
-                     fin_min_variances_weight=fin_min_variances_weight,
                      # e
                      shuf_weights=shuf_weights,
                      fin_mean_std_weight_shuf=fin_mean_std_weight_shuf,
                      fin_stds_weight_shuf=fin_stds_weight_shuf,
                      fin_mean_AD_weight_shuf=fin_mean_AD_weight_shuf,
                      fin_AD_weight_shuf=fin_AD_weight_shuf,
-                     fin_min_variances_weight_shuf=fin_min_variances_weight_shuf,
                      wsr_sigma_fin_weight_fin_weight_shuffle=wsr_sigma_fin_weight_fin_weight_shuffle,
                      wsr_AD_fin_weight_fin_weight_shuffle=wsr_AD_fin_weight_fin_weight_shuffle,
                      total_time=elapsed_time)
@@ -349,12 +548,19 @@ for file in paths:
             all_mean_sigmas = np.ones(number_of_recordings) * np.nan
             all_mean_ADs = np.ones(number_of_recordings) * np.nan
             for index in range(number_of_recordings):
-                mean_std, stds, mean_AD, AD, variances = sigma_and_ad(
-                    all_ff_connections[index, :, :],
-                    unitary_weights=False,
-                    resolution=args.resolution)
-                all_mean_sigmas[index] = mean_std
-                all_mean_ADs[index] = mean_AD
+                fan_in = conn_matrix_to_fan_in(all_ff_connections[index, :, :], mode='weight')
+                mean_projection, means_and_std_devs, means_for_plot, mean_centred_projection = centre_weights(
+                    fan_in, 16)
+
+                all_mean_sigmas[index] = np.mean(means_and_std_devs[:, 5])
+                all_mean_ADs[index] = np.mean(means_and_std_devs[:, 4])
+
+                # mean_std, stds, mean_AD, AD, variances = sigma_and_ad(
+                #     all_ff_connections[index, :, :],
+                #     unitary_weights=False,
+                #     resolution=args.resolution)
+                # all_mean_sigmas[index] = mean_std
+                # all_mean_ADs[index] = mean_AD
             pylab.plot(all_mean_sigmas)
             pylab.show()
             pylab.plot(all_mean_ADs)
