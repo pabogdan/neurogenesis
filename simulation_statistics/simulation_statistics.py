@@ -245,63 +245,7 @@ def distance(x0, x1, grid=np.asarray([16, 16]), type='euclidian'):
     return np.sqrt((delta ** 2).sum(axis=-1))
 
 
-def sigma_and_ad(connectivity_matrix, unitary_weights=False, N_layer=256, n=16,
-                 resolution=1.):
-    # Datastructure setup
-    connectivity_matrix = np.copy(connectivity_matrix)
-    variances = np.ones((N_layer, int(N_layer * resolution))) * np.nan
-    preferred_locations = np.ones((n, n)) * np.nan
-    active_synapses_indices = np.where(np.isfinite(connectivity_matrix))
-    if unitary_weights:
-        connectivity_matrix[active_synapses_indices] = 1.
-    # Ignore the argmin, first just compute weighted variances for all possible source locations
-    for target_location in xrange(N_layer):  # np.ndindex(16,16):
-        for source_location in xrange(
-                int(N_layer * resolution)):  # np.ndindex(16,16):
-            # Distance must be computed between source_Location and the location of all presynaptic_neurons |pix|
-            possible_sources = np.argwhere(
-                active_synapses_indices[1] == target_location).ravel()
-            top_sum = 0
-            sum_of_weights = 0
-            for p_s in possible_sources:
-                other_source = active_synapses_indices[0][p_s]
-                distances = distance(((source_location / resolution) // n,
-                                      (source_location / resolution) % n),
-                                     (other_source // n, other_source % n),
-                                     grid) ** 2
-                top_sum += connectivity_matrix[
-                               other_source, target_location] * distances
-                sum_of_weights += connectivity_matrix[
-                    other_source, target_location]
-
-            variances[
-                target_location, source_location] = np.true_divide(top_sum,
-                                                                   sum_of_weights)
-    min_variances = np.nanmin(variances, axis=1).reshape(16, 16)
-    #     print min_variances.shape
-    stds = np.sqrt(min_variances)
-    preferred_indices = np.argmin(variances, axis=1)
-    AD = np.ones(int(N_layer)) * np.nan
-    for index in range(AD.size):
-        AD[index] = distance(((index) // n, (index) % n), (
-            (preferred_indices[index] / resolution) // n,
-            (preferred_indices[index] / resolution) % n),
-                             grid)
-
-    # return mean std, stds, mean AD, ADs
-    return np.nanmean(stds), stds, np.nanmean(AD), AD, min_variances
-
-
 def weight_shuffle(conn, weights, area):
-    # if "ff" in area:
-    #     positions_to_be_shuffled = np.argwhere(np.logical_and(conn>=0, conn<=255))
-    # permutation = np.random.permutation(positions_to_be_shuffled)
-    # permuted_connectivity_matrix = weights.copy()
-    # for index in range(positions_to_be_shuffled.shape[0]):
-    #     permuted_connectivity_matrix[positions_to_be_shuffled[index][0],
-    #                                  positions_to_be_shuffled[index][1]] = \
-    #         weights[permutation[index][0], permutation[index][1]]
-    # return permuted_connectivity_matrix
     weights_copy = weights.copy()
     for post_id in range(weights_copy.shape[1]):
         pre_ids = conn[:, post_id]
@@ -465,9 +409,6 @@ for file in paths:
             fin_AD_conn = fin_means_and_std_devs[:, 4]
 
             # c
-            # generated_ff_conn = generate_initial_connectivity(
-            #     number_ff_incoming_connections, grid[0] * grid[1],
-            #     sigma_form_forward, p_form_forward, g_max)
 
             init_ff_connections = []
             ff_s = np.zeros(N_layer, dtype=np.uint)
@@ -487,10 +428,6 @@ for file in paths:
                 sigma_form_lateral, p_form_lateral,
                 "\nGenerating initial lateral connectivity...",
                 N_layer=N_layer, n=n, s_max=s_max, g_max=g_max)
-            # conn_matrix = np.zeros((256, 256))
-            # for source, target, weight, delay in generated_ff_conn:
-            #     conn_matrix[int(source), int(target)] += weight
-            # generated_ff_conn = conn_matrix_to_fan_in(conn_matrix, mode='conn')
 
 
             gen_init_conn, gen_init_weight = \
@@ -523,19 +460,7 @@ for file in paths:
             fin_stds_weight = fin_means_and_std_devs_weight[:, 5]
             fin_AD_weight = fin_means_and_std_devs_weight[:, 4]
 
-            # fin_mean_std_weight, fin_stds_weight, fin_mean_AD_weight, fin_AD_weight, fin_min_variances_weight = sigma_and_ad(
-            #     ff_last,
-            #     unitary_weights=False,
-            #     resolution=args.resolution)
-
             # e
-
-            # I can probably shuffle weights in place
-            # Step 1: Copy last_weight matrix
-            # weight_copy = last_weight.copy()
-            # Step 2: np.random.shuffle the FF elements ( [0, 255] )
-            # np.random.shuffle(weight_copy[np.where(np.logical_and(last_conn>=0, last_conn<=255))])
-            # Step 3: Retrieve fan in from the resulting conn + shuffled weight combo
 
             weight_copy = weight_shuffle(last_conn, last_weight, 'ff')
             shuf_weights = fan_in(last_conn, weight_copy, 'weight', 'ff')
@@ -546,11 +471,7 @@ for file in paths:
             fin_mean_AD_weight_shuf = np.mean(fin_means_and_std_devs_weight_shuf[:, 4])
             fin_stds_weight_shuf = fin_means_and_std_devs_weight_shuf[:, 5]
             fin_AD_weight_shuf = fin_means_and_std_devs_weight_shuf[:, 4]
-            # fin_mean_std_weight_shuf, fin_stds_weight_shuf, fin_mean_AD_weight_shuf, fin_AD_weight_shuf, fin_min_variances_weight_shuf = sigma_and_ad(
-            #     shuf_weights,
-            #     unitary_weights=False,
-            #     resolution=args.resolution)
-            
+
             
             wsr_sigma_fin_weight_fin_weight_shuffle = stats.wilcoxon(
                 fin_stds_weight.ravel(), fin_stds_weight_shuf.ravel())
@@ -561,8 +482,6 @@ for file in paths:
             print
             print "%-60s" % "Target neuron spike rate", total_target_neuron_mean_spike_rate, "Hz"
             print "%-60s" % "Final mean number of feedforward synapses", final_mean_number_ff_synapses
-            # print "%-60s" % "Initial ff weight mean", initial_weight_mean, "(should be .2, obviously)"
-            # print "%-60s" % "Final ff weight mean", final_weight_mean
             print "%-60s" % "Weight as proportion of max", final_weight_proportion
             print "%-60s" % "Mean sigma aff init", init_mean_std
             print "%-60s" % "Mean sigma aff fin conn shuffle", fin_mean_std_conn_shuf
