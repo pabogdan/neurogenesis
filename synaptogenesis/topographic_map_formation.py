@@ -6,13 +6,12 @@ http://hdl.handle.net/1842/3997
 # Imports
 import numpy as np
 import pylab
-
-from spinn_utilities.progress_bar import ProgressBar
 import time
 from pacman.model.constraints.placer_constraints.placer_chip_and_core_constraint import \
     PlacerChipAndCoreConstraint
 import spynnaker7.pyNN as sim
 
+from function_definitions import *
 import argparse
 
 # Constants
@@ -108,106 +107,6 @@ sim.set_number_of_neurons_per_core("SpikeSourceArray", 256 // 8)
 # | Function definitions                                              |
 # +-------------------------------------------------------------------+
 
-# Periodic boundaries
-# https://github.com/pabogdan/neurogenesis/blob/master/notebooks/neurogenesis-in-numbers/Periodic%20boundaries.ipynb
-def distance(x0, x1, grid=np.asarray([16, 16]), type='euclidian'):
-    x0 = np.asarray(x0)
-    x1 = np.asarray(x1)
-    delta = np.abs(x0 - x1)
-    delta = np.where(delta > grid * .5, delta - grid, delta)
-
-    if type == 'manhattan':
-        return np.abs(delta).sum(axis=-1)
-    return np.sqrt((delta ** 2).sum(axis=-1))
-
-
-# Poisson spike source as from list spike source
-# https://github.com/project-rig/pynn_spinnaker_bcpnn/blob/master/examples/modular_attractor/network.py#L115-L148
-def poisson_generator(rate, t_start, t_stop):
-    n = int((t_stop - t_start) / 1000.0 * rate)
-    number = np.ceil(n + 3 * np.sqrt(n))
-    if number < 100:
-        number = min(5 + np.ceil(2 * n), 100)
-
-    if number > 0:
-        isi = np.random.exponential(1.0 / rate, int(number)) * 1000.0
-        if number > 1:
-            spikes = np.add.accumulate(isi)
-        else:
-            spikes = isi
-    else:
-        spikes = np.array([])
-
-    spikes += t_start
-    i = np.searchsorted(spikes, t_stop)
-
-    extra_spikes = []
-    if len(spikes) == i:
-        # ISI buf overrun
-
-        t_last = spikes[-1] + np.random.exponential(1.0 / rate, 1)[0] * 1000.0
-
-        while (t_last < t_stop):
-            extra_spikes.append(t_last)
-            t_last += np.random.exponential(1.0 / rate, 1)[0] * 1000.0
-
-            spikes = np.concatenate((spikes, extra_spikes))
-    else:
-        spikes = np.resize(spikes, (i,))
-
-    # Return spike times, rounded to millisecond boundaries
-    unique_rounded_times = np.unique(np.array([round(x) for x in spikes]))
-    return unique_rounded_times[unique_rounded_times < t_stop]
-
-
-def generate_rates(s, grid):
-    '''
-    Function that generates an array the same shape as the input layer so that
-    each cell has a value corresponding to the firing rate for the neuron
-    at that position.
-    '''
-    _rates = np.zeros(grid)
-    for x in range(grid[0]):
-        for y in range(grid[1]):
-            _d = distance(s, (x, y), grid)
-            _rates[x, y] = f_base + f_peak * np.e ** (
-                -_d / (2 * (sigma_stim ** 2)))
-    return _rates
-
-
-def formation_rule(potential_pre, post, sigma, p_form):
-    d = distance(potential_pre, post)
-    r = np.random.rand()
-    p = p_form * (np.e ** (-(d ** 2 / (2 * (sigma ** 2)))))
-    if r < p:
-        return True
-    return False
-
-
-# Initial connectivity
-
-def generate_initial_connectivity(s, existing_pre, connections, sigma, p, msg):
-    # print "|", 256 // 4 * "-", "|"
-    # print "|",
-    pbar = ProgressBar(total_number_of_things_to_do=N_layer,
-                       string_describing_what_being_progressed=msg)
-    for postsynaptic_neuron_index in range(N_layer):
-        # if postsynaptic_neuron_index % 8 == 0:
-        #     print "=",
-        pbar.update()
-        post = (postsynaptic_neuron_index // n, postsynaptic_neuron_index % n)
-        while s[postsynaptic_neuron_index] < s_max:
-            potential_pre_index = np.random.randint(0, N_layer)
-            pre = (potential_pre_index // n, potential_pre_index % n)
-            if potential_pre_index not in existing_pre[
-                postsynaptic_neuron_index]:
-                if formation_rule(pre, post, sigma, p):
-                    s[postsynaptic_neuron_index] += 1
-                    existing_pre[postsynaptic_neuron_index].append(
-                        potential_pre_index)
-                    connections.append((potential_pre_index,
-                                        postsynaptic_neuron_index, g_max, 1))
-                    # print " |"
 
 
 # +-------------------------------------------------------------------+
@@ -319,7 +218,7 @@ else:
         rates = np.zeros((grid[0], grid[1], t_record // t_stim))
     for rate_id in range(t_record // t_stim):
         rates[:, :, rate_id] = generate_rates(np.random.randint(0, 16, size=2),
-                                              grid)
+                                              grid, f_base=f_base, f_peak=f_peak, sigma_stim=sigma_stim)
     rates = rates.reshape(N_layer, t_record // t_stim)
     spike_times = []
     for _ in range(N_layer):
@@ -340,22 +239,18 @@ else:
 ff_s = np.zeros(N_layer, dtype=np.uint)
 lat_s = np.zeros(N_layer, dtype=np.uint)
 
-existing_pre_ff = []
-existing_pre_lat = []
-for _ in range(N_layer):
-    existing_pre_ff.append([])
-    existing_pre_lat.append([])
-
 init_ff_connections = []
 init_lat_connections = []
 generate_initial_connectivity(
-    ff_s, existing_pre_ff, init_ff_connections,
+    ff_s, init_ff_connections,
     sigma_form_forward, p_form_forward,
-    "\nGenerating initial feedforward connectivity...")
+    "\nGenerating initial feedforward connectivity...",
+    N_layer=N_layer, n=n, s_max=s_max, g_max=g_max)
 generate_initial_connectivity(
-    lat_s, existing_pre_lat, init_lat_connections,
+    lat_s, init_lat_connections,
     sigma_form_lateral, p_form_lateral,
-    "\nGenerating initial lateral connectivity...")
+    "\nGenerating initial lateral connectivity...",
+    N_layer=N_layer, n=n, s_max=s_max, g_max=g_max)
 print "\n"
 
 # Neuron populations
@@ -477,10 +372,17 @@ try:
         # if run * t_stim % t_record == 0:
         if run * run_duration % t_record == 0:
             pre_weights.append(
-                np.array(ff_projection._get_synaptic_data(False, 'weight')))
+                np.array([
+                    ff_projection._get_synaptic_data(True, 'source'),
+                    ff_projection._get_synaptic_data(True, 'target'),
+                    ff_projection._get_synaptic_data(True, 'weight'),
+                    ff_projection._get_synaptic_data(True, 'delay')]).T)
             post_weights.append(
-                np.array(lat_projection._get_synaptic_data(False, 'weight')))
-
+                np.array([
+                    lat_projection._get_synaptic_data(True, 'source'),
+                    lat_projection._get_synaptic_data(True, 'target'),
+                    lat_projection._get_synaptic_data(True, 'weight'),
+                    lat_projection._get_synaptic_data(True, 'delay')]).T)
     if args.record_source:
         pre_spikes = source_pop.getSpikes(compatible_output=True)
     else:
@@ -503,16 +405,11 @@ if args.filename:
     filename = args.filename
 else:
     filename = "topographic_map_results" + str(suffix)
-init_ff_conn_network = np.ones((256, 256)) * np.nan
-init_lat_conn_network = np.ones((256, 256)) * np.nan
-for source, target, weight, delay in init_ff_connections:
-    init_ff_conn_network[int(source), int(target)] = weight
-for source, target, weight, delay in init_lat_connections:
-    init_lat_conn_network[int(source), int(target)] = weight
+
 np.savez(filename, pre_spikes=pre_spikes,
          post_spikes=post_spikes,
-         init_ff_connections=init_ff_conn_network,
-         init_lat_connections=init_lat_conn_network,
+         init_ff_connections=init_ff_connections,
+         init_lat_connections=init_lat_connections,
          ff_connections=pre_weights,
          lat_connections=post_weights,
          final_pre_weights=pre_weights[-1],
@@ -524,6 +421,13 @@ np.savez(filename, pre_spikes=pre_spikes,
 
 # Plotting
 if not args.no_plot and e is None:
+
+    init_ff_conn_network = np.ones((256, 256)) * np.nan
+    init_lat_conn_network = np.ones((256, 256)) * np.nan
+    for source, target, weight, delay in init_ff_connections:
+        init_ff_conn_network[int(source), int(target)] = weight
+    for source, target, weight, delay in init_lat_connections:
+        init_lat_conn_network[int(source), int(target)] = weight
 
     def plot_spikes(spikes, title):
         if spikes is not None and len(spikes) > 0:
