@@ -231,7 +231,7 @@ def centre_weights(in_star_all, n1d):
                 second_to_first_indices = np.concatenate(
                     (np.arange(1, n1d + 1), [0]))
                 last_to_first_indices = np.concatenate(
-                    ([n1d], np.arange(0, n1d))) # checked
+                    ([n1d], np.arange(0, n1d)))  # checked
 
                 centred_left = centred_coarse[:, second_to_first_indices]
                 centred_right = centred_coarse[:, last_to_first_indices]
@@ -277,9 +277,11 @@ def centre_weights(in_star_all, n1d):
                 X = x + 1
 
                 means_for_plot[(Y - 1) * n1d + X * np.remainder(Y, 2) +
-                               (n1d + 1 - X) * np.remainder(Y - 1, 2) - 1, :] = [X + mean_x, Y + mean_y]
-                means_for_plot[(X - 1) * n1d + Y * np.remainder(X - 1, 2) + (n1d + 1 - Y) * np.remainder(
-                    X,2) + n1d ** 2 - 1 - 1, :] = [X + mean_x, Y + mean_y]
+                               (n1d + 1 - X) * np.remainder(Y - 1, 2) - 1,
+                :] = [X + mean_x, Y + mean_y]
+                means_for_plot[(X - 1) * n1d + Y * np.remainder(X - 1, 2) + (
+                                                                            n1d + 1 - Y) * np.remainder(
+                    X, 2) + n1d ** 2 - 1 - 1, :] = [X + mean_x, Y + mean_y]
                 #     return (mean_projection/(n1d**2), std_dev)
     mean_projection = mean_projection / (n1d ** 2.)
     mean_centred_projection /= (n1d ** 2.)
@@ -357,6 +359,33 @@ def list_to_post_pre(ff_list, lat_list, s_max, N_layer):
     return conn, weight
 
 
+def odc(fan_in_mat, mode=None):
+    n1d = int(np.sqrt(fan_in_mat.shape[0]))
+    odc_mask = np.zeros((n1d, n1d))
+    for pre_y in range(n1d):
+        for pre_x in range(n1d):
+            odc_mask[pre_y, pre_x] = np.mod(pre_x + pre_y, 2)
+    output = np.zeros((n1d, n1d))
+
+    for post_y in range(n1d):
+        for post_x in range(n1d):
+            fan_in_temp = fan_in_mat[post_y * n1d:(post_y + 1) * n1d,
+                        post_x * n1d:(post_x + 1) * n1d]
+            if mode and 'NORMALISE' in mode.upper():
+                temp = np.sum(np.sum(fan_in_temp * odc_mask)) / np.sum(
+                    np.sum(np.logical(fan_in_temp * odc_mask))) / np.sum(
+                    np.sum(fan_in_temp)) * np.sum(
+                    np.sum(np.logical(fan_in_temp)))
+                temp[np.where(np.isnan(temp))] = 1.
+                output[post_y, post_x] = (1. / (1 + np.exp(-temp)) - 0.5) * 2
+            else:
+                output[post_y, post_x] = np.sum(
+                    np.sum(fan_in_temp * odc_mask)) / np.sum(np.sum(fan_in_temp))
+
+    output[np.where(np.isnan(output))] = .5
+    return output
+
+
 paths = []
 for file in args.path:
     if "*" in file:
@@ -422,6 +451,7 @@ for file in paths:
                                                       s_max, N_layer)
             init_conn, init_weight = list_to_post_pre(ff_init, lat_init,
                                                       s_max, N_layer)
+
             #####     #####
             ## POST AREA ##
             #####     #####
@@ -441,6 +471,11 @@ for file in paths:
             mean_projection, means_and_std_devs, \
             means_for_plot, mean_centred_projection = centre_weights(
                 test_fan_in, 16)
+
+            test_odc = odc(test_fan_in)
+            comparison_odc = scipy.io.loadmat("odc_init.mat")['OdcConnOnlyFin']
+            assert np.all(test_odc == comparison_odc)
+
 
             # plt.plot(means_for_plot[:, 0], means_for_plot[:, 1])
             # plt.show()
@@ -474,7 +509,9 @@ for file in paths:
                     'MeanCentredProjection']
 
             # np.argwhere(~np.isclose(mean_centred_projection, mean_centred_projection_matlab))
-            assert np.all(np.isclose(mean_centred_projection, mean_centred_projection_matlab, 0.001, 0.01))
+            assert np.all(np.isclose(mean_centred_projection,
+                                     mean_centred_projection_matlab, 0.001,
+                                     0.01))
 
             mean_projection_rad_con_init_rec = scipy.io.loadmat(
                 'mean_proj_rad_con_init_rec.mat')['MeanProjRadConInitRec']
@@ -520,6 +557,8 @@ for file in paths:
             init_stds = means_and_std_devs[:, 5]
             init_AD = means_and_std_devs[:, 4]
 
+            init_conn_ff_odc = odc(init_fan_in)
+
             # b
             final_fan_in = fan_in(last_conn, last_weight, 'conn', 'ff')
             fin_mean_projection, fin_means_and_std_devs, fin_means_for_plot, fin_mean_centred_projection = centre_weights(
@@ -528,6 +567,8 @@ for file in paths:
             fin_mean_AD_conn = np.mean(fin_means_and_std_devs[:, 4])
             fin_stds_conn = fin_means_and_std_devs[:, 5]
             fin_AD_conn = fin_means_and_std_devs[:, 4]
+
+            fin_conn_ff_odc = odc(final_fan_in)
 
             # c
 
@@ -582,6 +623,8 @@ for file in paths:
             fin_stds_weight = fin_means_and_std_devs_weight[:, 5]
             fin_AD_weight = fin_means_and_std_devs_weight[:, 4]
 
+            fin_weight_ff_odc = odc(final_fan_in_weight)
+
             # e
 
             weight_copy = weight_shuffle(last_conn, last_weight, 'ff')
@@ -601,6 +644,7 @@ for file in paths:
             wsr_AD_fin_weight_fin_weight_shuffle = stats.wilcoxon(
                 fin_AD_weight.ravel(), fin_AD_weight_shuf.ravel())
 
+            print
             pp(simdata)
             print
             print "%-60s" % "Target neuron spike rate", total_target_neuron_mean_spike_rate, "Hz"
@@ -622,7 +666,7 @@ for file in paths:
             print "%-60s" % "p(WSR AD fin weight vs AD fin weight shuffle)", wsr_AD_fin_weight_fin_weight_shuffle.pvalue
 
             # LAT connection bar chart
-            
+
             init_fan_in_rec = fan_in(init_conn, init_weight, 'conn', 'rec')
 
             mean_projection_rec, means_and_std_devs_rec, \
@@ -641,9 +685,8 @@ for file in paths:
             final_fan_in_rec_rad = \
                 radial_sample(final_mean_projection_rec, 100)
 
-
             final_fan_in_rec_conn = fan_in(last_conn, last_weight, 'conn',
-                                      'rec')
+                                           'rec')
 
             final_mean_projection_rec_conn, final_means_and_std_devs_rec_conn, \
             final_means_for_plot_rec_conn, final_mean_centred_projection_rec_conn = centre_weights(
@@ -651,7 +694,7 @@ for file in paths:
 
             final_fan_in_rec_rad_conn = \
                 radial_sample(final_mean_projection_rec_conn, 100)
-            
+
             ## FF connection bar chart
 
             init_fan_in_ff = fan_in(init_conn, init_weight, 'conn', 'ff')
@@ -663,7 +706,7 @@ for file in paths:
             init_fan_in_ff_rad = radial_sample(mean_projection_ff, 100)
 
             final_fan_in_ff = fan_in(last_conn, last_weight, 'weight',
-                                      'ff')
+                                     'ff')
 
             final_mean_projection_ff, final_means_and_std_devs_ff, \
             final_means_for_plot_ff, final_mean_centred_projection_ff = centre_weights(
@@ -673,7 +716,7 @@ for file in paths:
                 radial_sample(final_mean_projection_ff, 100)
 
             final_fan_in_ff_conn = fan_in(last_conn, last_weight, 'conn',
-                                           'ff')
+                                          'ff')
 
             final_mean_projection_ff_conn, final_means_and_std_devs_ff_conn, \
             final_means_for_plot_ff_conn, final_mean_centred_projection_ff_conn = centre_weights(
@@ -681,7 +724,7 @@ for file in paths:
 
             final_fan_in_ff_rad_conn = \
                 radial_sample(final_mean_projection_ff_conn, 100)
-            
+
             # Time stuff
 
             end_time = pylab.datetime.datetime.now()
@@ -737,17 +780,33 @@ for file in paths:
                      total_time=elapsed_time)
 
             import pylab as plt
+            fig_conn, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8),
+                                                sharey=True)
+
+            ff_conn_ax = ax1.matshow(fin_conn_ff_odc, vmin=0, vmax=1,
+                                     cmap='viridis')
+            lat_conn_ax = ax2.matshow(fin_weight_ff_odc, vmin=0, vmax=1,
+                                      cmap='viridis')
+
+            ax1.set_title("{}".format(np.mean(fin_conn_ff_odc)))
+            ax2.set_title("{}".format(np.mean(fin_weight_ff_odc)))
+
+            cbar_ax = fig_conn.add_axes([.91, 0.155, 0.025, 0.72])
+            cbar = fig_conn.colorbar(lat_conn_ax, cax=cbar_ax)
+            cbar.set_label("Occularity measure", fontsize=12)
+            plt.show()
 
             plt.figure()
             plt.subplot(1, 3, 1)
-            plt.suptitle("Distance between input and target neurons for lateral connections")
+            plt.suptitle(
+                "Distance between input and target neurons for lateral connections")
             plt.bar(range(8), init_fan_in_rec_rad)
             plt.ylim([0, 3])
             plt.xticks(range(8))
             plt.ylabel("Weight density (normalised)")
-            plt.subplot(1,3,2)
+            plt.subplot(1, 3, 2)
             plt.bar(range(8), final_fan_in_rec_rad)
-            plt.subplot(1,3,3)
+            plt.subplot(1, 3, 3)
             plt.bar(range(8), final_fan_in_rec_rad_conn)
             plt.show()
 
@@ -770,10 +829,11 @@ for file in paths:
             plt.subplot(1, 2, 1)
             plt.suptitle("Map formation sequence")
             plt.title("Initial map")
-            plt.plot(means_for_plot[:, 0], means_for_plot[:,1])
+            plt.plot(means_for_plot[:, 0], means_for_plot[:, 1])
             plt.subplot(1, 2, 2)
             plt.title("Final map")
-            plt.plot(fin_means_for_plot_weight[:, 0], fin_means_for_plot_weight[:,1])
+            plt.plot(fin_means_for_plot_weight[:, 0],
+                     fin_means_for_plot_weight[:, 1])
             # plt.ylabel("Weight density (normalised)")
 
             plt.show()
