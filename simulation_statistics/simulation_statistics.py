@@ -35,6 +35,48 @@ S = (n, n)
 grid = np.asarray(S)
 
 
+def pol2cart(theta, rho):
+    x = rho * np.cos(theta)
+    y = rho * np.sin(theta)
+    return x, y
+
+
+def radial_sample(in_matrix, samplenum):
+    _, insize = in_matrix.shape
+    centre = int(insize / 2. + .5 - 1)
+    sampleradius = np.floor(insize/2.)
+    out = np.zeros(int(sampleradius))
+    angles = np.linspace(0, 2 * np.pi, 100)
+    dists = np.arange(0, sampleradius)
+    for angle in angles:
+        for dist in dists:
+            tempx, tempy = pol2cart(angle, dist)
+            yceil = int(np.ceil(tempy))
+            yfloor = int(np.floor(tempy))
+            xceil = int(np.ceil(tempx))
+            xfloor = int(np.floor(tempx))
+            if yceil == yfloor:
+                if xceil == xfloor:
+                    sample = in_matrix[int(yceil + centre), int(xceil + centre)]
+                else:
+                    sample = in_matrix[yceil + centre, xfloor + centre] * \
+                             np.mod(tempx,1) + in_matrix[yceil + centre,xceil + centre] * \
+                                               (1 - np.mod(tempx,1))
+            else:
+                if xceil == xfloor:
+                    sample = in_matrix[yfloor + centre, xceil + centre] * \
+                             np.mod(tempy,1) + in_matrix[yceil + centre,xceil + centre] * \
+                                               (1 - np.mod(tempy,1))
+                else:
+                    yfloorsample = in_matrix[yfloor + centre, xfloor + centre] * \
+                                   np.mod(tempx, 1) + in_matrix[yfloor + centre, xceil + centre] * \
+                                                      (1 - np.mod(tempx, 1))
+                    yceilsample = in_matrix[yceil + centre, xfloor + centre] * np.mod(tempx, 1) + in_matrix[yceil + centre, xceil + centre] * (1 - np.mod(tempx, 1))
+                    sample = yfloorsample * np.mod(tempy, 1) + yceilsample * (1 - np.mod(tempy, 1))
+            out[int(dist)] = out[int(dist)] + sample
+    return out / float(samplenum)
+
+
 # Function definitions
 def conn_matrix_to_fan_in(conn_matrix, mode):
     conn_matrix = np.copy(conn_matrix)
@@ -163,10 +205,10 @@ def centre_weights(in_star_all, n1d):
                         np.sum(centred_y * (positions_fine ** 2)) / np.sum(
                             centred_y))
 
-                assert np.isclose(std_dev_x, std_devs_xs_fine[5]), "{0} != {1}".format(
-                    std_dev_x, std_devs_xs_fine[5])
-                assert np.isclose(std_dev_y, std_devs_ys_fine[5]), "{0} != {1}".format(
-                    std_dev_y, std_devs_ys_fine[5])
+                # assert np.isclose(std_dev_x, std_devs_xs_fine[5]), "{0} != {1}".format(
+                #     std_dev_x, std_devs_xs_fine[5])
+                # assert np.isclose(std_dev_y, std_devs_ys_fine[5]), "{0} != {1}".format(
+                #     std_dev_y, std_devs_ys_fine[5])
                 std_dev_x = np.min(std_devs_xs_fine)
                 pos_x_fine = np.argmin(std_devs_xs_fine)
                 std_dev_y = np.min(std_devs_ys_fine)
@@ -348,9 +390,9 @@ for file in paths:
             #####     #####
             import scipy.io
             IntialConnectivity = scipy.io.loadmat(
-                'D:/Google Drive/PhD/SynRewSimulations/Data/2009_09_04.17_48_33 32Syn300s/InitialConnectivity.mat')
+                '2009_09_04.17_48_33 32Syn300s/InitialConnectivity.mat')
             Params = scipy.io.loadmat(
-                'D:/Google Drive/PhD/SynRewSimulations/Data/2009_09_04.17_48_33 32Syn300s/Params.mat')
+                '2009_09_04.17_48_33 32Syn300s/Params.mat')
             test_fan_in = fan_in(IntialConnectivity['ConnPostToPre'] - 1,
                                  IntialConnectivity['WeightPostToPre'], 'conn',
                                  'ff')
@@ -371,6 +413,24 @@ for file in paths:
             assert other_mean_std == test_mean_std
             assert other_mean_AD == test_mean_AD
 
+            mean_projection_rad_con_init_rec = scipy.io.loadmat(
+                'mean_proj_rad_con_init_rec.mat')['MeanProjRadConInitRec']
+
+            fan_in_conn_init_rec = scipy.io.loadmat(
+                'fan_in_conn_init_rec.mat')['FanInConnInitRec']
+
+            mean_projection, means_and_std_devs, means_for_plot, mean_centred_projection = centre_weights(
+                fan_in_conn_init_rec, 16)
+
+            rad_test = radial_sample(mean_projection, 100)
+
+            assert np.all(mean_projection_rad_con_init_rec == rad_test)
+
+
+            # import pylab as plt
+            # plt.bar(range(8),rad_test)
+            # plt.show()
+            # pass
             #####     #####
             ## POST AREA ##
             #####     #####
@@ -498,6 +558,15 @@ for file in paths:
             print "%-60s" % "Mean AD fin weight", fin_mean_AD_weight
             print "%-60s" % "p(WSR AD fin weight vs AD fin weight shuffle)", wsr_AD_fin_weight_fin_weight_shuffle.pvalue
 
+            init_fan_in_rec = fan_in(init_conn, init_weight, 'conn', 'rec')
+
+            mean_projection_rec, means_and_std_devs_rec, \
+            means_for_plot_rec, mean_centred_projection_rec = centre_weights(
+                init_fan_in_rec, 16)
+
+            init_fan_in_rec_rad = radial_sample(mean_projection_rec, 100)
+
+
             end_time = pylab.datetime.datetime.now()
             suffix = end_time.strftime("_%H%M%S_%d%m%Y")
 
@@ -549,6 +618,20 @@ for file in paths:
                      wsr_sigma_fin_weight_fin_weight_shuffle=wsr_sigma_fin_weight_fin_weight_shuffle,
                      wsr_AD_fin_weight_fin_weight_shuffle=wsr_AD_fin_weight_fin_weight_shuffle,
                      total_time=elapsed_time)
+
+            import pylab as plt
+            plt.figure()
+            plt.subplot(1, 3, 1)
+            plt.suptitle("Distance between input and target neurons")
+            plt.bar(range(8),rad_test)
+            plt.ylim([0,3])
+            plt.xticks(range(8))
+            plt.ylabel("Weight density (normalised)")
+
+
+            plt.show()
+
+
 
         elif args.plot:
             all_ff_connections = data['ff_connections']
