@@ -1,6 +1,12 @@
 import numpy as np
 from spinn_utilities.progress_bar import ProgressBar
 
+
+# +-------------------------------------------------------------------+
+# | Function definitions                                              |
+# +-------------------------------------------------------------------+
+
+
 # Periodic boundaries
 # https://github.com/pabogdan/neurogenesis/blob/master/notebooks/neurogenesis-in-numbers/Periodic%20boundaries.ipynb
 def distance(x0, x1, grid=np.asarray([16, 16]), type='euclidian'):
@@ -80,7 +86,8 @@ def formation_rule(potential_pre, post, sigma, p_form):
 # Initial connectivity
 
 def generate_initial_connectivity(s, connections, sigma, p, msg,
-                                  N_layer=256, n=16, s_max=16, g_max=.2):
+                                  N_layer=256, n=16, s_max=16, g_max=.2,
+                                  delay=1.):
     # print "|", 256 // 4 * "-", "|"
     # print "|",
     pbar = ProgressBar(total_number_of_things_to_do=N_layer,
@@ -100,5 +107,5 @@ def generate_initial_connectivity(s, connections, sigma, p, msg,
             if formation_rule(pre, post, sigma, p):
                 s[postsynaptic_neuron_index] += 1
                 connections.append((potential_pre_index,
-                                    postsynaptic_neuron_index, g_max, 1))
-                    # print " |"
+                                    postsynaptic_neuron_index, g_max, delay))
+                # print " |"
