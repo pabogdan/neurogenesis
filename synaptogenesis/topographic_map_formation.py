@@ -269,10 +269,10 @@ print "Starting the sim"
 no_runs = None
 run_duration = None
 if args.spike_source == SSP and not case == CASE_REW_NO_CORR:
-    no_runs = simtime // t_stim + 1
+    no_runs = simtime // t_stim
     run_duration = t_stim
 else:
-    no_runs = simtime // t_record + 1
+    no_runs = simtime // t_record
     run_duration = t_record
 
 try:
