@@ -73,7 +73,7 @@ p_form_lateral = 1
 p_form_forward = 0.16
 p_elim_dep = 0.0245
 p_elim_pot = 1.36 * np.e ** -4
-f_rew = 10 ** 4  # Hz
+f_rew = 10 ** 3  # Hz
 
 # Inputs
 f_mean = args.f_mean  # Hz

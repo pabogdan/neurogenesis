@@ -315,12 +315,12 @@ def list_to_post_pre(ff_list, lat_list, s_max, N_layer):
         ff_pre_ids = ff_list[ff_list[:, 1] == target][:, 0]
         lat_pre_ids = lat_list[lat_list[:, 1] == target][:, 0] + N_layer
         conn[:ff_pre_ids.size + lat_pre_ids.size, target] \
-            = np.concatenate((ff_pre_ids, lat_pre_ids))
+            = np.concatenate((ff_pre_ids, lat_pre_ids))[:s_max * 2]
         # weights
         ff_pre_weights = ff_list[ff_list[:, 1] == target][:, 2]
         lat_pre_weights = lat_list[lat_list[:, 1] == target][:, 2]
         weight[:ff_pre_weights.size + lat_pre_weights.size, target] \
-            = np.concatenate((ff_pre_weights, lat_pre_weights))
+            = np.concatenate((ff_pre_weights, lat_pre_weights))[:s_max * 2]
     return conn, weight
 
 
