@@ -214,7 +214,7 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
     structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model,
                                                      weight=g_max,
                                                      s_max=s_max * 2,
-                                                     grid=grid)
+                                                     grid=grid, f_rew=f_rew)
 elif case == CASE_CORR_NO_REW:
     structure_model_w_stdp = stdp_model
 
@@ -337,6 +337,9 @@ except Exception as e:
 # print("Weights:", plastic_projection.getWeights())
 end_time = plt.datetime.datetime.now()
 total_time = end_time - start_time
+
+pre_spikes = np.asarray(pre_spikes)
+post_spikes = np.asarray(post_spikes)
 
 print "Total time elapsed -- " + str(total_time)
 
