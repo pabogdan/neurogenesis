@@ -22,7 +22,7 @@ start_time = plt.datetime.datetime.now()
 
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
 sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
-sim.set_number_of_neurons_per_core("IF_cond_exp", 256 // 2)
+sim.set_number_of_neurons_per_core("IF_cond_exp", 256 // 5)
 sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 2)
 sim.set_number_of_neurons_per_core("SpikeSourceArray", 256 // 8)
 
@@ -109,7 +109,8 @@ sim_params = {'g_max': g_max,
               'p_form_forward': p_form_forward,
               'p_elim_dep': p_elim_dep,
               'p_elim_pot': p_elim_pot,
-              'f_rew': f_rew
+              'f_rew': f_rew,
+              'lateral_inhibition':args.lateral_inhibition
               }
 
 # +-------------------------------------------------------------------+
@@ -214,7 +215,8 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
     structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model,
                                                      weight=g_max,
                                                      s_max=s_max * 2,
-                                                     grid=grid, f_rew=f_rew)
+                                                     grid=grid, f_rew=f_rew,
+                                                     lateral_inhibition=args.lateral_inhibition)
 elif case == CASE_CORR_NO_REW:
     structure_model_w_stdp = stdp_model
 
@@ -232,7 +234,7 @@ lat_projection = sim.Projection(
     sim.FromListConnector(init_lat_connections),
     synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
     label="plastic_lat_projection",
-    target="inhibitory"
+    target= "inhibitory" if args.lateral_inhibition else "excitatory"
 )
 
 # +-------------------------------------------------------------------+

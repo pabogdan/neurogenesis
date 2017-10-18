@@ -15,6 +15,7 @@ DEFAULT_NO_INTERATIONS = 30000000
 DEFAULT_T_STIM = 20
 DEFAULT_S_MAX = 32
 DEFAULT_F_MEAN = 20
+DEFAULT_LAT_INH = 0
 
 DEFAULT_SPIKE_SOURCE = SSP
 
@@ -35,6 +36,10 @@ parser.add_argument('--tau_refract', type=float,
 parser.add_argument('--t_record', type=int,
                     default=DEFAULT_T_RECORD, dest='t_record',
                     help='time between retrieval of recordings (ms)')
+
+parser.add_argument('--lat_inh', type=int,
+                    default=DEFAULT_LAT_INH, dest='lateral_inhibition',
+                    help='enable lateral inhibition')
 
 parser.add_argument('--t_stim', type=int,
                     default=DEFAULT_T_STIM, dest='t_stim',
