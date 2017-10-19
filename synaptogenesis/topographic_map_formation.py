@@ -216,7 +216,8 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
                                                      weight=g_max,
                                                      s_max=s_max * 2,
                                                      grid=grid, f_rew=f_rew,
-                                                     lateral_inhibition=args.lateral_inhibition)
+                                                     lateral_inhibition=args.lateral_inhibition,
+                                                     random_partner=args.random_partner)
 elif case == CASE_CORR_NO_REW:
     structure_model_w_stdp = stdp_model
 
