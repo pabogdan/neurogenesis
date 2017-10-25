@@ -91,4 +91,8 @@ parser.add_argument('-i', '--input', type=str,
                          "initial connectivity for the simulation",
                     dest='initial_connectivity_file')
 
+parser.add_argument('--insult',
+                    help="simulate an ischemic network",
+                    action="store_true")
+
 args = parser.parse_args()

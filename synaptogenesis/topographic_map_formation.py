@@ -22,7 +22,7 @@ start_time = plt.datetime.datetime.now()
 
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
 sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
-sim.set_number_of_neurons_per_core("IF_cond_exp", 256 // 5)
+sim.set_number_of_neurons_per_core("IF_cond_exp", 256 // 10)
 sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 2)
 sim.set_number_of_neurons_per_core("SpikeSourceArray", 256 // 8)
 
@@ -198,8 +198,9 @@ else:
 
 # Neuron populations
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
-
-# target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
+# Putting this populations on chip 0 1 makes it easier to copy the provenance
+# data somewhere else
+target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
 # Connections
 # Plastic Connections between pre_pop and post_pop
 
@@ -223,20 +224,38 @@ elif case == CASE_CORR_NO_REW:
 
 # structure_model_w_stdp = sim.StructuralMechanism(weight=g_max, s_max=s_max)
 
-ff_projection = sim.Projection(
-    source_pop, target_pop,
-    sim.FromListConnector(init_ff_connections),
-    synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-    label="plastic_ff_projection"
-)
+if not args.insult:
+    print "No insults"
+    ff_projection = sim.Projection(
+        source_pop, target_pop,
+        sim.FromListConnector(init_ff_connections),
+        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+        label="plastic_ff_projection"
+    )
 
-lat_projection = sim.Projection(
-    target_pop, target_pop,
-    sim.FromListConnector(init_lat_connections),
-    synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-    label="plastic_lat_projection",
-    target= "inhibitory" if args.lateral_inhibition else "excitatory"
-)
+    lat_projection = sim.Projection(
+        target_pop, target_pop,
+        sim.FromListConnector(init_lat_connections),
+        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+        label="plastic_lat_projection",
+        target= "inhibitory" if args.lateral_inhibition else "excitatory"
+    )
+else:
+    print "Insulted network"
+    ff_projection = sim.Projection(
+        source_pop, target_pop,
+        sim.FixedProbabilityConnector(weights=g_max, p_connect=0.01),
+        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+        label="plastic_ff_projection"
+    )
+
+    lat_projection = sim.Projection(
+        target_pop, target_pop,
+        sim.FixedProbabilityConnector(weights=g_max, p_connect=0.01),
+        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+        label="plastic_lat_projection",
+        target="inhibitory" if args.lateral_inhibition else "excitatory"
+    )
 
 # +-------------------------------------------------------------------+
 # | Simulation and results                                            |
