@@ -15,7 +15,7 @@ start_time = plt.datetime.datetime.now()
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
 sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
 sim.set_number_of_neurons_per_core("IF_cond_exp", 256 // 10)
-sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 5)
+sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 10)
 sim.set_number_of_neurons_per_core("SpikeSourceArray", 256 // 8)
 # +-------------------------------------------------------------------+
 # | General Parameters                                                |
@@ -58,12 +58,12 @@ S = (1, 256)
 grid = np.asarray(S)
 
 s_max = args.s_max // 2
-sigma_form_forward = 25
+sigma_form_forward = 2.5
 sigma_form_lateral = 1
 p_form_lateral = 1
 p_form_forward = 0.16
 p_elim_dep = 0.0245
-p_elim_pot = 1.36 * np.e ** -4
+p_elim_pot = 1.36 * (10 ** -4)
 f_rew = 10 ** 3  # Hz
 
 # Inputs
@@ -135,7 +135,7 @@ if args.case == CASE_CORR_AND_REW or args.case == CASE_REW_NO_CORR:
 elif args.case == CASE_CORR_NO_REW:
     structure_model_w_stdp = stdp_model
 # structure_model_w_stdp = sim.StructuralMechanism(weight=g_max, s_max=s_max)
-rates = generate_rates([1, 256//4], grid, sigma_stim=2.5)
+rates = generate_rates([1, 256//4], grid, sigma_stim=2.5, f_peak=args.f_peak)
 source_pop = sim.Population(N_layer,
                             sim.SpikeSourcePoisson,
                             {'rate': rates.ravel(),
@@ -150,7 +150,8 @@ ff_projection = sim.Projection(
     label="plastic_ff_projection"
 )
 
-source_pop.record()
+if args.record_source:
+    source_pop.record()
 target_pop.record()
 
 # Run simulation
@@ -176,7 +177,8 @@ for current_run in range(no_runs):
             ff_projection._get_synaptic_data(True, 'weight'),
             ff_projection._get_synaptic_data(True, 'delay')]).T)
 
-pre_spikes = source_pop.getSpikes(compatible_output=True)
+if args.record_source:
+    pre_spikes = source_pop.getSpikes(compatible_output=True)
 post_spikes = target_pop.getSpikes(compatible_output=True)
 # End simulation on SpiNNaker
 sim.end()

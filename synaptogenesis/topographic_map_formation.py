@@ -23,7 +23,7 @@ start_time = plt.datetime.datetime.now()
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
 sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
 sim.set_number_of_neurons_per_core("IF_cond_exp", 256 // 10)
-sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 2)
+sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 13)
 sim.set_number_of_neurons_per_core("SpikeSourceArray", 256 // 8)
 
 # +-------------------------------------------------------------------+
@@ -72,7 +72,7 @@ sigma_form_lateral = 1
 p_form_lateral = 1
 p_form_forward = 0.16
 p_elim_dep = 0.0245
-p_elim_pot = 1.36 * np.e ** -4
+p_elim_pot = 1.36 * (10 ** -4)
 f_rew = 10 ** 3  # Hz
 
 # Inputs
@@ -110,7 +110,7 @@ sim_params = {'g_max': g_max,
               'p_elim_dep': p_elim_dep,
               'p_elim_pot': p_elim_pot,
               'f_rew': f_rew,
-              'lateral_inhibition':args.lateral_inhibition
+              'lateral_inhibition': args.lateral_inhibition
               }
 
 # +-------------------------------------------------------------------+
@@ -213,12 +213,21 @@ stdp_model = sim.STDPMechanism(
                                                    A_minus=a_minus)
 )
 if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
-    structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model,
-                                                     weight=g_max,
-                                                     s_max=s_max * 2,
-                                                     grid=grid, f_rew=f_rew,
-                                                     lateral_inhibition=args.lateral_inhibition,
-                                                     random_partner=args.random_partner)
+    structure_model_w_stdp = sim.StructuralMechanism(
+        stdp_model=stdp_model,
+        weight=g_max,
+        s_max=s_max * 2,
+        grid=grid,
+        f_rew=f_rew,
+        lateral_inhibition=args.lateral_inhibition,
+        random_partner=args.random_partner,
+        p_elim_dep=p_elim_dep,
+        p_elim_pot=p_elim_pot,
+        sigma_form_forward=sigma_form_forward,
+        sigma_form_lateral=sigma_form_lateral,
+        p_form_forward=p_form_forward,
+        p_form_lateral=p_form_lateral
+    )
 elif case == CASE_CORR_NO_REW:
     structure_model_w_stdp = stdp_model
 
@@ -238,7 +247,7 @@ if not args.insult:
         sim.FromListConnector(init_lat_connections),
         synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
         label="plastic_lat_projection",
-        target= "inhibitory" if args.lateral_inhibition else "excitatory"
+        target="inhibitory" if args.lateral_inhibition else "excitatory"
     )
 else:
     print "Insulted network"
@@ -387,7 +396,8 @@ np.savez(filename, pre_spikes=pre_spikes,
          sim_params=sim_params,
          total_time=total_time,
          mean_firing_rate=total_target_neuron_mean_spike_rate,
-         exception=e)
+         exception=e,
+         insult=args.insult)
 
 # Plotting
 if args.plot and e is None:
