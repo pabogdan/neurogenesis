@@ -134,7 +134,7 @@ if args.case == CASE_CORR_AND_REW or args.case == CASE_REW_NO_CORR:
 elif args.case == CASE_CORR_NO_REW:
     structure_model_w_stdp = stdp_model
 # structure_model_w_stdp = sim.StructuralMechanism(weight=g_max, s_max=s_max)
-rates = generate_rates([1, 256//4], grid, sigma_stim=2.5, f_peak=args.f_peak)
+rates = generate_multimodal_rates([[1, 256//4], [1, (3*256)//4]], grid, sigma_stim=2.5, f_peak=args.f_peak)
 source_pop = sim.Population(N_layer,
                             sim.SpikeSourcePoisson,
                             {'rate': rates.ravel(),
