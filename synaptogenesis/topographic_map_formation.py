@@ -85,7 +85,7 @@ t_record = args.t_record  # ms
 
 # STDP
 a_plus = 0.1
-b = 1.2
+b = 1.
 tau_plus = 20.  # ms
 tau_minus = 64.  # ms
 a_minus = (a_plus * tau_plus * b) / tau_minus
@@ -126,7 +126,7 @@ if args.spike_source == SSP:
     source_pop = sim.Population(N_layer,
                                 sim.SpikeSourcePoisson,
                                 {'rate': rates.ravel(),
-                                 'start': 0,
+                                 'start': 100,
                                  'duration': simtime
                                  }, label="Poisson spike source")
 else:
