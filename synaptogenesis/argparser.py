@@ -17,6 +17,10 @@ DEFAULT_S_MAX = 32
 DEFAULT_F_MEAN = 20
 DEFAULT_LAT_INH = 0
 
+DEFAULT_N = 16
+
+DEFAULT_DELAY = 1
+
 DEFAULT_SPIKE_SOURCE = SSP
 
 parser = argparse.ArgumentParser(
@@ -32,6 +36,11 @@ parser.add_argument("-c", '--case', type=int,
 parser.add_argument('--tau_refract', type=float,
                     default=DEFAULT_TAU_REFRAC, dest='tau_refrac',
                     help='refractory time constant (ms)')
+
+
+parser.add_argument('-n','--n', type=int,
+                    default=DEFAULT_N, dest='n',
+                    help='size of one edge of the layer (default 16)')
 
 parser.add_argument('--t_record', type=int,
                     default=DEFAULT_T_RECORD, dest='t_record',
@@ -56,6 +65,10 @@ parser.add_argument('--f_mean', type=float,
 parser.add_argument('--s_max', type=int,
                     default=DEFAULT_S_MAX, dest='s_max',
                     help='maximum synaptic capacity')
+
+parser.add_argument('--delay', type=int,
+                    default=DEFAULT_DELAY, dest='delay',
+                    help='delay (in ms) applied to spikes in the network')
 
 parser.add_argument('--no_iterations', type=int,
                     default=DEFAULT_NO_INTERATIONS, dest='no_iterations',

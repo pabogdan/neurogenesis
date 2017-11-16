@@ -60,7 +60,7 @@ cell_params = {'cm': 20.0,  # nF
 no_iterations = args.no_iterations  # 300000 # 3000000 # 3,000,000 iterations
 simtime = no_iterations
 # Wiring
-n = 16
+n = args.n
 N_layer = n ** 2
 S = (n, n)
 # S = (256, 1)
@@ -85,7 +85,7 @@ t_record = args.t_record  # ms
 
 # STDP
 a_plus = 0.1
-b = 1.
+b = 1.1
 tau_plus = 20.  # ms
 tau_minus = 64.  # ms
 a_minus = (a_plus * tau_plus * b) / tau_minus
@@ -110,7 +110,8 @@ sim_params = {'g_max': g_max,
               'p_elim_dep': p_elim_dep,
               'p_elim_pot': p_elim_pot,
               'f_rew': f_rew,
-              'lateral_inhibition': args.lateral_inhibition
+              'lateral_inhibition': args.lateral_inhibition,
+              'delay':args.delay
               }
 
 # +-------------------------------------------------------------------+
@@ -167,12 +168,12 @@ if args.initial_connectivity_file is None:
         ff_s, init_ff_connections,
         sigma_form_forward, p_form_forward,
         "\nGenerating initial feedforward connectivity...",
-        N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=1)
+        N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=args.delay)
     generate_initial_connectivity(
         lat_s, init_lat_connections,
         sigma_form_lateral, p_form_lateral,
         "\nGenerating initial lateral connectivity...",
-        N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=1)
+        N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=args.delay)
     print "\n"
 else:
     if "npz" in args.initial_connectivity_file:
@@ -216,13 +217,14 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
     structure_model_w_stdp = sim.StructuralMechanism(
         stdp_model=stdp_model,
         weight=g_max,
+        delay=args.delay,
         s_max=s_max * 2,
         grid=grid,
         f_rew=f_rew,
         lateral_inhibition=args.lateral_inhibition,
         random_partner=args.random_partner,
-        p_elim_dep=p_elim_dep,
-        p_elim_pot=p_elim_pot,
+        p_elim_dep=p_elim_dep*10,
+        p_elim_pot=p_elim_pot*10,
         sigma_form_forward=sigma_form_forward,
         sigma_form_lateral=sigma_form_lateral,
         p_form_forward=p_form_forward,
@@ -384,6 +386,10 @@ else:
 total_target_neuron_mean_spike_rate = \
     post_spikes.shape[0] / float(simtime) * 1000. / N_layer
 
+if args.insult:
+    init_ff_connections = pre_weights[0]
+    init_lat_connections = post_weights[0]
+
 np.savez(filename, pre_spikes=pre_spikes,
          post_spikes=post_spikes,
          init_ff_connections=init_ff_connections,
@@ -440,14 +446,14 @@ if args.plot and e is None:
             final_ff_conn_network[int(source), int(target)] = weight
         else:
             final_ff_conn_network[int(source), int(target)] += weight
-        assert delay == 1
+        assert delay == args.delay
 
     for source, target, weight, delay in post_weights[-1]:
         if np.isnan(final_lat_conn_network[int(source), int(target)]):
             final_lat_conn_network[int(source), int(target)] = weight
         else:
             final_lat_conn_network[int(source), int(target)] += weight
-        assert delay == 1
+        assert delay == args.delay
 
     f, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
     i = ax1.matshow(np.nan_to_num(final_ff_conn_network))

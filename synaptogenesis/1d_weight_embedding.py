@@ -124,7 +124,7 @@ stdp_model = sim.STDPMechanism(
                                                    A_minus=a_minus)
 )
 
-if args.case == CASE_CORR_AND_REW or args.case == CASE_REW_NO_CORR:
+if args.case == CASE_CORR_AND_REW:
     structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model,
                                                      weight=g_max,
                                                      s_max=s_max * 2,
@@ -133,6 +133,13 @@ if args.case == CASE_CORR_AND_REW or args.case == CASE_REW_NO_CORR:
                                                      random_partner=args.random_partner)
 elif args.case == CASE_CORR_NO_REW:
     structure_model_w_stdp = stdp_model
+elif args.case == CASE_REW_NO_CORR:
+    structure_model_w_stdp = sim.StructuralMechanism(weight=g_max,
+                                                     s_max=s_max * 2,
+                                                     grid=grid, f_rew=f_rew,
+                                                     lateral_inhibition=args.lateral_inhibition,
+                                                     random_partner=args.random_partner)
+
 # structure_model_w_stdp = sim.StructuralMechanism(weight=g_max, s_max=s_max)
 rates = generate_multimodal_rates([[1, 256//4], [1, (3*256)//4]], grid, sigma_stim=2.5, f_peak=args.f_peak)
 source_pop = sim.Population(N_layer,
