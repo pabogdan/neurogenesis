@@ -73,7 +73,7 @@ p_form_lateral = 1
 p_form_forward = 0.16
 p_elim_dep = 0.0245
 p_elim_pot = 1.36 * (10 ** -4)
-f_rew = 10 ** 3  # Hz
+f_rew = 10 ** 4  # Hz
 
 # Inputs
 f_mean = args.f_mean  # Hz
@@ -85,7 +85,7 @@ t_record = args.t_record  # ms
 
 # STDP
 a_plus = 0.1
-b = 1.1
+b = 1.2
 tau_plus = 20.  # ms
 tau_minus = 64.  # ms
 a_minus = (a_plus * tau_plus * b) / tau_minus
