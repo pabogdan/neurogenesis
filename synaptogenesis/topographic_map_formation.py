@@ -85,7 +85,7 @@ t_record = args.t_record  # ms
 
 # STDP
 a_plus = 0.1
-b = 1.2
+b = 1.1
 tau_plus = 20.  # ms
 tau_minus = 64.  # ms
 a_minus = (a_plus * tau_plus * b) / tau_minus
@@ -111,7 +111,8 @@ sim_params = {'g_max': g_max,
               'p_elim_pot': p_elim_pot,
               'f_rew': f_rew,
               'lateral_inhibition': args.lateral_inhibition,
-              'delay':args.delay
+              'delay':args.delay,
+              'b':b
               }
 
 # +-------------------------------------------------------------------+

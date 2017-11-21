@@ -13,7 +13,7 @@ start_time = plt.datetime.datetime.now()
 
 
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
-sim.set_number_of_neurons_per_core("IF_cond_exp", 256 // 10)
+sim.set_number_of_neurons_per_core("IF_cond_exp", 256 // 5)
 sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 5)
 sim.set_number_of_neurons_per_core("SpikeSourceArray", 256 // 8)
 # +-------------------------------------------------------------------+
@@ -63,7 +63,7 @@ p_form_lateral = 1
 p_form_forward = 0.16
 p_elim_dep = 0.0245
 p_elim_pot = 1.36 * (10 ** -4)
-f_rew = 10 ** 4  # Hz
+f_rew = 10 ** 4 # Hz
 
 # Inputs
 f_mean = args.f_mean  # Hz
@@ -75,7 +75,7 @@ t_record = args.t_record  # ms
 
 # STDP
 a_plus = 0.1
-b = 1.2
+b = 1.1
 tau_plus = 20.  # ms
 tau_minus = 64.  # ms
 a_minus = (a_plus * tau_plus * b) / tau_minus
@@ -100,7 +100,8 @@ sim_params = {'g_max': g_max,
               'p_elim_dep': p_elim_dep,
               'p_elim_pot': p_elim_pot,
               'f_rew': f_rew,
-              'lateral_inhibition':args.lateral_inhibition
+              'lateral_inhibition':args.lateral_inhibition,
+              'b':b
               }
 
 # +-------------------------------------------------------------------+
@@ -142,6 +143,7 @@ elif args.case == CASE_REW_NO_CORR:
 
 # structure_model_w_stdp = sim.StructuralMechanism(weight=g_max, s_max=s_max)
 rates = generate_multimodal_rates([[1, 256//4], [1, (3*256)//4]], grid, sigma_stim=2.5, f_peak=args.f_peak)
+# rates = generate_rates([1, 256//4], grid, sigma_stim=2.5, f_peak=args.f_peak)
 source_pop = sim.Population(N_layer,
                             sim.SpikeSourcePoisson,
                             {'rate': rates.ravel(),
