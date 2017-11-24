@@ -22,6 +22,8 @@ DEFAULT_N = 16
 DEFAULT_DELAY = 1
 
 DEFAULT_SPIKE_SOURCE = SSP
+DEFAULT_B = 1.2
+DEFAULT_T_MINUS = 64
 
 parser = argparse.ArgumentParser(
     description='Test for topographic map formation using STDP and synaptic rewiring'
@@ -65,6 +67,14 @@ parser.add_argument('--f_mean', type=float,
 parser.add_argument('--s_max', type=int,
                     default=DEFAULT_S_MAX, dest='s_max',
                     help='maximum synaptic capacity')
+
+parser.add_argument('--b', type=float,
+                    default=DEFAULT_B, dest='b',
+                    help='ration between area under depression curve and area under potentiation curve')
+
+parser.add_argument('--t_minus', type=int,
+                    default=DEFAULT_T_MINUS, dest='t_minus',
+                    help='time constant for depression')
 
 parser.add_argument('--delay', type=int,
                     default=DEFAULT_DELAY, dest='delay',

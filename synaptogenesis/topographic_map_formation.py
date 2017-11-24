@@ -85,9 +85,9 @@ t_record = args.t_record  # ms
 
 # STDP
 a_plus = 0.1
-b = 1.1
+b = args.b
 tau_plus = 20.  # ms
-tau_minus = 64.  # ms
+tau_minus = args.t_minus  # ms
 a_minus = (a_plus * tau_plus * b) / tau_minus
 
 # Reporting
