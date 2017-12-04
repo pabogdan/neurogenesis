@@ -24,7 +24,7 @@ sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
 sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
 sim.set_number_of_neurons_per_core("IF_cond_exp", 256 // 10)
 sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 13)
-sim.set_number_of_neurons_per_core("SpikeSourceArray", 256 // 8)
+sim.set_number_of_neurons_per_core("SpikeSourcePoissonVariable", 256 // 13)
 
 # +-------------------------------------------------------------------+
 # | General Parameters                                                |
@@ -111,8 +111,13 @@ sim_params = {'g_max': g_max,
               'p_elim_pot': p_elim_pot,
               'f_rew': f_rew,
               'lateral_inhibition': args.lateral_inhibition,
-              'delay':args.delay,
-              'b':b
+              'delay': args.delay,
+              'b': b,
+              't_minus': tau_minus,
+              't_plus': tau_plus,
+              'tau_refrac': args.tau_refrac,
+              'a_minus':a_minus,
+              'a_plus':a_plus
               }
 
 # +-------------------------------------------------------------------+
@@ -120,43 +125,67 @@ sim_params = {'g_max': g_max,
 # +-------------------------------------------------------------------+
 # Need to setup the moving input
 
-if args.spike_source == SSP:
-    if case == CASE_REW_NO_CORR:
-        rates = np.ones(grid) * f_mean
-    else:
-        rates = generate_rates(np.random.randint(0, 16, size=2), grid)
+if case == CASE_REW_NO_CORR:
+    rates = np.ones(grid) * f_mean
     source_pop = sim.Population(N_layer,
                                 sim.SpikeSourcePoisson,
                                 {'rate': rates.ravel(),
                                  'start': 100,
                                  'duration': simtime
                                  }, label="Poisson spike source")
-else:
-    if case == CASE_REW_NO_CORR:
-        rates = np.ones((grid[0], grid[1], t_record // t_stim)) * f_mean
-    else:
-        rates = np.zeros((grid[0], grid[1], t_record // t_stim))
-    for rate_id in range(t_record // t_stim):
-        rates[:, :, rate_id] = generate_rates(np.random.randint(0, 16, size=2),
-                                              grid, f_base=f_base,
-                                              f_peak=f_peak,
+elif case == CASE_CORR_AND_REW or case == CASE_CORR_NO_REW:
+    rates = np.zeros((grid[0], grid[1], simtime // t_stim))
+    for rate_id in range(simtime // t_stim):
+        rates[:, :, rate_id] = generate_rates(np.random.randint(0, n, size=2),
+                                              grid=grid,
+                                              f_peak=args.f_peak,
                                               sigma_stim=sigma_stim)
-    rates = rates.reshape(N_layer, t_record // t_stim)
-    spike_times = []
-    for _ in range(N_layer):
-        spike_times.append([])
+    rates = rates.reshape(N_layer, simtime // t_stim).T
+    # rates = []
+    # for i in range(simtime//t_stim):
+    #     rate = generate_rates(np.random.randint(0, n, size=2),
+    #                                           grid=grid,
+    #                                           f_peak=args.f_peak,
+    #                                           sigma_stim=sigma_stim)
+    #     rates.append(list(rate.ravel()))
 
-    for n_id in range(N_layer):
-        for t in range(t_record // t_stim):
-            spike_times[n_id].append(
-                poisson_generator(rates[n_id, t], t * t_stim,
-                                  t_stim * (t + 1)))
-        spike_times[n_id] = np.concatenate(spike_times[n_id])
-    spikeArray = {'spike_times': spike_times}
     source_pop = sim.Population(N_layer,
-                                sim.SpikeSourceArray,
-                                spikeArray,
-                                label="Array spike source")
+                                sim.SpikeSourcePoissonVariable,
+                                {'rate': rates,
+                                 'start': 100,
+                                 'duration': simtime,
+                                 'rate_interval_duration': t_stim
+                                 }, label="Variable-rate Poisson spike source")
+
+# else:
+#     if case == CASE_REW_NO_CORR:
+#         rates = np.ones((grid[0], grid[1], t_record // t_stim)) * f_mean
+#     else:
+#         rates = np.zeros((grid[0], grid[1], t_record // t_stim))
+#     for rate_id in range(t_record // t_stim):
+#         rates[:, :, rate_id] = generate_rates(np.random.randint(0, 16, size=2),
+#                                               grid, f_base=f_base,
+#                                               f_peak=f_peak,
+#                                               sigma_stim=sigma_stim)
+#     rates = rates.reshape(N_layer, t_record // t_stim)
+#     spike_times = []
+#     for _ in range(N_layer):
+#         spike_times.append([])
+#
+#     for n_id in range(N_layer):
+#         for t in range(t_record // t_stim):
+#             spike_times[n_id].append(
+#                 poisson_generator(rates[n_id, t], t * t_stim,
+#                                   t_stim * (t + 1)))
+#         spike_times[n_id] = np.concatenate(spike_times[n_id])
+#     spikeArray = {'spike_times': spike_times}
+#     source_pop = sim.Population(N_layer,
+#                                 sim.SpikeSourceArray,
+#                                 spikeArray,
+#                                 label="Array spike source")
+
+
+
 
 ff_s = np.zeros(N_layer, dtype=np.uint)
 lat_s = np.zeros(N_layer, dtype=np.uint)
@@ -224,8 +253,8 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
         f_rew=f_rew,
         lateral_inhibition=args.lateral_inhibition,
         random_partner=args.random_partner,
-        p_elim_dep=p_elim_dep*10,
-        p_elim_pot=p_elim_pot*10,
+        p_elim_dep=p_elim_dep,
+        p_elim_pot=p_elim_pot,
         sigma_form_forward=sigma_form_forward,
         sigma_form_lateral=sigma_form_lateral,
         p_form_forward=p_form_forward,
@@ -300,53 +329,14 @@ post_delays = []
 e = None
 print "Starting the sim"
 
-no_runs = None
-run_duration = None
-if args.spike_source == SSP and not case == CASE_REW_NO_CORR:
-    no_runs = simtime // t_stim
-    run_duration = t_stim
-else:
-    no_runs = simtime // t_record
-    run_duration = t_record
+no_runs = simtime // t_record
+run_duration = t_record
 
 try:
     for current_run in range(no_runs):
         print "run", current_run + 1, "of", no_runs
         sim.run(run_duration)
-        spike_times = []
-        if args.spike_source == SSP:
-            if case == CASE_REW_NO_CORR:
-                rates = np.ones(grid) * f_mean
-            else:
-                rates = generate_rates(np.random.randint(0, 16, size=2), grid)
-            source_pop.set("rate", rates.ravel())
-        else:
-            if case == CASE_REW_NO_CORR:
-                rates = np.ones(
-                    (grid[0], grid[1], t_record // t_stim)) * f_mean
-            else:
-                rates = np.zeros((grid[0], grid[1], t_record // t_stim))
-            for rate_id in range(t_record // t_stim):
-                rates[:, :, rate_id] = generate_rates(
-                    np.random.randint(0, 16, size=2),
-                    grid)
-            rates = rates.reshape(N_layer, t_record // t_stim)
-            spike_times = []
-            for _ in range(N_layer):
-                spike_times.append([])
-
-            for n_id in range(N_layer):
-                for t in range(t_record // t_stim):
-                    spike_times[n_id].append(
-                        poisson_generator(rates[n_id, t], t * t_stim,
-                                          t_stim * (t + 1)))
-                spike_times[n_id] = np.concatenate(spike_times[n_id])
-            source_pop.set("spike_times", spike_times)
-
-        # Retrieve data
-
-        # if run * t_stim % t_record == 0:
-        if current_run * run_duration % t_record == 0:
+        if (current_run+1) * run_duration % t_record == 0:
             pre_weights.append(
                 np.array([
                     ff_projection._get_synaptic_data(True, 'source'),

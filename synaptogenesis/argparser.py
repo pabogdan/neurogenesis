@@ -84,14 +84,6 @@ parser.add_argument('--no_iterations', type=int,
                     default=DEFAULT_NO_INTERATIONS, dest='no_iterations',
                     help='total number of iterations (or time steps) for the simulation (technically, ms)')
 
-parser.add_argument("-s", '--spike_source', type=int, choices=[SSP, SSA],
-                    default=DEFAULT_SPIKE_SOURCE, dest='spike_source',
-                    help='choice of input spike source: \n'
-                         '[' + str(SSP) + '] poisson spike source \n'
-                                          '[' + str(
-                        SSA) + '] spike source array'
-                    )
-
 parser.add_argument('--plot', help="display plots",
                     action="store_true")
 

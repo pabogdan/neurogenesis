@@ -24,12 +24,33 @@ for file in args.path:
                 paths.append(globbed_file)
     else:
         paths.append(file)
+
+sensitivity_analysis = False
+if len(paths) > 1:
+    sensitivity_analysis = True
+    # don't display plots
+
+
+if sensitivity_analysis:
+    # set up final matrix
+    batch_matrix_results = []
+    # also set up final snapshots
+    batch_snapshots = []
+    # don't forget about sim_params
+    batch_params = [] # append into this sim params in order
+    print
+    print "BATCH ANALYSIS!"
+    print
+
+
 for file in paths:
     try:
         start_time = plt.datetime.datetime.now()
         print "\n\nAnalysing file", str(file)
         data = np.load(file)
         simdata = np.array(data['sim_params']).ravel()[0]
+        if sensitivity_analysis:
+            batch_params.append((simdata, file))
 
         if 'case' in simdata:
             print "Case", simdata['case'], "analysis"
@@ -290,6 +311,28 @@ for file in paths:
         print "%-60s" % "Mean AD fin weight", fin_mean_AD_weight
         print "%-60s" % "p(WSR AD fin weight vs AD fin weight shuffle)", wsr_AD_fin_weight_fin_weight_shuffle.pvalue
 
+        if sensitivity_analysis:
+            batch_matrix_results.append((
+                total_target_neuron_mean_spike_rate,
+                final_mean_number_ff_synapses,
+                final_weight_proportion,
+                init_mean_std,
+                fin_mean_std_conn_shuf,
+                fin_mean_std_conn,
+                wsr_sigma_fin_conn_fin_conn_shuffle.pvalue,
+                fin_mean_std_weight_shuf,
+                fin_mean_std_weight,
+                wsr_sigma_fin_weight_fin_weight_shuffle.pvalue,
+                init_mean_AD,
+                fin_mean_AD_conn_shuf,
+                fin_mean_AD_conn,
+                wsr_AD_fin_conn_fin_conn_shuffle.pvalue,
+                fin_mean_AD_weight_shuf,
+                fin_mean_AD_weight,
+                wsr_AD_fin_weight_fin_weight_shuffle.pvalue,
+                file
+            ))
+
         # LAT connection bar chart
 
         init_fan_in_rec = fan_in(init_conn, init_weight, 'conn', 'rec')
@@ -362,7 +405,7 @@ for file in paths:
         if args.filename:
             filename = args.filename
         else:
-            filename = "analysis_" + str(suffix)
+            filename = "analysis" + str(suffix)
 
         np.savez(filename, recording_archive_name=file,
                  target_neurom_mean_spike_rate=total_target_neuron_mean_spike_rate,
@@ -419,7 +462,7 @@ for file in paths:
                  init_means_for_plot=means_for_plot
                  )
 
-        if args.plot:
+        if args.plot and not sensitivity_analysis:
             fig_conn, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8),
                                                 sharey=True)
 
@@ -509,7 +552,13 @@ for file in paths:
             np.savez("last_std_ad_evo", recording_archive_name=file,
                      all_mean_sigmas=all_mean_sigmas,
                      all_mean_ads=all_mean_ADs)
-            if args.plot:
+            if sensitivity_analysis:
+                batch_snapshots.append((
+                    all_mean_sigmas,
+                    all_mean_ADs,
+                    file
+                ))
+            if args.plot and not sensitivity_analysis:
                 plt.plot(all_mean_sigmas)
                 plt.ylim([0, 1.1 * np.max(all_mean_sigmas)])
                 plt.show()
@@ -523,3 +572,12 @@ for file in paths:
         print "Out of memory. Did you use HDF5 slices to read in data?", e
     finally:
         data.close()
+
+if sensitivity_analysis:
+    curr_time = plt.datetime.datetime.now()
+    suffix_total = curr_time.strftime("_%H%M%S_%d%m%Y")
+    np.savez("batch_analysis" + suffix_total, recording_archive_name=file,
+                         snapshots=batch_snapshots,
+                         params=batch_params,
+                         results=batch_matrix_results
+             )
