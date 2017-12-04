@@ -208,7 +208,7 @@ for file in paths:
         # b
         final_fan_in = fan_in(last_conn, last_weight, 'conn', 'ff')
         fin_mean_projection, fin_means_and_std_devs, fin_means_for_plot, fin_mean_centred_projection = centre_weights(
-            final_fan_in, 16)
+            final_fan_in, s_max)
         fin_mean_std_conn = np.mean(fin_means_and_std_devs[:, 5])
         fin_mean_AD_conn = np.mean(fin_means_and_std_devs[:, 4])
         fin_stds_conn = fin_means_and_std_devs[:, 5]
@@ -221,21 +221,28 @@ for file in paths:
         init_ff_connections = []
         ff_s = np.zeros(N_layer, dtype=np.uint)
         lat_s = np.zeros(N_layer, dtype=np.uint)
+
+        # populate ff_s and lat_s
+        # ff_last, lat_last
+        for post_id in range(N_layer):
+            ff_s[post_id] = ff_last[ff_last[:,1]==post_id].shape[0]
+            lat_s[post_id] = lat_last[lat_last[:,1]==post_id].shape[0]
+
         existing_pre_ff = []
         generated_ff_conn = []
         generated_lat_conn = []
 
-        generate_initial_connectivity(
+        generate_equivalent_connectivity(
             ff_s, generated_ff_conn,
             sigma_form_forward, p_form_forward,
             "\nGenerating initial feedforward connectivity...",
-            N_layer=N_layer, n=n, s_max=s_max, g_max=g_max)
+            N_layer=N_layer, n=n, g_max=g_max)
 
-        generate_initial_connectivity(
+        generate_equivalent_connectivity(
             lat_s, generated_lat_conn,
             sigma_form_lateral, p_form_lateral,
             "\nGenerating initial lateral connectivity...",
-            N_layer=N_layer, n=n, s_max=s_max, g_max=g_max)
+            N_layer=N_layer, n=n, g_max=g_max)
 
         gen_init_conn, gen_init_weight = \
             list_to_post_pre(np.asarray(generated_ff_conn),
@@ -246,7 +253,7 @@ for file in paths:
 
         fin_mean_projection_shuf, fin_means_and_std_devs_shuf, \
         fin_means_for_plot_shuf, fin_mean_centred_projection_shuf = \
-            centre_weights(gen_fan_in, 16)
+            centre_weights(gen_fan_in, s_max)
 
         fin_mean_std_conn_shuf = np.mean(fin_means_and_std_devs_shuf[:, 5])
         fin_mean_AD_conn_shuf = np.mean(fin_means_and_std_devs_shuf[:, 4])
@@ -263,7 +270,7 @@ for file in paths:
                                      'ff')
         # final_fan_in_weight = conn_matrix_to_fan_in(ff_last, mode='weight')
         fin_mean_projection_weight, fin_means_and_std_devs_weight, fin_means_for_plot_weight, fin_mean_centred_projection_weight = centre_weights(
-            final_fan_in_weight, 16)
+            final_fan_in_weight, s_max)
         fin_mean_std_weight = np.mean(fin_means_and_std_devs_weight[:, 5])
         fin_mean_AD_weight = np.mean(fin_means_and_std_devs_weight[:, 4])
         fin_stds_weight = fin_means_and_std_devs_weight[:, 5]
@@ -277,7 +284,7 @@ for file in paths:
         shuf_weights = fan_in(last_conn, weight_copy, 'weight', 'ff')
 
         fin_mean_projection_weight_shuf, fin_means_and_std_devs_weight_shuf, fin_means_for_plot_weight_shuf, fin_mean_centred_projection_weight_shuf = centre_weights(
-            shuf_weights, 16)
+            shuf_weights, s_max)
         fin_mean_std_weight_shuf = np.mean(
             fin_means_and_std_devs_weight_shuf[:, 5])
         fin_mean_AD_weight_shuf = np.mean(

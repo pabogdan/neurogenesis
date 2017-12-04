@@ -9,11 +9,28 @@ from spinn_utilities.progress_bar import ProgressBar
 
 # Periodic boundaries
 # https://github.com/pabogdan/neurogenesis/blob/master/notebooks/neurogenesis-in-numbers/Periodic%20boundaries.ipynb
+# def distance(x0, x1, grid=np.asarray([16, 16]), type='euclidian'):
+#     x0 = np.asarray(x0)
+#     x1 = np.asarray(x1)
+#     delta = np.abs(x0 - x1)
+#     delta = np.where(delta > grid * .5, delta - grid, delta)
+#
+#     if type == 'manhattan':
+#         return np.abs(delta).sum(axis=-1)
+#     return np.sqrt((delta ** 2).sum(axis=-1))
+#
+
 def distance(x0, x1, grid=np.asarray([16, 16]), type='euclidian'):
     x0 = np.asarray(x0)
     x1 = np.asarray(x1)
     delta = np.abs(x0 - x1)
-    delta = np.where(delta > grid * .5, delta - grid, delta)
+    #     delta = np.where(delta > grid * .5, delta - grid, delta)
+    #     print delta, grid
+    if delta[0] > grid[0] * .5 and grid[0] > 0:
+        delta[0] -= grid[0]
+
+    if delta[1] > grid[1] * .5 and grid[1] > 0:
+        delta[1] -= grid[1]
 
     if type == 'manhattan':
         return np.abs(delta).sum(axis=-1)
@@ -59,18 +76,18 @@ def poisson_generator(rate, t_start, t_stop):
     return unique_rounded_times[unique_rounded_times < t_stop]
 
 
-def generate_rates(s, grid, f_base=5, f_peak=152.8, sigma_stim=2):
+def generate_rates(s, grid, f_base=5., f_peak=152.8, sigma_stim=2.):
     '''
     Function that generates an array the same shape as the input layer so that
     each cell has a value corresponding to the firing rate for the neuron
     at that position.
     '''
-    _rates = np.zeros(grid)
+    _rates = np.empty(grid)
     for x in range(grid[0]):
         for y in range(grid[1]):
             _d = distance(s, (x, y), grid)
-            _rates[x, y] = f_base + f_peak * np.e ** (
-                -_d / (2 * (sigma_stim ** 2)))
+            _rates[x, y] = f_base + (f_peak * (np.exp(
+                -_d / (2 * (sigma_stim ** 2)))))
     return _rates
 
 
@@ -125,3 +142,17 @@ def generate_initial_connectivity(s, connections, sigma, p, msg,
                 connections.append((potential_pre_index,
                                     postsynaptic_neuron_index, g_max, delay))
                 # print " |"
+
+
+def generate_equivalent_connectivity(s, connections, sigma, p, msg,
+                                  N_layer=256, n=16, g_max=.2,
+                                  delay=1.):
+    for postsynaptic_neuron_index in range(N_layer):
+        post = (postsynaptic_neuron_index // n, postsynaptic_neuron_index % n)
+        while s[postsynaptic_neuron_index] > 0:
+            potential_pre_index = np.random.randint(0, N_layer)
+            pre = (potential_pre_index // n, potential_pre_index % n)
+            if formation_rule(pre, post, sigma, p):
+                s[postsynaptic_neuron_index] -= 1
+                connections.append((potential_pre_index,
+                                    postsynaptic_neuron_index, g_max, delay))

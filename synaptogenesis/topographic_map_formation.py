@@ -79,7 +79,7 @@ f_rew = 10 ** 4  # Hz
 f_mean = args.f_mean  # Hz
 f_base = 5  # Hz
 f_peak = args.f_peak  # 152.8  # Hz
-sigma_stim = 2  # 2
+sigma_stim = args.sigma_stim  # 2
 t_stim = args.t_stim  # 20  # ms
 t_record = args.t_record  # ms
 
@@ -116,8 +116,8 @@ sim_params = {'g_max': g_max,
               't_minus': tau_minus,
               't_plus': tau_plus,
               'tau_refrac': args.tau_refrac,
-              'a_minus':a_minus,
-              'a_plus':a_plus
+              'a_minus': a_minus,
+              'a_plus': a_plus
               }
 
 # +-------------------------------------------------------------------+
@@ -134,20 +134,18 @@ if case == CASE_REW_NO_CORR:
                                  'duration': simtime
                                  }, label="Poisson spike source")
 elif case == CASE_CORR_AND_REW or case == CASE_CORR_NO_REW:
-    rates = np.zeros((grid[0], grid[1], simtime // t_stim))
+
+    rates = np.empty((simtime // t_stim, grid[0], grid[1]))
     for rate_id in range(simtime // t_stim):
-        rates[:, :, rate_id] = generate_rates(np.random.randint(0, n, size=2),
-                                              grid=grid,
-                                              f_peak=args.f_peak,
-                                              sigma_stim=sigma_stim)
-    rates = rates.reshape(N_layer, simtime // t_stim).T
-    # rates = []
-    # for i in range(simtime//t_stim):
-    #     rate = generate_rates(np.random.randint(0, n, size=2),
-    #                                           grid=grid,
-    #                                           f_peak=args.f_peak,
-    #                                           sigma_stim=sigma_stim)
-    #     rates.append(list(rate.ravel()))
+        r = generate_rates(np.random.randint(0, n, size=2),
+                           f_base=f_base,
+                           grid=grid,
+                           f_peak=args.f_peak,
+                           sigma_stim=sigma_stim)
+        # assert np.isclose(np.average(r), f_mean, 0.1, 0.1), np.average(r)
+
+        rates[rate_id, :, :] = r
+    rates = rates.reshape(simtime // t_stim, N_layer)
 
     source_pop = sim.Population(N_layer,
                                 sim.SpikeSourcePoissonVariable,
@@ -156,36 +154,6 @@ elif case == CASE_CORR_AND_REW or case == CASE_CORR_NO_REW:
                                  'duration': simtime,
                                  'rate_interval_duration': t_stim
                                  }, label="Variable-rate Poisson spike source")
-
-# else:
-#     if case == CASE_REW_NO_CORR:
-#         rates = np.ones((grid[0], grid[1], t_record // t_stim)) * f_mean
-#     else:
-#         rates = np.zeros((grid[0], grid[1], t_record // t_stim))
-#     for rate_id in range(t_record // t_stim):
-#         rates[:, :, rate_id] = generate_rates(np.random.randint(0, 16, size=2),
-#                                               grid, f_base=f_base,
-#                                               f_peak=f_peak,
-#                                               sigma_stim=sigma_stim)
-#     rates = rates.reshape(N_layer, t_record // t_stim)
-#     spike_times = []
-#     for _ in range(N_layer):
-#         spike_times.append([])
-#
-#     for n_id in range(N_layer):
-#         for t in range(t_record // t_stim):
-#             spike_times[n_id].append(
-#                 poisson_generator(rates[n_id, t], t * t_stim,
-#                                   t_stim * (t + 1)))
-#         spike_times[n_id] = np.concatenate(spike_times[n_id])
-#     spikeArray = {'spike_times': spike_times}
-#     source_pop = sim.Population(N_layer,
-#                                 sim.SpikeSourceArray,
-#                                 spikeArray,
-#                                 label="Array spike source")
-
-
-
 
 ff_s = np.zeros(N_layer, dtype=np.uint)
 lat_s = np.zeros(N_layer, dtype=np.uint)
@@ -336,7 +304,7 @@ try:
     for current_run in range(no_runs):
         print "run", current_run + 1, "of", no_runs
         sim.run(run_duration)
-        if (current_run+1) * run_duration % t_record == 0:
+        if (current_run + 1) * run_duration % t_record == 0:
             pre_weights.append(
                 np.array([
                     ff_projection._get_synaptic_data(True, 'source'),
