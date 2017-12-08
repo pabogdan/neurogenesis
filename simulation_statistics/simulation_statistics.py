@@ -47,7 +47,10 @@ for file in paths:
     try:
         start_time = plt.datetime.datetime.now()
         print "\n\nAnalysing file", str(file)
-        data = np.load(file)
+        if "npz" in str(file):
+            data = np.load(file)
+        else:
+            data = np.load(str(file) + ".npz")
         simdata = np.array(data['sim_params']).ravel()[0]
         if sensitivity_analysis:
             batch_params.append((simdata, file))
@@ -260,6 +263,8 @@ for file in paths:
         fin_stds_conn_shuf = fin_means_and_std_devs_shuf[:, 5]
         fin_AD_conn_shuf = fin_means_and_std_devs_shuf[:, 4]
 
+
+
         wsr_sigma_fin_conn_fin_conn_shuffle = stats.wilcoxon(
             fin_stds_conn.ravel(), fin_stds_conn_shuf.ravel())
         wsr_AD_fin_conn_fin_conn_shuffle = stats.wilcoxon(
@@ -291,6 +296,17 @@ for file in paths:
             fin_means_and_std_devs_weight_shuf[:, 4])
         fin_stds_weight_shuf = fin_means_and_std_devs_weight_shuf[:, 5]
         fin_AD_weight_shuf = fin_means_and_std_devs_weight_shuf[:, 4]
+
+        # print "----"
+        # for x in fin_stds_conn.ravel():
+        #     print x
+        # print "----"
+        # for x in fin_stds_conn_shuf.ravel():
+        #     print x
+        #
+        # plt.scatter(fin_stds_weight.ravel(), fin_stds_weight_shuf.ravel())
+        # plt.show()
+
 
         wsr_sigma_fin_weight_fin_weight_shuffle = stats.wilcoxon(
             fin_stds_weight.ravel(), fin_stds_weight_shuf.ravel())

@@ -11,7 +11,7 @@ SSA = 2
 DEFAULT_TAU_REFRAC = 5.0
 DEFAULT_T_RECORD = 30000
 DEFAULT_F_PEAK = 152.8
-DEFAULT_NO_INTERATIONS = 30000000
+DEFAULT_NO_INTERATIONS = 3000000
 DEFAULT_T_STIM = 20
 DEFAULT_S_MAX = 32
 DEFAULT_F_MEAN = 20
@@ -27,6 +27,13 @@ DEFAULT_T_MINUS = 64
 
 DEFAULT_SIGMA_STIM = 2
 
+# Default probabilities
+
+DEFAULT_P_FORM_LATERAL = 1
+DEFAULT_P_FORM_FORWARD = 0.16
+DEFAULT_P_ELIM_DEP = 0.0245
+DEFAULT_P_ELIM_POT = 1.36 * (10 ** -4)
+
 parser = argparse.ArgumentParser(
     description='Test for topographic map formation using STDP and synaptic rewiring'
                 ' on SpiNNaker.',
@@ -36,6 +43,22 @@ parser.add_argument("-c", '--case', type=int,
                              CASE_REW_NO_CORR],
                     default=CASE_CORR_AND_REW, dest='case',
                     help='an integer controlling the experimental setup')
+
+parser.add_argument('--p_elim_dep', type=float,
+                    default=DEFAULT_P_ELIM_DEP, dest='p_elim_dep',
+                    help='probability of eliminating depressed synapses')
+
+parser.add_argument('--p_elim_pot', type=float,
+                    default=DEFAULT_P_ELIM_POT, dest='p_elim_pot',
+                    help='probability of eliminating potentiated synapses')
+
+parser.add_argument('--p_form_forward', type=float,
+                    default=DEFAULT_P_FORM_FORWARD, dest='p_form_forward',
+                    help='probability of forming feedforward synapses')
+
+parser.add_argument('--p_form_lateral', type=float,
+                    default=DEFAULT_P_FORM_LATERAL, dest='p_form_lateral',
+                    help='probability of forming lateral synapses')
 
 parser.add_argument('--tau_refract', type=float,
                     default=DEFAULT_TAU_REFRAC, dest='tau_refrac',

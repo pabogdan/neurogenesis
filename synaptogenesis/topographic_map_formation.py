@@ -69,10 +69,10 @@ grid = np.asarray(S)
 s_max = args.s_max // 2
 sigma_form_forward = 2.5
 sigma_form_lateral = 1
-p_form_lateral = 1
-p_form_forward = 0.16
-p_elim_dep = 0.0245
-p_elim_pot = 1.36 * (10 ** -4)
+p_form_lateral = args.p_form_lateral
+p_form_forward = args.p_form_forward
+p_elim_dep = args.p_elim_dep
+p_elim_pot = args.p_elim_pot
 f_rew = 10 ** 4  # Hz
 
 # Inputs
@@ -250,21 +250,31 @@ if not args.insult:
         target="inhibitory" if args.lateral_inhibition else "excitatory"
     )
 else:
+    ff_pos = range(len(init_ff_connections))
+    lat_pos = range(len(init_lat_connections))
+    subsample_ff = np.random.choice(ff_pos, 10)
+    subsample_lat= np.random.choice(lat_pos, 10)
+    init_ff_connections = np.asarray(init_ff_connections)
+    init_lat_connections = np.asarray(init_lat_connections)
     print "Insulted network"
     ff_projection = sim.Projection(
         source_pop, target_pop,
-        sim.FixedProbabilityConnector(weights=g_max, p_connect=0.01),
+        sim.FromListConnector(init_ff_connections[subsample_ff]),
+        # sim.FixedProbabilityConnector(weights=g_max, p_connect=0.01),
         synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
         label="plastic_ff_projection"
     )
 
     lat_projection = sim.Projection(
         target_pop, target_pop,
-        sim.FixedProbabilityConnector(weights=g_max, p_connect=0.01),
+        sim.FromListConnector(init_lat_connections[subsample_lat]),
+        # sim.FixedProbabilityConnector(weights=g_max, p_connect=0.01),
         synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
         label="plastic_lat_projection",
         target="inhibitory" if args.lateral_inhibition else "excitatory"
     )
+    init_ff_connections = init_ff_connections[subsample_ff]
+    init_lat_connections = init_lat_connections[subsample_lat]
 
 # +-------------------------------------------------------------------+
 # | Simulation and results                                            |
@@ -344,10 +354,6 @@ else:
 
 total_target_neuron_mean_spike_rate = \
     post_spikes.shape[0] / float(simtime) * 1000. / N_layer
-
-if args.insult:
-    init_ff_connections = pre_weights[0]
-    init_lat_connections = post_weights[0]
 
 np.savez(filename, pre_spikes=pre_spikes,
          post_spikes=post_spikes,
@@ -440,4 +446,5 @@ if args.plot and e is None:
     cbar.set_label("Synaptic conductance - $G_{syn}$", fontsize=16)
     plt.show()
 
+print "Results in", filename
 print "Total time elapsed -- " + str(total_time)
