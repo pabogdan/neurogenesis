@@ -91,6 +91,21 @@ def generate_rates(s, grid, f_base=5., f_peak=152.8, sigma_stim=2.):
     return _rates
 
 
+def generate_gaussian_input_rates(s, grid, f_base=5., f_peak=152.8, sigma_stim=2.):
+    '''
+    Function that generates an array the same shape as the input layer so that
+    each cell has a value corresponding to the firing rate for the neuron
+    at that position.
+    '''
+    _rates = np.empty(grid)
+    for x in range(grid[0]):
+        for y in range(grid[1]):
+            _d = distance(s, (x, y), grid)
+            _rates[x, y] = f_base + (f_peak * (np.exp(
+                (-_d**2 ) / (sigma_stim ** 2* 2))))
+    return _rates
+
+
 def generate_multimodal_rates(s, grid, f_base=5, f_peak=152.8, sigma_stim=2):
     '''
     Function that generates an array the same shape as the input layer so that

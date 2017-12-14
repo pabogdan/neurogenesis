@@ -11,10 +11,11 @@ SSA = 2
 DEFAULT_TAU_REFRAC = 5.0
 DEFAULT_T_RECORD = 30000
 DEFAULT_F_PEAK = 152.8
-DEFAULT_NO_INTERATIONS = 3000000
+DEFAULT_NO_INTERATIONS = 300000
 DEFAULT_T_STIM = 20
 DEFAULT_S_MAX = 32
 DEFAULT_F_MEAN = 20
+DEFAULT_F_REW = 10**4
 DEFAULT_LAT_INH = 0
 
 DEFAULT_N = 16
@@ -33,6 +34,8 @@ DEFAULT_P_FORM_LATERAL = 1
 DEFAULT_P_FORM_FORWARD = 0.16
 DEFAULT_P_ELIM_DEP = 0.0245
 DEFAULT_P_ELIM_POT = 1.36 * (10 ** -4)
+
+
 
 parser = argparse.ArgumentParser(
     description='Test for topographic map formation using STDP and synaptic rewiring'
@@ -87,6 +90,10 @@ parser.add_argument('--f_peak', type=float,
                     default=DEFAULT_F_PEAK, dest='f_peak',
                     help='peak input spike rate (Hz)')
 
+parser.add_argument('--f_rew', type=float,
+                    default=DEFAULT_F_REW, dest='f_rew',
+                    help='frequency of rewire attempts (Hz)')
+
 parser.add_argument('--f_mean', type=float,
                     default=DEFAULT_F_MEAN, dest='f_mean',
                     help='input spike rate (Hz) used with case 3')
@@ -135,6 +142,11 @@ parser.add_argument('-i', '--input', type=str,
 
 parser.add_argument('--insult',
                     help="simulate an ischemic network",
+                    action="store_true")
+
+parser.add_argument('--gaussian_input',
+                    help="input stimulus has a Gaussian shape, "
+                         "otherwise it's pointy",
                     action="store_true")
 
 args = parser.parse_args()

@@ -1,5 +1,5 @@
 """
-Test for topographic map formation using STDP and synaptic rewiring.
+Test for ocular preferrence in topographic maps using STDP and synaptic rewiring.
 
 http://hdl.handle.net/1842/3997
 """
@@ -37,7 +37,7 @@ model = sim.IF_cond_exp
 v_rest = -70  # mV
 e_ext = 0  # V
 v_thr = -54  # mV
-g_max = 0.2
+g_max = 0.1
 tau_m = 20  # ms
 tau_ex = 5  # ms
 
@@ -66,19 +66,19 @@ S = (n, n)
 # S = (256, 1)
 grid = np.asarray(S)
 
-s_max = args.s_max // 2
-sigma_form_forward = 2.5
-sigma_form_lateral = 1
+s_max = args.s_max
+sigma_form_forward = 1.99
+sigma_form_lateral = 2.49
 p_form_lateral = args.p_form_lateral
 p_form_forward = args.p_form_forward
-p_elim_dep = args.p_elim_dep
-p_elim_pot = args.p_elim_pot
+p_elim_dep = 0.01
+p_elim_pot = 5.56 * (10.**-5)
 f_rew = args.f_rew  # 10 ** 4  # Hz
 
 # Inputs
 f_mean = args.f_mean  # Hz
 f_base = 5  # Hz
-f_peak = args.f_peak  # 152.8  # Hz
+f_peak = 152.8 * 2  # 152.8  # Hz
 sigma_stim = args.sigma_stim  # 2
 t_stim = args.t_stim  # 20  # ms
 t_record = args.t_record  # ms
@@ -129,25 +129,30 @@ else:
 # | Initial network setup                                             |
 # +-------------------------------------------------------------------+
 # Need to setup the moving input
+one_row = np.asarray(np.arange(16) % 2, dtype=bool)
+
+binoc_positions = np.asarray([one_row if i % 2 == 0 else np.logical_not(one_row) for i in range(16)])
+
+left_positions = np.where(binoc_positions==0)
+right_positions = np.where(binoc_positions==1)
+
+positions = [left_positions, right_positions]
 
 if case == CASE_REW_NO_CORR:
-    rates = np.ones(grid) * f_mean
-    source_pop = sim.Population(N_layer,
-                                sim.SpikeSourcePoisson,
-                                {'rate': rates.ravel(),
-                                 'start': 100,
-                                 'duration': simtime
-                                 }, label="Poisson spike source")
+    raise NotImplementedError
+
 elif case == CASE_CORR_AND_REW or case == CASE_CORR_NO_REW:
 
     rates = np.empty((simtime // t_stim, grid[0], grid[1]))
     for rate_id in range(simtime // t_stim):
-        r = gen_rate(np.random.randint(0, n, size=2),
-                           f_base=f_base,
-                           grid=grid,
-                           f_peak=args.f_peak,
-                           sigma_stim=sigma_stim)
-        # assert np.isclose(np.average(r), f_mean, 0.1, 0.1), np.average(r)
+        rand_offset = np.random.randint(0, N_layer//2)
+        stim_position = (positions[rate_id%2][0][rand_offset], positions[rate_id%2][1][rand_offset])
+        assert binoc_positions[stim_position] == rate_id%2
+        r = gen_rate(stim_position,
+                     f_base=f_base,
+                     grid=grid,
+                     f_peak=f_peak,
+                     sigma_stim=sigma_stim)
 
         rates[rate_id, :, :] = r
     rates = rates.reshape(simtime // t_stim, N_layer)
@@ -167,17 +172,7 @@ init_ff_connections = []
 init_lat_connections = []
 
 if args.initial_connectivity_file is None:
-    generate_initial_connectivity(
-        ff_s, init_ff_connections,
-        sigma_form_forward, p_form_forward,
-        "\nGenerating initial feedforward connectivity...",
-        N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=args.delay)
-    generate_initial_connectivity(
-        lat_s, init_lat_connections,
-        sigma_form_lateral, p_form_lateral,
-        "\nGenerating initial lateral connectivity...",
-        N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=args.delay)
-    print "\n"
+    raise NotImplementedError
 else:
     if "npz" in args.initial_connectivity_file:
         initial_connectivity = np.load(args.initial_connectivity_file)
@@ -221,7 +216,7 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
         stdp_model=stdp_model,
         weight=g_max,
         delay=args.delay,
-        s_max=s_max * 2,
+        s_max=s_max,
         grid=grid,
         f_rew=f_rew,
         lateral_inhibition=args.lateral_inhibition,
@@ -238,66 +233,21 @@ elif case == CASE_CORR_NO_REW:
 
 # structure_model_w_stdp = sim.StructuralMechanism(weight=g_max, s_max=s_max)
 
-if not args.insult:
-    print "No insults"
-    ff_projection = sim.Projection(
-        source_pop, target_pop,
-        sim.FromListConnector(init_ff_connections),
-        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-        label="plastic_ff_projection"
-    )
 
-    lat_projection = sim.Projection(
-        target_pop, target_pop,
-        sim.FromListConnector(init_lat_connections),
-        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-        label="plastic_lat_projection",
-        target="inhibitory" if args.lateral_inhibition else "excitatory"
-    )
-else:
-    # ff_pos = range(len(init_ff_connections))
-    # lat_pos = range(len(init_lat_connections))
-    # subsample_ff = np.random.choice(ff_pos, 10)
-    # subsample_lat = np.random.choice(lat_pos, 10)
-    # init_ff_connections = np.asarray(init_ff_connections)
-    # init_lat_connections = np.asarray(init_lat_connections)
-    print "Insulted network"
+ff_projection = sim.Projection(
+    source_pop, target_pop,
+    sim.FromListConnector(init_ff_connections),
+    synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+    label="plastic_ff_projection"
+)
 
-    # ff_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in range(N_layer) if np.random.rand() < .05]
-    # lat_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in range(N_layer) if np.random.rand() < .05]
-    #
-    # init_ff_connections = ff_prob_conn
-    # init_lat_connections = lat_prob_conn
-
-    one_to_one_conn = [(i, i, g_max, args.delay) for i in range(N_layer)]
-    ff_projection = sim.Projection(
-        source_pop, target_pop,
-        sim.FromListConnector(one_to_one_conn),
-        # sim.FromListConnector(ff_prob_conn),
-        # sim.OneToOneConnector(weights=g_max, delays=args.delay),
-        # sim.FromListConnector(init_ff_connections[subsample_ff]),
-        # sim.FixedProbabilityConnector(weights=g_max, p_connect=0.01),
-        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-        label="plastic_ff_projection"
-    )
-
-    lat_projection = sim.Projection(
-        target_pop, target_pop,
-        sim.FromListConnector(one_to_one_conn),
-        # sim.FromListConnector(lat_prob_conn),
-        # sim.OneToOneConnector(weights=g_max, delays=args.delay),
-        # sim.FromListConnector(init_lat_connections[subsample_lat]),
-        # sim.FixedProbabilityConnector(weights=g_max, p_connect=0.01),
-        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-        label="plastic_lat_projection",
-        target="inhibitory" if args.lateral_inhibition else "excitatory"
-    )
-
-    init_ff_connections = one_to_one_conn
-    init_lat_connections = one_to_one_conn
-
-    # init_ff_connections = init_ff_connections[subsample_ff]
-    # init_lat_connections = init_lat_connections[subsample_lat]
+lat_projection = sim.Projection(
+    target_pop, target_pop,
+    sim.FromListConnector(init_lat_connections),
+    synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+    label="plastic_lat_projection",
+    target="inhibitory" if args.lateral_inhibition else "excitatory"
+)
 
 # +-------------------------------------------------------------------+
 # | Simulation and results                                            |
@@ -338,23 +288,6 @@ try:
         print "run", current_run + 1, "of", no_runs
         sim.run(run_duration)
 
-        # this kind of reloading is not yet implemented
-        # if case == CASE_CORR_AND_REW or case == CASE_CORR_NO_REW:
-        #
-        #     rates = np.empty((t_record // t_stim, grid[0], grid[1]))
-        #     for rate_id in range(t_record // t_stim):
-        #         r = gen_rate(np.random.randint(0, n, size=2),
-        #                            f_base=f_base,
-        #                            grid=grid,
-        #                            f_peak=args.f_peak,
-        #                            sigma_stim=sigma_stim)
-        #         # assert np.isclose(np.average(r), f_mean, 0.1, 0.1), np.average(r)
-        #
-        #         rates[rate_id, :, :] = r
-        #     rates = rates.reshape(t_record // t_stim, N_layer)
-        #     source_pop.set("rate", rates.ravel())
-
-
         if (current_run + 1) * run_duration % t_record == 0:
             pre_weights.append(
                 np.array([
@@ -391,7 +324,7 @@ suffix = end_time.strftime("_%H%M%S_%d%m%Y")
 if args.filename:
     filename = args.filename
 else:
-    filename = "topographic_map_results" + str(suffix)
+    filename = "ocular_preference_results" + str(suffix)
 
 total_target_neuron_mean_spike_rate = \
     post_spikes.shape[0] / float(simtime) * 1000. / N_layer
