@@ -117,7 +117,10 @@ sim_params = {'g_max': g_max,
               't_plus': tau_plus,
               'tau_refrac': args.tau_refrac,
               'a_minus': a_minus,
-              'a_plus': a_plus
+              'a_plus': a_plus,
+              'gaussian_input': args.gaussian_input,
+              'random_partner': args.random_partner,
+              'insult':args.insult
               }
 
 if args.gaussian_input:
