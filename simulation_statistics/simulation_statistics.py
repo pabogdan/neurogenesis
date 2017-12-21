@@ -519,7 +519,7 @@ for file in paths:
                 else:
                     final_lat_conn_network[int(source), int(target)] += 1
 
-            f, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8), sharey=True)
+            f, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 8), sharey=True)
 
             maximum = np.nanmax([final_ff_weight_network, final_lat_weight_network])
 
@@ -528,13 +528,18 @@ for file in paths:
             ax1.grid(visible=False)
             ax1.set_title("Feedforward weighted connectivity matrix", fontsize=16)
             ax2.set_title("Lateral weighted connectivity matrix", fontsize=16)
-            divider = make_axes_locatable(plt.gca())
-            cax = divider.append_axes("right", "5%", pad="3%")
-            cbar = plt.colorbar(i2, cax=cax)
+
+            cbar = f.colorbar(i2, ax=[ax1, ax2])
+
+            # divider = make_axes_locatable(plt.gca())
+            # cax = divider.append_axes("right", "5%", pad="3%")
+            # cbar = plt.colorbar(i2, cax=cax)
             cbar.set_label("Weight", fontsize=14)
+
+
             plt.show()
 
-            f, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8), sharey=True)
+            f, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7), sharey=True)
 
             maximum = np.nanmax(
                 [final_ff_conn_network, final_lat_conn_network])
@@ -546,10 +551,13 @@ for file in paths:
             ax1.grid(visible=False)
             ax1.set_title("Feedforward connectivity matrix", fontsize=16)
             ax2.set_title("Lateral connectivity matrix", fontsize=16)
-            divider = make_axes_locatable(plt.gca())
-            cax = divider.append_axes("right", "5%", pad="3%")
-            cbar = plt.colorbar(i2, cax=cax)
+            # divider = make_axes_locatable(plt.gca())
+            # cax = divider.append_axes("right", "5%", pad="3%")
+            # cbar = plt.colorbar(i2, cax=cax)
+
+            cbar = f.colorbar(i2, ax=[ax1, ax2])
             cbar.set_label("Number of connections", fontsize=14)
+
             plt.show()
 
             # Plot final synaptic capacity usage per postsynaptic neuron
@@ -557,7 +565,7 @@ for file in paths:
             final_ff_capacities = np.nansum(final_ff_conn_network, axis=0)
             final_lat_capacities = np.nansum(final_lat_conn_network, axis=0)
 
-            f, (ax1) = plt.subplots(1, 1, figsize=(16, 8))
+            f, (ax1) = plt.subplots(1, 1, figsize=(16, 7))
             i = ax1.plot(final_ff_capacities, label='Feedforward connectivity')
             ax1.plot(final_lat_capacities, c='g', alpha=.5, label='Lateral connectivity')
             ax1.grid(visible=False)
@@ -569,7 +577,7 @@ for file in paths:
             ax1.axhline(y=s_max*2, xmin=0, xmax=ff_last.shape[1], c='r',
                         label='$S_{max}$')
             ax1.legend(loc='best')
-            ax1.set_ylim([0, 33])
+            # ax1.set_ylim([0, s_max])
             ax1.set_xlabel("Neuron ID")
             ax1.set_ylabel("Number of afferent connections")
             plt.show()
@@ -581,7 +589,7 @@ for file in paths:
             autapses_conn = final_lat_conn_network[autapse_ids, autapse_ids]
             autapses_weight = final_lat_weight_network[autapse_ids,autapse_ids]
 
-            f, (ax1) = plt.subplots(1, 1, figsize=(16, 8))
+            f, (ax1) = plt.subplots(1, 1, figsize=(16, 7))
             ax1.plot(autapses_conn, label='Lateral connectivity')
 
             ax2 = ax1.twinx()
@@ -598,10 +606,7 @@ for file in paths:
 
             plt.show()
 
-
-
-
-
+            # Ocular preference
 
             fig_conn, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8),
                                                 sharey=True)
@@ -614,8 +619,11 @@ for file in paths:
             ax1.set_title("{}".format(np.mean(fin_conn_ff_odc)))
             ax2.set_title("{}".format(np.mean(fin_weight_ff_odc)))
 
-            cbar_ax = fig_conn.add_axes([.91, 0.155, 0.025, 0.72])
-            cbar = fig_conn.colorbar(lat_conn_ax, cax=cbar_ax)
+            # cbar_ax = fig_conn.add_axes([.91, 0.155, 0.025, 0.72])
+            # cbar = fig_conn.colorbar(lat_conn_ax, cax=cbar_ax)
+            cbar = f.colorbar(i2, ax=[ax1, ax2])
+            cbar.set_label("Number of connections", fontsize=14)
+
             cbar.set_label("Occularity measure", fontsize=12)
             plt.show()
 
@@ -624,12 +632,14 @@ for file in paths:
             plt.suptitle(
                 "Distance between input and target neurons for lateral connections")
             plt.bar(range(8), init_fan_in_rec_rad)
-            plt.ylim([0, 3])
+            # plt.ylim([0, 3])
             plt.xticks(range(8))
             plt.ylabel("Weight density (normalised)")
             plt.subplot(1, 3, 2)
+            plt.xticks(range(8))
             plt.bar(range(8), final_fan_in_rec_rad)
             plt.subplot(1, 3, 3)
+            plt.xticks(range(8))
             plt.bar(range(8), final_fan_in_rec_rad_conn)
             plt.show()
 
@@ -638,14 +648,16 @@ for file in paths:
             plt.suptitle(
                 "Distance between input and target neurons for feedforward connections")
             plt.bar(range(8), init_fan_in_ff_rad)
-            plt.ylim([0, .5])
+            # plt.ylim([0, .5])
             plt.xticks(range(8))
             plt.ylabel("Weight density (normalised)")
             plt.subplot(1, 3, 2)
+            plt.xticks(range(8))
             plt.bar(range(8), final_fan_in_ff_rad)
             plt.subplot(1, 3, 3)
+            plt.xticks(range(8))
             plt.bar(range(8), final_fan_in_ff_rad_conn)
-            plt.ylim([0, .5])
+            # plt.ylim([0, .5])
             plt.show()
 
             plt.figure()
@@ -670,6 +682,10 @@ for file in paths:
             number_of_recordings = all_ff_connections.shape[0]
             all_mean_sigmas = np.ones(number_of_recordings) * np.nan
             all_mean_ADs = np.ones(number_of_recordings) * np.nan
+
+            all_mean_sigmas_conn = np.ones(number_of_recordings) * np.nan
+            all_mean_ADs_conn = np.ones(number_of_recordings) * np.nan
+
             all_mean_s = np.zeros(number_of_recordings)
             for index in range(number_of_recordings):
                 conn, weight = \
@@ -684,8 +700,15 @@ for file in paths:
                 all_mean_sigmas[index] = np.mean(means_and_std_devs[:, 5])
                 all_mean_ADs[index] = np.mean(means_and_std_devs[:, 4])
 
-
                 all_mean_s[index] = conn[conn!=-1].size / float(N_layer)
+
+                current_fan_in_conn = fan_in(conn, weight, 'conn', 'ff')
+                mean_projection_conn, means_and_std_devs_conn,\
+                means_for_plot_conn, mean_centred_projection_conn = centre_weights(
+                    current_fan_in_conn, 16)
+
+                all_mean_sigmas_conn[index] = np.mean(means_and_std_devs_conn[:, 5])
+                all_mean_ADs_conn[index] = np.mean(means_and_std_devs_conn[:, 4])
 
                 # mean_std, stds, mean_AD, AD, variances = sigma_and_ad(
                 #     all_ff_connections[index, :, :],
@@ -695,11 +718,15 @@ for file in paths:
                 # all_mean_ADs[index] = mean_AD
             np.savez("last_std_ad_evo", recording_archive_name=file,
                      all_mean_sigmas=all_mean_sigmas,
-                     all_mean_ads=all_mean_ADs)
+                     all_mean_ads=all_mean_ADs,
+                     all_mean_sigmas_conn=all_mean_sigmas_conn,
+                     all_mean_ads_conn=all_mean_ADs_conn)
             if sensitivity_analysis:
                 batch_snapshots.append((
                     all_mean_sigmas,
                     all_mean_ADs,
+                    all_mean_sigmas_conn,
+                    all_mean_ADs_conn,
                     file
                 ))
             if args.plot and not sensitivity_analysis:
