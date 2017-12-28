@@ -145,8 +145,8 @@ parser.add_argument('--insult',
                     action="store_true")
 
 parser.add_argument('--gaussian_input',
-                    help="input stimulus has a Gaussian shape, "
-                         "otherwise it's pointy",
-                    action="store_true")
+                    help="input stimulus DOES NOT have a Gaussian shape, "
+                         ",i.e. it's pointy",
+                    action="store_false")
 
 args = parser.parse_args()
