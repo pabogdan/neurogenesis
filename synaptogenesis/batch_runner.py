@@ -19,7 +19,7 @@ t_record = 30000
 
 cases = [1, 2, 3]
 
-parameters_of_interest = ['case']
+parameters_of_interest = {'case':cases}
 
 log_calls = []
 
