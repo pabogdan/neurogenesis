@@ -13,9 +13,9 @@ start_time = plt.datetime.datetime.now()
 
 
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
-sim.set_number_of_neurons_per_core("IF_cond_exp", 256 // 5)
+sim.set_number_of_neurons_per_core("IF_cond_exp", 256 // 10)
 sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 5)
-sim.set_number_of_neurons_per_core("SpikeSourceArray", 256 // 8)
+sim.set_number_of_neurons_per_core("SpikeSourceArray", 256 // 5)
 # +-------------------------------------------------------------------+
 # | General Parameters                                                |
 # +-------------------------------------------------------------------+
@@ -56,28 +56,28 @@ N_layer = n ** 2
 S = (1, 256)
 grid = np.asarray(S)
 
-s_max = args.s_max // 2
+s_max = 64
 sigma_form_forward = 2.5
 sigma_form_lateral = 1
 p_form_lateral = 1
 p_form_forward = 0.16
 p_elim_dep = 0.0245
-p_elim_pot = 1.36 * (10 ** -4)
+p_elim_pot = p_elim_dep # 1.36 * (10 ** -3)
 f_rew = 10 ** 4 # Hz
 
 # Inputs
 f_mean = args.f_mean  # Hz
 f_base = 5  # Hz
-f_peak = args.f_peak  # 152.8  # Hz
-sigma_stim = 2  # 2
+f_peak = 60  # Hz
+sigma_stim = 10  # 2
 t_stim = args.t_stim  # 20  # ms
 t_record = args.t_record  # ms
 
 # STDP
 a_plus = 0.1
-b = 1.1
+b = 1.0
 tau_plus = 20.  # ms
-tau_minus = 64.  # ms
+tau_minus = 10.  # ms
 a_minus = (a_plus * tau_plus * b) / tau_minus
 
 # Reporting
@@ -108,6 +108,9 @@ sim_params = {'g_max': g_max,
 # | Initial network setup                                             |
 # +-------------------------------------------------------------------+
 
+
+
+
 # Neuron populations
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
 # Putting this populations on chip 0 1 makes it easier to copy the provenance
@@ -128,22 +131,34 @@ stdp_model = sim.STDPMechanism(
 if args.case == CASE_CORR_AND_REW:
     structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model,
                                                      weight=g_max,
-                                                     s_max=s_max * 2,
+                                                     s_max=s_max,
                                                      grid=grid, f_rew=f_rew,
                                                      lateral_inhibition=args.lateral_inhibition,
-                                                     random_partner=args.random_partner)
+                                                     random_partner=args.random_partner,
+                                                     p_elim_dep=p_elim_dep,
+                                                     p_elim_pot=p_elim_pot,
+                                                     sigma_form_forward=sigma_form_forward,
+                                                     sigma_form_lateral=sigma_form_lateral,
+                                                     p_form_forward=p_form_forward,
+                                                     p_form_lateral=p_form_lateral)
 elif args.case == CASE_CORR_NO_REW:
     structure_model_w_stdp = stdp_model
 elif args.case == CASE_REW_NO_CORR:
     structure_model_w_stdp = sim.StructuralMechanism(weight=g_max,
-                                                     s_max=s_max * 2,
+                                                     s_max=s_max,
                                                      grid=grid, f_rew=f_rew,
                                                      lateral_inhibition=args.lateral_inhibition,
-                                                     random_partner=args.random_partner)
+                                                     random_partner=args.random_partner,
+                                                     p_elim_dep=p_elim_dep,
+                                                     p_elim_pot=p_elim_pot,
+                                                     sigma_form_forward=sigma_form_forward,
+                                                     sigma_form_lateral=sigma_form_lateral,
+                                                     p_form_forward=p_form_forward,
+                                                     p_form_lateral=p_form_lateral)
 
 # structure_model_w_stdp = sim.StructuralMechanism(weight=g_max, s_max=s_max)
-rates = generate_multimodal_rates([[1, 256//4], [1, (3*256)//4]], grid, sigma_stim=2.5, f_peak=args.f_peak)
-# rates = generate_rates([1, 256//4], grid, sigma_stim=2.5, f_peak=args.f_peak)
+# rates = generate_multimodal_gaussian_rates([[1, 256//4], [1, (3*256)//4]], grid, sigma_stim=2.5, f_peak=args.f_peak)
+rates = generate_gaussian_input_rates([1, 256//4], grid, sigma_stim=sigma_stim, f_peak=f_peak)
 source_pop = sim.Population(N_layer,
                             sim.SpikeSourcePoisson,
                             {'rate': rates.ravel(),
@@ -151,12 +166,16 @@ source_pop = sim.Population(N_layer,
                              'duration': simtime
                              }, label="Poisson spike source")
 
+ff_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in range(N_layer) if np.random.rand() < .05]
+
 ff_projection = sim.Projection(
     source_pop, target_pop,
-    sim.FixedProbabilityConnector(p_connect=.1, weights=g_max),
+    # sim.FixedProbabilityConnector(p_connect=.1, weights=g_max),
+    sim.FromListConnector(ff_prob_conn),
     synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
     label="plastic_ff_projection"
 )
+
 
 if args.record_source:
     source_pop.record()
@@ -211,7 +230,7 @@ total_target_neuron_mean_spike_rate = \
 
 np.savez(filename, pre_spikes=pre_spikes,
          post_spikes=post_spikes,
-         init_ff_connections=None,
+         init_ff_connections=ff_prob_conn,
          init_lat_connections=None,
          ff_connections=pre_weights,
          lat_connections=None,
@@ -241,4 +260,5 @@ if args.plot:
     plt.show()
     plot_spikes(post_spikes, "Target layer spikes")
     plt.show()
+print "Results in", filename
 print "Total time elapsed -- " + str(total_time)

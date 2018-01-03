@@ -117,8 +117,12 @@ def generate_multimodal_gaussian_rates(s, grid, f_base=5, f_peak=152.8, sigma_st
         for x in range(grid[0]):
             for y in range(grid[1]):
                 _d = distance(pos, (x, y), grid)
-                _rates[x, y] = f_base + (f_peak * (np.exp(
+                _rates[x, y] += (f_peak * (np.exp(
                     (-_d ** 2) / (sigma_stim ** 2 * 2))))
+
+    for x in range(grid[0]):
+        for y in range(grid[1]):
+            _rates[x, y] += f_base
     return _rates
 
 def generate_multimodal_rates(s, grid, f_base=5, f_peak=152.8, sigma_stim=2):
