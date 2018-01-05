@@ -55,11 +55,11 @@ for case in cases:
                         '--t_record',
                         str(t_record),
                         '--input_type', str(input_type),
-                        '--lesion_type', str(lesion_type)
+                        '--lesion', str(lesion_type)
                         ]
                 log_calls.append(call)
                 subprocess.call(call,
-                                stdout=sys.stdout, stderr=null)
+                                stdout=sys.stdout, stderr=sys.stdout)
                 print "Run", count, "complete."
 print "All done!"
 
