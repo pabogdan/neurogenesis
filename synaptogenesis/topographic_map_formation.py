@@ -118,15 +118,23 @@ sim_params = {'g_max': g_max,
               'tau_refrac': args.tau_refrac,
               'a_minus': a_minus,
               'a_plus': a_plus,
-              'gaussian_input': args.gaussian_input,
+              'input_type': args.input_type,
               'random_partner': args.random_partner,
-              'insult':args.insult
+              'lesion':args.lesion
               }
 
-if args.gaussian_input:
+if args.input_type == GAUSSIAN_INPUT:
+    print "Gaussian input"
     gen_rate = generate_gaussian_input_rates
-else:
+elif args.input_type == POINTY_INPUT:
+    print "Pointy input"
     gen_rate = generate_rates
+elif args.input_type == SCALED_POINTY_INPUT:
+    print "Scaled pointy input"
+    gen_rate = generate_scaled_pointy_rates
+elif args.input_type == SQUARE_INPUT:
+    print "Square input"
+    gen_rate = generate_square_rates
 
 # +-------------------------------------------------------------------+
 # | Initial network setup                                             |
@@ -241,7 +249,7 @@ elif case == CASE_CORR_NO_REW:
 
 # structure_model_w_stdp = sim.StructuralMechanism(weight=g_max, s_max=s_max)
 
-if not args.insult:
+if not args.lesion:
     print "No insults"
     ff_projection = sim.Projection(
         source_pop, target_pop,
@@ -257,7 +265,7 @@ if not args.insult:
         label="plastic_lat_projection",
         target="inhibitory" if args.lateral_inhibition else "excitatory"
     )
-else:
+elif args.lesion == ONE_TO_ONE_LESION:
     # ff_pos = range(len(init_ff_connections))
     # lat_pos = range(len(init_lat_connections))
     # subsample_ff = np.random.choice(ff_pos, 10)
@@ -299,6 +307,51 @@ else:
     init_ff_connections = one_to_one_conn
     init_lat_connections = one_to_one_conn
 
+    # init_ff_connections = init_ff_connections[subsample_ff]
+    # init_lat_connections = init_lat_connections[subsample_lat]
+
+elif args.lesion == RANDOM_CONNECTIVITY_LESION:
+    # ff_pos = range(len(init_ff_connections))
+    # lat_pos = range(len(init_lat_connections))
+    # subsample_ff = np.random.choice(ff_pos, 10)
+    # subsample_lat = np.random.choice(lat_pos, 10)
+    # init_ff_connections = np.asarray(init_ff_connections)
+    # init_lat_connections = np.asarray(init_lat_connections)
+    print "Insulted network"
+
+    ff_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in range(N_layer) if np.random.rand() < .05]
+    lat_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in range(N_layer) if np.random.rand() < .05]
+
+    init_ff_connections = ff_prob_conn
+    init_lat_connections = lat_prob_conn
+
+    # one_to_one_conn = [(i, i, g_max, args.delay) for i in range(N_layer)]
+    ff_projection = sim.Projection(
+        source_pop, target_pop,
+        # sim.FromListConnector(one_to_one_conn),
+        sim.FromListConnector(ff_prob_conn),
+        # sim.OneToOneConnector(weights=g_max, delays=args.delay),
+        # sim.FromListConnector(init_ff_connections[subsample_ff]),
+        # sim.FixedProbabilityConnector(weights=g_max, p_connect=0.01),
+        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+        label="plastic_ff_projection"
+    )
+
+    lat_projection = sim.Projection(
+        target_pop, target_pop,
+        # sim.FromListConnector(one_to_one_conn),
+        sim.FromListConnector(lat_prob_conn),
+        # sim.OneToOneConnector(weights=g_max, delays=args.delay),
+        # sim.FromListConnector(init_lat_connections[subsample_lat]),
+        # sim.FixedProbabilityConnector(weights=g_max, p_connect=0.01),
+        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+        label="plastic_lat_projection",
+        target="inhibitory" if args.lateral_inhibition else "excitatory"
+    )
+
+    # init_ff_connections = one_to_one_conn
+    # init_lat_connections = one_to_one_conn
+    #
     # init_ff_connections = init_ff_connections[subsample_ff]
     # init_lat_connections = init_lat_connections[subsample_lat]
 
@@ -412,7 +465,8 @@ np.savez(filename, pre_spikes=pre_spikes,
          total_time=total_time,
          mean_firing_rate=total_target_neuron_mean_spike_rate,
          exception=e,
-         insult=args.insult)
+         insult=args.lesion,
+         input_type=args.input_type)
 
 # Plotting
 if args.plot and e is None:

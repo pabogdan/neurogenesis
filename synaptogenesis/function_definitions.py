@@ -76,7 +76,7 @@ def poisson_generator(rate, t_start, t_stop):
     return unique_rounded_times[unique_rounded_times < t_stop]
 
 
-def generate_rates(s, grid, f_base=5., f_peak=152.8, sigma_stim=2.):
+def generate_rates(s, grid, f_base=5., f_peak=152.8, sigma_stim=2., f_mean=20.):
     '''
     Function that generates an array the same shape as the input layer so that
     each cell has a value corresponding to the firing rate for the neuron
@@ -91,7 +91,8 @@ def generate_rates(s, grid, f_base=5., f_peak=152.8, sigma_stim=2.):
     return _rates
 
 
-def generate_gaussian_input_rates(s, grid, f_base=5., f_peak=152.8, sigma_stim=2.):
+def generate_gaussian_input_rates(s, grid, f_base=5., f_peak=152.8,
+                                  sigma_stim=2., f_mean=20.):
     '''
     Function that generates an array the same shape as the input layer so that
     each cell has a value corresponding to the firing rate for the neuron
@@ -102,11 +103,12 @@ def generate_gaussian_input_rates(s, grid, f_base=5., f_peak=152.8, sigma_stim=2
         for y in range(grid[1]):
             _d = distance(s, (x, y), grid)
             _rates[x, y] = f_base + (f_peak * (np.exp(
-                (-_d**2 ) / (sigma_stim ** 2* 2))))
+                (-_d ** 2) / (sigma_stim ** 2 * 2))))
     return _rates
 
 
-def generate_multimodal_gaussian_rates(s, grid, f_base=5, f_peak=152.8, sigma_stim=2):
+def generate_multimodal_gaussian_rates(s, grid, f_base=5, f_peak=152.8,
+                                       sigma_stim=2, f_mean=20.):
     '''
     Function that generates an array the same shape as the input layer so that
     each cell has a value corresponding to the firing rate for the neuron
@@ -125,7 +127,8 @@ def generate_multimodal_gaussian_rates(s, grid, f_base=5, f_peak=152.8, sigma_st
             _rates[x, y] += f_base
     return _rates
 
-def generate_multimodal_rates(s, grid, f_base=5, f_peak=152.8, sigma_stim=2):
+
+def generate_multimodal_rates(s, grid, f_base=5, f_peak=152.8, sigma_stim=2, f_mean=20.):
     '''
     Function that generates an array the same shape as the input layer so that
     each cell has a value corresponding to the firing rate for the neuron
@@ -139,6 +142,44 @@ def generate_multimodal_rates(s, grid, f_base=5, f_peak=152.8, sigma_stim=2):
                 _rates[x, y] = f_base + (f_peak * (np.exp(
                     (-_d * 2) / (sigma_stim ** 2))))
     return _rates
+
+
+def generate_square_rates(s, grid=np.asarray([16, 16]), f_base=5.,
+                          f_peak=152.8, sigma_stim=2., f_mean=20,
+                          threshold=40):
+    gaussian_rates = generate_gaussian_input_rates(s,
+                                                   grid=grid,
+                                                   f_base=f_base,
+                                                   f_peak=f_peak,
+                                                   sigma_stim=sigma_stim)
+    clipped_gaussian_rates_no_base = threshold * (
+        ~np.logical_and(gaussian_rates < threshold + f_base,
+                        gaussian_rates > f_base))
+    mean_no_base = np.mean(clipped_gaussian_rates_no_base)
+    means_ratio = float(f_mean - f_base) / (mean_no_base)
+    clipped_gaussian_rates_no_base = clipped_gaussian_rates_no_base * means_ratio
+    clipped_gaussian_rates = clipped_gaussian_rates_no_base + f_base
+
+    assert np.isclose(np.mean(clipped_gaussian_rates), f_mean), "{} vs {}".format(np.mean(clipped_gaussian_rates), f_mean)
+
+    return clipped_gaussian_rates
+
+
+def generate_scaled_pointy_rates(s, grid=np.asarray([16, 16]), f_base=5.,
+                                 f_peak=152.8, sigma_stim=2., f_mean=20.):
+    rates = generate_rates(s,
+                           grid=grid,
+                           f_base=f_base,
+                           f_peak=f_peak,
+                           sigma_stim=sigma_stim)
+    denoised_rates = rates - f_base
+    mean_no_base = np.mean(denoised_rates)
+    means_ratio = float(f_mean - f_base) / (mean_no_base)
+    final_rates = denoised_rates * means_ratio + f_base
+
+    assert np.isclose(np.mean(final_rates), f_mean), "{} vs {}".format(np.mean(final_rates), f_mean)
+
+    return final_rates
 
 
 def formation_rule(potential_pre, post, sigma, p_form):
@@ -179,8 +220,8 @@ def generate_initial_connectivity(s, connections, sigma, p, msg,
 
 
 def generate_equivalent_connectivity(s, connections, sigma, p, msg,
-                                  N_layer=256, n=16, g_max=.2,
-                                  delay=1.):
+                                     N_layer=256, n=16, g_max=.2,
+                                     delay=1.):
     for postsynaptic_neuron_index in range(N_layer):
         post = (postsynaptic_neuron_index // n, postsynaptic_neuron_index % n)
         while s[postsynaptic_neuron_index] > 0:

@@ -56,11 +56,11 @@ N_layer = n ** 2
 S = (1, 256)
 grid = np.asarray(S)
 
-s_max = 64
-sigma_form_forward = 2.5
+s_max = 32
+sigma_form_forward = 5
 sigma_form_lateral = 1
 p_form_lateral = 1
-p_form_forward = 0.16
+p_form_forward = 0.4
 p_elim_dep = 0.0245
 p_elim_pot = p_elim_dep # 1.36 * (10 ** -3)
 f_rew = 10 ** 4 # Hz

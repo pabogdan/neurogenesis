@@ -35,6 +35,17 @@ DEFAULT_P_FORM_FORWARD = 0.16
 DEFAULT_P_ELIM_DEP = 0.0245
 DEFAULT_P_ELIM_POT = 1.36 * (10 ** -4)
 
+# Different input types
+GAUSSIAN_INPUT = 1
+POINTY_INPUT = 2
+SCALED_POINTY_INPUT = 3
+SQUARE_INPUT = 4
+
+# Types of lesions / insult / developmental starting conditions
+NO_LESION = 0
+RANDOM_CONNECTIVITY_LESION = 1
+ONE_TO_ONE_LESION = 2
+
 
 
 parser = argparse.ArgumentParser(
@@ -46,6 +57,12 @@ parser.add_argument("-c", '--case', type=int,
                              CASE_REW_NO_CORR],
                     default=CASE_CORR_AND_REW, dest='case',
                     help='an integer controlling the experimental setup')
+
+parser.add_argument("-l", '--lesion', type=int,
+                    choices=[NO_LESION, RANDOM_CONNECTIVITY_LESION,
+                             ONE_TO_ONE_LESION],
+                    default=NO_LESION, dest='lesion',
+                    help='what type of lesion to do (none, random, 1:1)')
 
 parser.add_argument('--p_elim_dep', type=float,
                     default=DEFAULT_P_ELIM_DEP, dest='p_elim_dep',
@@ -140,13 +157,19 @@ parser.add_argument('-i', '--input', type=str,
                          "initial connectivity for the simulation",
                     dest='initial_connectivity_file')
 
-parser.add_argument('--insult',
-                    help="simulate an ischemic network",
-                    action="store_true")
+# parser.add_argument('--insult',
+#                     help="simulate an ischemic network",
+#                     action="store_true")
 
-parser.add_argument('--gaussian_input',
-                    help="input stimulus DOES NOT have a Gaussian shape, "
-                         ",i.e. it's pointy",
-                    action="store_false")
+parser.add_argument('--input_type', type=int,
+                    choices=[GAUSSIAN_INPUT, POINTY_INPUT,
+                             SCALED_POINTY_INPUT, SQUARE_INPUT],
+                    default=GAUSSIAN_INPUT, dest='input_type',
+                    help='what type of input shape to use (gaussian, pointy, '
+                         'scaled pointy, square)')
+# parser.add_argument('--input_type',
+#                     help="input stimulus DOES NOT have a Gaussian shape, "
+#                          ",i.e. it's pointy",
+#                     action="store_false")
 
 args = parser.parse_args()

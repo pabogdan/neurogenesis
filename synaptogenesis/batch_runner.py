@@ -17,36 +17,50 @@ iterations = 300000
 # t_record = iterations
 t_record = 30000
 
-cases = [1, 2, 3]
+cases = [1, 3]
+input_types = [1, 2, 3, 4]
+lesion_types = [0, 1, 2]
+no_runs = 10
 
-parameters_of_interest = {'case':cases}
+parameters_of_interest = {
+    'cases': cases,
+    'input_types': input_types,
+    'lesion_types': lesion_types,
+    'no_runs':no_runs
+}
 
 log_calls = []
 
 for case in cases:
-    for run in range(10):
-        filename = "case{}_run{}" \
-                   "_@{}".format(case,
-                                 run+1,
-                                 suffix)
-        count += 1
-        null = open(os.devnull, 'w')
-        print "Run ", count, "..."
-    
-        call = [sys.executable,
-            'topographic_map_formation.py',
-            '--case', str(case),
-            '-i', input_filename,
-            '-o', filename,
-            '--no_iterations',
-            str(iterations),
-            '--t_record',
-            str(t_record)
-            ]
-        log_calls.append(call)
-        subprocess.call(call,
-                        stdout=null, stderr=null)
-        print "Run", count, "complete."
+    for input_type in input_types:
+        for lesion_type in lesion_types:
+            for run in range(no_runs):
+                filename = "case{}_inputtype{}_lesiontype{}_run{}" \
+                           "_@{}".format(case,
+                                         input_type,
+                                         lesion_type,
+                                         run + 1,
+                                         suffix)
+                count += 1
+                null = open(os.devnull, 'w')
+                print "Run ", count, "..."
+
+                call = [sys.executable,
+                        'topographic_map_formation.py',
+                        '--case', str(case),
+                        '-i', input_filename,
+                        '-o', filename,
+                        '--no_iterations',
+                        str(iterations),
+                        '--t_record',
+                        str(t_record),
+                        '--input_type', str(input_type),
+                        '--lesion_type', str(lesion_type)
+                        ]
+                log_calls.append(call)
+                subprocess.call(call,
+                                stdout=sys.stdout, stderr=null)
+                print "Run", count, "complete."
 print "All done!"
 
 end_time = plt.datetime.datetime.now()
