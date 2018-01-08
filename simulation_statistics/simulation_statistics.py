@@ -31,18 +31,16 @@ if len(paths) > 1:
     sensitivity_analysis = True
     # don't display plots
 
-
 if sensitivity_analysis:
     # set up final matrix
     batch_matrix_results = []
     # also set up final snapshots
     batch_snapshots = []
     # don't forget about sim_params
-    batch_params = [] # append into this sim params in order
+    batch_params = []  # append into this sim params in order
     print
     print "BATCH ANALYSIS!"
     print
-
 
 for file in paths:
     try:
@@ -229,8 +227,8 @@ for file in paths:
         # populate ff_s and lat_s
         # ff_last, lat_last
         for post_id in range(N_layer):
-            ff_s[post_id] = ff_last[ff_last[:,1]==post_id].shape[0]
-            lat_s[post_id] = lat_last[lat_last[:,1]==post_id].shape[0]
+            ff_s[post_id] = ff_last[ff_last[:, 1] == post_id].shape[0]
+            lat_s[post_id] = lat_last[lat_last[:, 1] == post_id].shape[0]
 
         existing_pre_ff = []
         generated_ff_conn = []
@@ -263,8 +261,6 @@ for file in paths:
         fin_mean_AD_conn_shuf = np.mean(fin_means_and_std_devs_shuf[:, 4])
         fin_stds_conn_shuf = fin_means_and_std_devs_shuf[:, 5]
         fin_AD_conn_shuf = fin_means_and_std_devs_shuf[:, 4]
-
-
 
         wsr_sigma_fin_conn_fin_conn_shuffle = stats.wilcoxon(
             fin_stds_conn.ravel(), fin_stds_conn_shuf.ravel())
@@ -510,10 +506,12 @@ for file in paths:
                     final_ff_conn_network[int(source), int(target)] += 1
 
             for source, target, weight, delay in lat_last:
-                if np.isnan(final_lat_weight_network[int(source), int(target)]):
+                if np.isnan(
+                        final_lat_weight_network[int(source), int(target)]):
                     final_lat_weight_network[int(source), int(target)] = weight
                 else:
-                    final_lat_weight_network[int(source), int(target)] += weight
+                    final_lat_weight_network[
+                        int(source), int(target)] += weight
                 if np.isnan(final_lat_conn_network[int(source), int(target)]):
                     final_lat_conn_network[int(source), int(target)] = 1
                 else:
@@ -521,12 +519,16 @@ for file in paths:
 
             f, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 8), sharey=True)
 
-            maximum = np.nanmax([final_ff_weight_network, final_lat_weight_network])
+            maximum = np.nanmax(
+                [final_ff_weight_network, final_lat_weight_network])
 
-            i = ax1.matshow(np.nan_to_num(final_ff_weight_network), vmax=maximum)
-            i2 = ax2.matshow(np.nan_to_num(final_lat_weight_network), vmax=maximum)
+            i = ax1.matshow(np.nan_to_num(final_ff_weight_network),
+                            vmax=maximum)
+            i2 = ax2.matshow(np.nan_to_num(final_lat_weight_network),
+                             vmax=maximum)
             ax1.grid(visible=False)
-            ax1.set_title("Feedforward weighted connectivity matrix", fontsize=16)
+            ax1.set_title("Feedforward weighted connectivity matrix",
+                          fontsize=16)
             ax2.set_title("Lateral weighted connectivity matrix", fontsize=16)
 
             cbar = f.colorbar(i2, ax=[ax1, ax2])
@@ -535,7 +537,6 @@ for file in paths:
             # cax = divider.append_axes("right", "5%", pad="3%")
             # cbar = plt.colorbar(i2, cax=cax)
             cbar.set_label("Weight", fontsize=14)
-
 
             plt.show()
 
@@ -567,14 +568,16 @@ for file in paths:
 
             f, (ax1) = plt.subplots(1, 1, figsize=(16, 7))
             i = ax1.plot(final_ff_capacities, label='Feedforward connectivity')
-            ax1.plot(final_lat_capacities, c='g', alpha=.5, label='Lateral connectivity')
+            ax1.plot(final_lat_capacities, c='g', alpha=.5,
+                     label='Lateral connectivity')
             ax1.grid(visible=False)
             ax1.set_title("Incoming connections for each postsynaptic neuron",
                           fontsize=16)
 
-            ax1.plot(final_ff_capacities + final_lat_capacities, c='y', alpha=.9,
+            ax1.plot(final_ff_capacities + final_lat_capacities, c='y',
+                     alpha=.9,
                      label='Total synaptic capacity usage')
-            ax1.axhline(y=s_max*2, xmin=0, xmax=ff_last.shape[1], c='r',
+            ax1.axhline(y=s_max * 2, xmin=0, xmax=ff_last.shape[1], c='r',
                         label='$S_{max}$')
             ax1.legend(loc='best')
             # ax1.set_ylim([0, s_max])
@@ -582,20 +585,18 @@ for file in paths:
             ax1.set_ylabel("Number of afferent connections")
             plt.show()
 
-
-
             # Plotting autapses only
             autapse_ids = np.arange(N_layer)
             autapses_conn = final_lat_conn_network[autapse_ids, autapse_ids]
-            autapses_weight = final_lat_weight_network[autapse_ids,autapse_ids]
+            autapses_weight = final_lat_weight_network[
+                autapse_ids, autapse_ids]
 
             f, (ax1) = plt.subplots(1, 1, figsize=(16, 7))
             ax1.plot(autapses_conn, label='Lateral connectivity')
 
             ax2 = ax1.twinx()
-            ax2.plot(autapses_weight, label='Lateral weighted connectivity', c='r')
-
-
+            ax2.plot(autapses_weight, label='Lateral weighted connectivity',
+                     c='r')
 
             h1, l1 = ax1.get_legend_handles_labels()
             h2, l2 = ax2.get_legend_handles_labels()
@@ -700,15 +701,17 @@ for file in paths:
                 all_mean_sigmas[index] = np.mean(means_and_std_devs[:, 5])
                 all_mean_ADs[index] = np.mean(means_and_std_devs[:, 4])
 
-                all_mean_s[index] = conn[conn!=-1].size / float(N_layer)
+                all_mean_s[index] = conn[conn != -1].size / float(N_layer)
 
                 current_fan_in_conn = fan_in(conn, weight, 'conn', 'ff')
-                mean_projection_conn, means_and_std_devs_conn,\
+                mean_projection_conn, means_and_std_devs_conn, \
                 means_for_plot_conn, mean_centred_projection_conn = centre_weights(
                     current_fan_in_conn, 16)
 
-                all_mean_sigmas_conn[index] = np.mean(means_and_std_devs_conn[:, 5])
-                all_mean_ADs_conn[index] = np.mean(means_and_std_devs_conn[:, 4])
+                all_mean_sigmas_conn[index] = np.mean(
+                    means_and_std_devs_conn[:, 5])
+                all_mean_ADs_conn[index] = np.mean(
+                    means_and_std_devs_conn[:, 4])
 
                 # mean_std, stds, mean_AD, AD, variances = sigma_and_ad(
                 #     all_ff_connections[index, :, :],
@@ -723,10 +726,10 @@ for file in paths:
                      all_mean_ads_conn=all_mean_ADs_conn)
             if sensitivity_analysis:
                 batch_snapshots.append((
-                    all_mean_sigmas,
-                    all_mean_ADs,
-                    all_mean_sigmas_conn,
-                    all_mean_ADs_conn,
+                    np.copy(all_mean_sigmas),
+                    np.copy(all_mean_ADs),
+                    np.copy(all_mean_sigmas_conn),
+                    np.copy(all_mean_ADs_conn),
                     file
                 ))
             if args.plot and not sensitivity_analysis:
@@ -736,7 +739,6 @@ for file in paths:
                 plt.plot(all_mean_ADs)
                 plt.ylim([0, 1.1 * np.max(all_mean_ADs)])
                 plt.show()
-
 
                 # Plot evolution of mean synaptic capacity usage per
                 # postsynaptic neuron
@@ -772,7 +774,7 @@ if sensitivity_analysis:
     curr_time = plt.datetime.datetime.now()
     suffix_total = curr_time.strftime("_%H%M%S_%d%m%Y")
     np.savez("batch_analysis" + suffix_total, recording_archive_name=file,
-                         snapshots=batch_snapshots,
-                         params=batch_params,
-                         results=batch_matrix_results
+             snapshots=batch_snapshots,
+             params=batch_params,
+             results=batch_matrix_results
              )
