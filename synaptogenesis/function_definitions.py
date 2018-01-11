@@ -102,8 +102,15 @@ def generate_gaussian_input_rates(s, grid, f_base=5., f_peak=152.8,
     for x in range(grid[0]):
         for y in range(grid[1]):
             _d = distance(s, (x, y), grid)
-            _rates[x, y] = f_base + (f_peak * (np.exp(
-                (-_d ** 2) / (sigma_stim ** 2 * 2))))
+            _rates[x, y] = f_peak * (np.exp(
+                (-_d ** 2) / (sigma_stim ** 2 * 2)))
+
+    means_ratio = float(f_mean - f_base) / np.mean(_rates)
+    _rates = _rates * means_ratio + f_base
+
+    assert np.isclose(np.mean(_rates), f_mean, 0.01, 0.01), "{} vs. {}".format(
+        np.mean(_rates), f_mean)
+
     return _rates
 
 
@@ -145,24 +152,22 @@ def generate_multimodal_rates(s, grid, f_base=5, f_peak=152.8, sigma_stim=2, f_m
 
 
 def generate_square_rates(s, grid=np.asarray([16, 16]), f_base=5.,
-                          f_peak=152.8, sigma_stim=2., f_mean=20,
-                          threshold=40):
-    gaussian_rates = generate_gaussian_input_rates(s,
-                                                   grid=grid,
-                                                   f_base=f_base,
-                                                   f_peak=f_peak,
-                                                   sigma_stim=sigma_stim)
-    clipped_gaussian_rates_no_base = threshold * (
-        ~np.logical_and(gaussian_rates < threshold + f_base,
-                        gaussian_rates > f_base))
-    mean_no_base = np.mean(clipped_gaussian_rates_no_base)
-    means_ratio = float(f_mean - f_base) / (mean_no_base)
-    clipped_gaussian_rates_no_base = clipped_gaussian_rates_no_base * means_ratio
-    clipped_gaussian_rates = clipped_gaussian_rates_no_base + f_base
+                          f_peak=152.8, sigma_stim=2., f_mean=20.):
+    # f_peak kept for signature compatibility
+    rates = np.empty(grid)
+    for x in range(grid[0]):
+        for y in range(grid[1]):
+            rates[x, y] = 1 if distance((x, y), s, grid=grid) <= float(
+                sigma_stim) else 0
 
-    assert np.isclose(np.mean(clipped_gaussian_rates), f_mean), "{} vs {}".format(np.mean(clipped_gaussian_rates), f_mean)
+    scalar_ratio = ((f_mean - f_base) * rates.size) / np.count_nonzero(rates)
+    rates = rates * scalar_ratio
+    rates += f_base
 
-    return clipped_gaussian_rates
+    assert np.isclose(np.mean(rates), f_mean, 0.01, 0.01), "{} vs. {}".format(
+        np.mean(rates), f_mean)
+
+    return rates
 
 
 def generate_scaled_pointy_rates(s, grid=np.asarray([16, 16]), f_base=5.,

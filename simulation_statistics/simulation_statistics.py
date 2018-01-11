@@ -108,75 +108,75 @@ for file in paths:
         #####     #####
         ## POST AREA ##
         #####     #####
-        import scipy.io
-
-        IntialConnectivity = scipy.io.loadmat(
-            '2009_09_04.17_48_33 32Syn300s/InitialConnectivity.mat')
-        Params = scipy.io.loadmat(
-            '2009_09_04.17_48_33 32Syn300s/Params.mat')
-        test_fan_in = fan_in(IntialConnectivity['ConnPostToPre'] - 1,
-                             IntialConnectivity['WeightPostToPre'],
-                             'conn',
-                             'ff')
-        other_fan_in = scipy.io.loadmat("fan_in.mat")['fan_in']
-
-        assert np.all(test_fan_in == other_fan_in)
-        mean_projection, means_and_std_devs, \
-        means_for_plot, mean_centred_projection = centre_weights(
-            test_fan_in, 16)
-
-        test_odc = odc(test_fan_in)
-        comparison_odc = scipy.io.loadmat("odc_init.mat")['OdcConnOnlyFin']
-        assert np.all(test_odc == comparison_odc)
-
-        # plt.plot(means_for_plot[:, 0], means_for_plot[:, 1])
-        # plt.show()
-        other_means_for_plot = scipy.io.loadmat("MeansForPlot")[
-            'MeansForPlot']
-        # plt.plot(other_means_for_plot[:, 0], other_means_for_plot[:, 1])
-        # plt.show()
-
-        # assert np.all(np.isclose(means_for_plot, other_means_for_plot))
-
-        test_mean_std = np.mean(means_and_std_devs[:, 5])
-        test_mean_AD = np.mean(means_and_std_devs[:, 4])
-        test_stds = means_and_std_devs[:, 5]
-        test_AD = means_and_std_devs[:, 4]
-        MeansAndStuff = scipy.io.loadmat("means_and_std_devs.mat")
-
-        other_mean_std = np.mean(MeansAndStuff['means_and_std_devs'][:, 5])
-        other_mean_AD = np.mean(MeansAndStuff['means_and_std_devs'][:, 4])
-        assert other_mean_std == test_mean_std
-        assert other_mean_AD == test_mean_AD
-
-        # harder test
-        MeansAndStuff['means_and_std_devs'][:, [0, 1]] -= 1
-        assert np.all(
-            MeansAndStuff['means_and_std_devs'] == means_and_std_devs), \
-            np.argwhere(
-                MeansAndStuff['means_and_std_devs'] != means_and_std_devs)
-
-        mean_centred_projection_matlab = \
-            scipy.io.loadmat("mean_centred_projection")[
-                'MeanCentredProjection']
-
-        # np.argwhere(~np.isclose(mean_centred_projection, mean_centred_projection_matlab))
-        assert np.all(np.isclose(mean_centred_projection,
-                                 mean_centred_projection_matlab, 0.001,
-                                 0.01))
-
-        mean_projection_rad_con_init_rec = scipy.io.loadmat(
-            'mean_proj_rad_con_init_rec.mat')['MeanProjRadConInitRec']
-
-        fan_in_conn_init_rec = scipy.io.loadmat(
-            'fan_in_conn_init_rec.mat')['FanInConnInitRec']
-
-        mean_projection, means_and_std_devs, means_for_plot, mean_centred_projection = centre_weights(
-            fan_in_conn_init_rec, 16)
-
-        rad_test = radial_sample(mean_projection, 100)
-
-        assert np.all(mean_projection_rad_con_init_rec == rad_test)
+        # import scipy.io
+        #
+        # IntialConnectivity = scipy.io.loadmat(
+        #     '2009_09_04.17_48_33 32Syn300s/InitialConnectivity.mat')
+        # Params = scipy.io.loadmat(
+        #     '2009_09_04.17_48_33 32Syn300s/Params.mat')
+        # test_fan_in = fan_in(IntialConnectivity['ConnPostToPre'] - 1,
+        #                      IntialConnectivity['WeightPostToPre'],
+        #                      'conn',
+        #                      'ff')
+        # other_fan_in = scipy.io.loadmat("fan_in.mat")['fan_in']
+        #
+        # assert np.all(test_fan_in == other_fan_in)
+        # mean_projection, means_and_std_devs, \
+        # means_for_plot, mean_centred_projection = centre_weights(
+        #     test_fan_in, 16)
+        #
+        # test_odc = odc(test_fan_in)
+        # comparison_odc = scipy.io.loadmat("odc_init.mat")['OdcConnOnlyFin']
+        # assert np.all(test_odc == comparison_odc)
+        #
+        # # plt.plot(means_for_plot[:, 0], means_for_plot[:, 1])
+        # # plt.show()
+        # other_means_for_plot = scipy.io.loadmat("MeansForPlot")[
+        #     'MeansForPlot']
+        # # plt.plot(other_means_for_plot[:, 0], other_means_for_plot[:, 1])
+        # # plt.show()
+        #
+        # # assert np.all(np.isclose(means_for_plot, other_means_for_plot))
+        #
+        # test_mean_std = np.mean(means_and_std_devs[:, 5])
+        # test_mean_AD = np.mean(means_and_std_devs[:, 4])
+        # test_stds = means_and_std_devs[:, 5]
+        # test_AD = means_and_std_devs[:, 4]
+        # MeansAndStuff = scipy.io.loadmat("means_and_std_devs.mat")
+        #
+        # other_mean_std = np.mean(MeansAndStuff['means_and_std_devs'][:, 5])
+        # other_mean_AD = np.mean(MeansAndStuff['means_and_std_devs'][:, 4])
+        # assert other_mean_std == test_mean_std
+        # assert other_mean_AD == test_mean_AD
+        #
+        # # harder test
+        # MeansAndStuff['means_and_std_devs'][:, [0, 1]] -= 1
+        # assert np.all(
+        #     MeansAndStuff['means_and_std_devs'] == means_and_std_devs), \
+        #     np.argwhere(
+        #         MeansAndStuff['means_and_std_devs'] != means_and_std_devs)
+        #
+        # mean_centred_projection_matlab = \
+        #     scipy.io.loadmat("mean_centred_projection")[
+        #         'MeanCentredProjection']
+        #
+        # # np.argwhere(~np.isclose(mean_centred_projection, mean_centred_projection_matlab))
+        # assert np.all(np.isclose(mean_centred_projection,
+        #                          mean_centred_projection_matlab, 0.001,
+        #                          0.01))
+        #
+        # mean_projection_rad_con_init_rec = scipy.io.loadmat(
+        #     'mean_proj_rad_con_init_rec.mat')['MeanProjRadConInitRec']
+        #
+        # fan_in_conn_init_rec = scipy.io.loadmat(
+        #     'fan_in_conn_init_rec.mat')['FanInConnInitRec']
+        #
+        # mean_projection, means_and_std_devs, means_for_plot, mean_centred_projection = centre_weights(
+        #     fan_in_conn_init_rec, 16)
+        #
+        # rad_test = radial_sample(mean_projection, 100)
+        #
+        # assert np.all(mean_projection_rad_con_init_rec == rad_test)
 
         #####     #####
         ## POST AREA ##
