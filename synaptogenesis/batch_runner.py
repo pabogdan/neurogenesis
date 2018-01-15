@@ -17,55 +17,49 @@ iterations = 600000
 # t_record = iterations
 t_record = 30000
 
-cases = [1]
-input_types = [1, 2, 3, 4]
+cases = [3]
+# input_types = [1, 3, 4]
 lesion_types = [0, 1, 2]
-sigma_stim = [.5,1., 1.5, 2., 2.5, 3.,3.5]
+# sigma_stim = [.5,1., 1.5, 2., 2.5, 3.,3.5]
 no_runs = 1
 
 parameters_of_interest = {
     'cases': cases,
-    'input_types': input_types,
+    # 'input_types': input_types,
     'lesion_types': lesion_types,
     'no_runs':no_runs,
-    'sigma_stim':sigma_stim
+    # 'sigma_stim':sigma_stim
 }
 
 log_calls = []
 
 for case in cases:
-    for input_type in input_types:
-        for lesion_type in lesion_types:
-            for st in sigma_stim:
-                for run in range(no_runs):
-                    filename = "case{}_inputtype{}_lesiontype{}_sigma_stim{}_run{}" \
-                               "_@{}".format(case,
-                                             input_type,
-                                             lesion_type,
-                                             st,
-                                             run + 1,
-                                             suffix)
-                    count += 1
-                    null = open(os.devnull, 'w')
-                    print "Run ", count, "..."
+    for lesion_type in lesion_types:
+        for run in range(no_runs):
+            filename = "case{}_lesiontype{}_run{}" \
+                       "_@{}".format(case,
+                                     lesion_type,
+                                     run + 1,
+                                     suffix)
+            count += 1
+            null = open(os.devnull, 'w')
+            print "Run ", count, "..."
 
-                    call = [sys.executable,
-                            'topographic_map_formation.py',
-                            '--case', str(case),
-                            '-i', input_filename,
-                            '-o', filename,
-                            '--no_iterations',
-                            str(iterations),
-                            '--t_record',
-                            str(t_record),
-                            '--input_type', str(input_type),
-                            '--lesion', str(lesion_type),
-                            '--sigma_stim', str(st)
-                            ]
-                    log_calls.append(call)
-                    subprocess.call(call,
-                                    stdout=null, stderr=null)
-                    print "Run", count, "complete."
+            call = [sys.executable,
+                    'topographic_map_formation.py',
+                    '--case', str(case),
+                    '-i', input_filename,
+                    '-o', filename,
+                    '--no_iterations',
+                    str(iterations),
+                    '--t_record',
+                    str(t_record),
+                    '--lesion', str(lesion_type)
+                    ]
+            log_calls.append(call)
+            subprocess.call(call,
+                            stdout=null, stderr=null)
+            print "Run", count, "complete."
 print "All done!"
 
 end_time = plt.datetime.datetime.now()
