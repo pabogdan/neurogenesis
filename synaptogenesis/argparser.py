@@ -46,7 +46,7 @@ NO_LESION = 0
 RANDOM_CONNECTIVITY_LESION = 1
 ONE_TO_ONE_LESION = 2
 
-
+# This is for MNIST network
 
 parser = argparse.ArgumentParser(
     description='Test for topographic map formation using STDP and synaptic rewiring'
@@ -57,6 +57,11 @@ parser.add_argument("-c", '--case', type=int,
                              CASE_REW_NO_CORR],
                     default=CASE_CORR_AND_REW, dest='case',
                     help='an integer controlling the experimental setup')
+
+parser.add_argument('--testing', type=str, dest='testing',
+                    help='put the network in testing mode. provide .npz'
+                         'archive with connectivity information to commence'
+                         'testing')
 
 parser.add_argument("-l", '--lesion', type=int,
                     choices=[NO_LESION, RANDOM_CONNECTIVITY_LESION,

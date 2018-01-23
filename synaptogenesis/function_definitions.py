@@ -236,3 +236,27 @@ def generate_equivalent_connectivity(s, connections, sigma, p, msg,
                 s[postsynaptic_neuron_index] -= 1
                 connections.append((potential_pre_index,
                                     postsynaptic_neuron_index, g_max, delay))
+
+
+import os
+import glob
+def load_mnist_rates(in_path, class_idx):
+    fnames = glob.glob(os.path.join(in_path, "*.npy"))
+    on_rates = None
+    off_rates = None
+    for fname in fnames:
+        spl = os.path.basename(fname).split('__')
+        cls = int(spl[0].split('_')[1])
+        if cls == class_idx:
+            n_smpls = int(spl[1].split('_')[0])
+            width = int(spl[2].split('_')[1])
+            height = int(spl[3].split('_')[1])
+            chan = spl[4].split('_')[0]
+            if chan == 'on':
+                on_rates = np.memmap(fname, dtype='float32', mode='r').reshape(
+                    (n_smpls, height, width))
+            else:
+                off_rates = np.memmap(fname, dtype='float32',
+                                      mode='r').reshape(
+                    (n_smpls, height, width))
+    return on_rates, off_rates

@@ -1,45 +1,8 @@
 import numpy as np
 import pylab as plt
-import time
-from pacman.model.constraints.placer_constraints.placer_chip_and_core_constraint import \
-    PlacerChipAndCoreConstraint
 import spynnaker7.pyNN as sim
-
 from function_definitions import *
 from argparser import *
-
-import os
-import glob
-import sys
-import cv2
-
-
-def load_rates(in_path, class_idx):
-    fnames = glob.glob(os.path.join(in_path, "*.npy"))
-    on_rates = None
-    off_rates = None
-    for fname in fnames:
-        spl = os.path.basename(fname).split('__')
-        cls = int(spl[0].split('_')[1])
-        if cls == class_idx:
-            n_smpls = int(spl[1].split('_')[0])
-            width = int(spl[2].split('_')[1])
-            height = int(spl[3].split('_')[1])
-            chan = spl[4].split('_')[0]
-            print fname
-            if chan == 'on':
-                on_rates = np.memmap(fname, dtype='float32', mode='r').reshape(
-                    (n_smpls, height, width))
-            else:
-                off_rates = np.memmap(fname, dtype='float32',
-                                      mode='r').reshape(
-                    (n_smpls, height, width))
-    return on_rates, off_rates
-
-
-rates_on_0, rates_off_0 = load_rates('mnist_input_rates/', 0)
-rates_on_1, rates_off_1 = load_rates('mnist_input_rates/', 1)
-print(rates_on_0.shape)
 
 # SpiNNaker setup
 start_time = plt.datetime.datetime.now()
@@ -152,8 +115,6 @@ sim_params = {'g_max': g_max,
 
 
 
-# Neuron populations
-target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
 # Putting this populations on chip 0 1 makes it easier to copy the provenance
 # data somewhere else
 # target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
@@ -196,50 +157,81 @@ elif args.case == CASE_REW_NO_CORR:
                                                      sigma_form_lateral=sigma_form_lateral,
                                                      p_form_forward=p_form_forward,
                                                      p_form_lateral=p_form_lateral)
+# if not testing (i.e. training) construct 10 sources + 10 targets
+# grouped into 2 columns
+# For each source VRPSS load mnist rates from file
+# Use the same initial connectivity for all sets of Populations
+if not args.testing:
 
+    source_column = []
+    ff_connections = []
+    target_column = []
+    lat_connections = []
 
-print simtime//2//t_stim
+    init_ff_connections = [(i, j, g_max, args.delay) for i in range(N_layer)
+                           for j in range(N_layer) if np.random.rand() < .01]
 
-concatenated_rates = np.concatenate((
-    rates_on_0[0:(simtime//2//t_stim), :,:].reshape(simtime//2 // t_stim, N_layer),
-    rates_on_1[0:(simtime//2//t_stim), :,:].reshape(simtime//2 // t_stim, N_layer)))
+    init_lat_connections = [(i, j, g_max, args.delay) for i in range(N_layer)
+                            for j in range(N_layer) if np.random.rand() < .01]
 
+    for number in range(10):
+        rates_on, rates_off = load_mnist_rates('mnist_input_rates/averaged/',
+                                               number)
+        source_column.append(
+            sim.Population(N_layer,
+                           sim.SpikeSourcePoissonVariable,
+                           {'rate': rates_on[0:simtime // t_stim, :, :]
+                           .reshape(simtime // t_stim, N_layer),
+                            'start': 100,
+                            'duration': simtime,
+                            'rate_interval_duration': t_stim
+                            },
+                           label="Variable-rate Poisson spike source # " +
+                                 str(number))
+        )
 
-source_pop = sim.Population(N_layer,
-                            sim.SpikeSourcePoissonVariable,
-                            {'rate': concatenated_rates,
-                             'start': 100,
-                             'duration': simtime,
-                             'rate_interval_duration': t_stim
-                             }, label="Variable-rate Poisson spike source")
+        # Neuron populations
+        target_column.append(
+            sim.Population(N_layer, model, cell_params,
+                           label="TARGET_POP # " + str(number))
+        )
 
-init_ff_connections = []
-init_lat_connections = []
+        ff_connections.append(
+            sim.Projection(
+                source_column[number], target_column[number],
+                sim.FromListConnector(init_ff_connections),
+                synapse_dynamics=sim.SynapseDynamics(
+                    slow=structure_model_w_stdp),
+                label="plastic_ff_projection"
+            )
+        )
 
-init_ff_connections = [(i, j, g_max, args.delay) for i in range(N_layer)
-                       for j in range(N_layer) if np.random.rand() < .01]
-
-init_lat_connections = [(i, j, g_max, args.delay) for i in range(N_layer)
-                       for j in range(N_layer) if np.random.rand() < .01]
-print "No insults"
-ff_projection = sim.Projection(
-    source_pop, target_pop,
-    sim.FromListConnector(init_ff_connections),
-    synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-    label="plastic_ff_projection"
-)
-
-lat_projection = sim.Projection(
-    target_pop, target_pop,
-    sim.FromListConnector(init_lat_connections),
-    synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-    label="plastic_lat_projection",
-    target="inhibitory" if args.lateral_inhibition else "excitatory"
-)
+        lat_connections.append(
+            sim.Projection(
+                target_column[number], target_column[number],
+                sim.FromListConnector(init_lat_connections),
+                synapse_dynamics=sim.SynapseDynamics(
+                    slow=structure_model_w_stdp),
+                label="plastic_lat_projection",
+                target="inhibitory" if args.lateral_inhibition
+                else "excitatory"
+            )
+        )
+else:
+    # Testing mode is activated.
+    # 1. Retrieve connectivity for each pair of populations
+    # 2. Create a single VRPSS for testing
+    # 3. Create a target column
+    # 4. Set up connectivity between the source and targets
+    # 5. Run for simtime, showing each digit for a 10th of the time, but
+    # shuffled randomly. Keep a track of the digits shown!
+    testing_data = np.load(args.testing)
 
 if args.record_source:
-    source_pop.record()
-target_pop.record()
+    for source_pop in source_column:
+        source_pop.record()
+for target_pop in target_column:
+    target_pop.record()
 
 # Run simulation
 pre_spikes = []
@@ -255,31 +247,33 @@ for current_run in range(no_runs):
     print "run", current_run + 1, "of", no_runs
     sim.run(run_duration)
 
-    # Retrieve data
-    pre_weights.append(
-        np.array([
-            ff_projection._get_synaptic_data(True, 'source'),
-            ff_projection._get_synaptic_data(True, 'target'),
-            ff_projection._get_synaptic_data(True, 'weight'),
-            ff_projection._get_synaptic_data(True, 'delay')]).T)
-    post_weights.append(
-        np.array([
-            lat_projection._get_synaptic_data(True, 'source'),
-            lat_projection._get_synaptic_data(True, 'target'),
-            lat_projection._get_synaptic_data(True, 'weight'),
-            lat_projection._get_synaptic_data(True, 'delay')]).T)
+    # Retrieve data if training
+    if not args.testing:
+        for ff_projection in ff_connections:
+            pre_weights.append(
+                np.array([
+                    ff_projection._get_synaptic_data(True, 'source'),
+                    ff_projection._get_synaptic_data(True, 'target'),
+                    ff_projection._get_synaptic_data(True, 'weight'),
+                    ff_projection._get_synaptic_data(True, 'delay')]).T)
+        for lat_projection in lat_connections:
+            post_weights.append(
+                np.array([
+                    lat_projection._get_synaptic_data(True, 'source'),
+                    lat_projection._get_synaptic_data(True, 'target'),
+                    lat_projection._get_synaptic_data(True, 'weight'),
+                    lat_projection._get_synaptic_data(True, 'delay')]).T)
 
 if args.record_source:
-    pre_spikes = source_pop.getSpikes(compatible_output=True)
-post_spikes = target_pop.getSpikes(compatible_output=True)
+    for source_pop in source_column:
+        pre_spikes.append(source_pop.getSpikes(compatible_output=True))
+for target_pop in target_column:
+    post_spikes.append(target_pop.getSpikes(compatible_output=True))
 # End simulation on SpiNNaker
 sim.end()
 
 end_time = plt.datetime.datetime.now()
 total_time = end_time - start_time
-
-pre_spikes = np.asarray(pre_spikes)
-post_spikes = np.asarray(post_spikes)
 
 print "Total time elapsed -- " + str(total_time)
 
@@ -290,21 +284,18 @@ if args.filename:
 else:
     filename = "mnist_topographic_map_results" + str(suffix)
 
-total_target_neuron_mean_spike_rate = \
-    post_spikes.shape[0] / float(simtime) * 1000. / N_layer
-
-np.savez(filename, pre_spikes=pre_spikes,
+np.savez(filename,
+         pre_spikes=pre_spikes,
          post_spikes=post_spikes,
          init_ff_connections=init_ff_connections,
          init_lat_connections=init_lat_connections,
          ff_connections=pre_weights,
          lat_connections=post_weights,
-         final_pre_weights=pre_weights[-1],
-         final_post_weights=post_weights[-1],
+         final_pre_weights=pre_weights[-10:],
+         final_post_weights=post_weights[-10:],
          simtime=simtime,
          sim_params=sim_params,
          total_time=total_time,
-         mean_firing_rate=total_target_neuron_mean_spike_rate,
          exception=None)
 
 if args.plot:
