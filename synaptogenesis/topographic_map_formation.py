@@ -4,15 +4,17 @@ Test for topographic map formation using STDP and synaptic rewiring.
 http://hdl.handle.net/1842/3997
 """
 # Imports
+import traceback
+
 import numpy as np
 import pylab as plt
 import time
-from pacman.model.constraints.placer_constraints.placer_chip_and_core_constraint import \
-    PlacerChipAndCoreConstraint
+
 import spynnaker7.pyNN as sim
 
 from function_definitions import *
 from argparser import *
+from pacman.model.constraints.placer_constraints import ChipAndCoreConstraint
 
 case = args.case
 print "Case", case, "selected!"
@@ -67,8 +69,8 @@ S = (n, n)
 grid = np.asarray(S)
 
 s_max = args.s_max // 2
-sigma_form_forward = 2.5
-sigma_form_lateral = 1
+sigma_form_forward = args.sigma_form_ff
+sigma_form_lateral = args.sigma_form_lat
 p_form_lateral = args.p_form_lateral
 p_form_forward = args.p_form_forward
 p_elim_dep = args.p_elim_dep
@@ -215,7 +217,7 @@ else:
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
 # Putting this populations on chip 0 1 makes it easier to copy the provenance
 # data somewhere else
-target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
+target_pop.set_constraint(ChipAndCoreConstraint(0, 1))
 # Connections
 # Plastic Connections between pre_pop and post_pop
 
@@ -432,7 +434,8 @@ try:
     # End simulation on SpiNNaker
     sim.end()
 except Exception as e:
-    print e
+    # print e
+    traceback.print_exc()
 # print("Weights:", plastic_projection.getWeights())
 end_time = plt.datetime.datetime.now()
 total_time = end_time - start_time

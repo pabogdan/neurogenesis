@@ -27,6 +27,8 @@ DEFAULT_B = 1.2
 DEFAULT_T_MINUS = 64
 
 DEFAULT_SIGMA_STIM = 2
+DEFAULT_SIGMA_FORM_LAT = 1
+DEFAULT_SIGMA_FORM_FF = 2.5
 
 # Default probabilities
 
@@ -46,7 +48,7 @@ NO_LESION = 0
 RANDOM_CONNECTIVITY_LESION = 1
 ONE_TO_ONE_LESION = 2
 
-
+# This is for MNIST network
 
 parser = argparse.ArgumentParser(
     description='Test for topographic map formation using STDP and synaptic rewiring'
@@ -57,6 +59,11 @@ parser.add_argument("-c", '--case', type=int,
                              CASE_REW_NO_CORR],
                     default=CASE_CORR_AND_REW, dest='case',
                     help='an integer controlling the experimental setup')
+
+parser.add_argument('--testing', type=str, dest='testing',
+                    help='put the network in testing mode. provide .npz'
+                         'archive with connectivity information to commence'
+                         'testing')
 
 parser.add_argument("-l", '--lesion', type=int,
                     choices=[NO_LESION, RANDOM_CONNECTIVITY_LESION,
@@ -83,9 +90,18 @@ parser.add_argument('--p_form_lateral', type=float,
 parser.add_argument('--tau_refract', type=float,
                     default=DEFAULT_TAU_REFRAC, dest='tau_refrac',
                     help='refractory time constant (ms)')
+
 parser.add_argument('--sigma_stim', type=float,
                     default=DEFAULT_SIGMA_STIM, dest='sigma_stim',
                     help='stimulus spread')
+
+parser.add_argument('--sigma_form_lat', type=float,
+                    default=DEFAULT_SIGMA_FORM_LAT, dest='sigma_form_lat',
+                    help='spread of lateral formations')
+
+parser.add_argument('--sigma_form_ff', type=float,
+                    default=DEFAULT_SIGMA_FORM_FF, dest='sigma_form_ff',
+                    help='spread of feedforward formations')
 
 parser.add_argument('-n','--n', type=int,
                     default=DEFAULT_N, dest='n',
