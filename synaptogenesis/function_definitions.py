@@ -240,8 +240,20 @@ def generate_equivalent_connectivity(s, connections, sigma, p, msg,
 
 import os
 import glob
-def load_mnist_rates(in_path, class_idx):
-    fnames = glob.glob(os.path.join(in_path, "*.npy"))
+import bz2
+import pickle
+
+def load_mnist_rates(in_path, class_idx, min_noise=-5., max_noise=5.,
+               mean_rate=None):
+    ON, OFF = 0, 1
+    IDX, RATE = 0, 1
+
+    def load_compressed(fname):
+        with bz2.BZ2File(fname, 'rb') as f:
+            obj = pickle.load(f)
+            return obj
+
+    fnames = glob.glob(os.path.join(in_path, "*.pickle.bz2"))
     on_rates = None
     off_rates = None
     for fname in fnames:
@@ -251,12 +263,38 @@ def load_mnist_rates(in_path, class_idx):
             n_smpls = int(spl[1].split('_')[0])
             width = int(spl[2].split('_')[1])
             height = int(spl[3].split('_')[1])
-            chan = spl[4].split('_')[0]
-            if chan == 'on':
-                on_rates = np.memmap(fname, dtype='float32', mode='r').reshape(
-                    (n_smpls, height, width))
-            else:
-                off_rates = np.memmap(fname, dtype='float32',
-                                      mode='r').reshape(
-                    (n_smpls, height, width))
+            if mean_rate is not None:
+                new_rate = float(width * height * mean_rate)
+
+            data = load_compressed(fname)
+
+            np.random.seed()
+            on_rates = np.round(np.random.uniform(min_noise, max_noise, size=(
+            n_smpls, height, width)))
+            for i in xrange(len(data[ON][IDX])):
+                for idx in data[ON][IDX][i]:
+                    r = idx // width
+                    c = idx % width
+                    if mean_rate is None:
+                        on_rates[i, r, c] += data[ON][RATE][i]
+                    else:
+                        on_rates[i, r, c] += round(
+                            new_rate / len(data[ON][IDX][i]))
+            on_rates[on_rates < 0] = 0.
+
+            np.random.seed()
+            off_rates = np.round(np.random.uniform(min_noise, max_noise, size=(
+            n_smpls, height, width)))
+            for i in xrange(len(data[OFF][IDX])):
+                for idx in data[OFF][IDX][i]:
+                    r = idx // width
+                    c = idx % width
+                    if mean_rate is None:
+                        off_rates[i, r, c] += data[OFF][RATE][i]
+                    else:
+                        off_rates[i, r, c] += round(
+                            new_rate / len(data[OFF][IDX][i]))
+
+            off_rates[off_rates < 0] = 0.
+
     return on_rates, off_rates

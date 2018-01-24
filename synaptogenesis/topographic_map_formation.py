@@ -69,8 +69,8 @@ S = (n, n)
 grid = np.asarray(S)
 
 s_max = args.s_max // 2
-sigma_form_forward = 2.5
-sigma_form_lateral = 1
+sigma_form_forward = args.sigma_form_ff
+sigma_form_lateral = args.sigma_form_lat
 p_form_lateral = args.p_form_lateral
 p_form_forward = args.p_form_forward
 p_elim_dep = args.p_elim_dep
