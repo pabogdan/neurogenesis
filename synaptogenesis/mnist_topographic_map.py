@@ -71,7 +71,7 @@ t_record = args.t_record  # ms
 a_plus = 0.1
 b = args.b
 tau_plus = 20.  # ms
-tau_minus = 10.  # ms
+tau_minus = 20.  # ms
 a_minus = (a_plus * tau_plus * b) / tau_minus
 
 # Reporting
@@ -161,6 +161,7 @@ elif args.case == CASE_REW_NO_CORR:
 # grouped into 2 columns
 # For each source VRPSS load mnist rates from file
 # Use the same initial connectivity for all sets of Populations
+randomised_testing_numbers = None
 if not args.testing:
 
     source_column = []
@@ -168,15 +169,25 @@ if not args.testing:
     target_column = []
     lat_connections = []
 
-    init_ff_connections = [(i, j, g_max, args.delay) for i in range(N_layer)
-                           for j in range(N_layer) if np.random.rand() < .01]
 
-    init_lat_connections = [(i, j, g_max, args.delay) for i in range(N_layer)
-                            for j in range(N_layer) if np.random.rand() < .01]
+    if args.case == CASE_CORR_NO_REW:
+        init_ff_connections = [(i, j, g_max, args.delay) for i in
+                               range(N_layer)
+                               for j in range(N_layer) if
+                               np.random.rand() < .1]
+        init_lat_connections = []
+    else:
+        init_ff_connections = [(i, j, g_max, args.delay) for i in range(N_layer)
+                               for j in range(N_layer) if np.random.rand() < .01]
+
+        init_lat_connections = [(i, j, g_max, args.delay) for i in range(N_layer)
+                                for j in range(N_layer) if np.random.rand() < .01]
 
     for number in range(10):
         rates_on, rates_off = load_mnist_rates('mnist_input_rates/averaged/',
-                                               number)
+                                               number, min_noise=5.,
+                                               max_noise=5.,
+                                               mean_rate=f_mean)
         source_column.append(
             sim.Population(N_layer,
                            sim.SpikeSourcePoissonVariable,
@@ -206,17 +217,18 @@ if not args.testing:
             )
         )
 
-        lat_connections.append(
-            sim.Projection(
-                target_column[number], target_column[number],
-                sim.FromListConnector(init_lat_connections),
-                synapse_dynamics=sim.SynapseDynamics(
-                    slow=structure_model_w_stdp),
-                label="plastic_lat_projection",
-                target="inhibitory" if args.lateral_inhibition
-                else "excitatory"
+        if args.case != CASE_CORR_NO_REW:
+            lat_connections.append(
+                sim.Projection(
+                    target_column[number], target_column[number],
+                    sim.FromListConnector(init_lat_connections),
+                    synapse_dynamics=sim.SynapseDynamics(
+                        slow=structure_model_w_stdp),
+                    label="plastic_lat_projection",
+                    target="inhibitory" if args.lateral_inhibition
+                    else "excitatory"
+                )
             )
-        )
 else:
     # Testing mode is activated.
     # 1. Retrieve connectivity for each pair of populations
@@ -225,7 +237,68 @@ else:
     # 4. Set up connectivity between the source and targets
     # 5. Run for simtime, showing each digit for a 10th of the time, but
     # shuffled randomly. Keep a track of the digits shown!
+    init_ff_connections = None
+    init_lat_connections = None
+
+
+    source_column = []
+    ff_connections = []
+    target_column = []
+    lat_connections = []
+
     testing_data = np.load(args.testing)
+    trained_ff_connectivity = testing_data['ff_connections'][-10:]
+    trained_lat_connectivity = testing_data['lat_connections'][-10:]
+
+    randomised_testing_numbers = np.random.randint(0, 10, simtime // t_stim)
+
+    # load all rates
+    rates = []
+    for number in range(10):
+        rates_on, rates_off = load_mnist_rates('mnist_input_rates/testing/',
+                                               number, min_noise=5.,
+                                               max_noise=5.,
+                                               mean_rate=f_mean)
+
+        rates.append(rates_on)
+    testing_rates = np.empty((simtime // t_stim, grid[0], grid[1]))
+    for index in np.arange(randomised_testing_numbers.shape[0]):
+        testing_rates[index, :, :] = \
+            rates[randomised_testing_numbers[index]][np.random.randint(0, rates[randomised_testing_numbers[index]].shape[0]), :, :]
+    source_pop = sim.Population(N_layer,
+                           sim.SpikeSourcePoissonVariable,
+                           {'rate': testing_rates.reshape(simtime // t_stim, N_layer),
+                            'start': 100,
+                            'duration': simtime,
+                            'rate_interval_duration': t_stim
+                            },
+                           label="VRPSS for testing")
+    source_column.append(source_pop)
+    for number in range(10):
+        # Neuron populations
+        target_column.append(
+            sim.Population(N_layer, model, cell_params,
+                           label="TARGET_POP # " + str(number))
+        )
+
+        ff_connections.append(
+            sim.Projection(
+                source_pop, target_column[number],
+                sim.FromListConnector(trained_ff_connectivity[number]),
+                label="ff_projection"
+            )
+        )
+        if args.case != CASE_CORR_NO_REW:
+            lat_connections.append(
+                sim.Projection(
+                    target_column[number], target_column[number],
+                    sim.FromListConnector(trained_lat_connectivity[number]),
+                    label="lat_projection",
+                    target="inhibitory" if args.lateral_inhibition
+                    else "excitatory"
+                )
+            )
+
 
 if args.record_source:
     for source_pop in source_column:
@@ -256,13 +329,14 @@ for current_run in range(no_runs):
                     ff_projection._get_synaptic_data(True, 'target'),
                     ff_projection._get_synaptic_data(True, 'weight'),
                     ff_projection._get_synaptic_data(True, 'delay')]).T)
-        for lat_projection in lat_connections:
-            post_weights.append(
-                np.array([
-                    lat_projection._get_synaptic_data(True, 'source'),
-                    lat_projection._get_synaptic_data(True, 'target'),
-                    lat_projection._get_synaptic_data(True, 'weight'),
-                    lat_projection._get_synaptic_data(True, 'delay')]).T)
+        if args.case != CASE_CORR_NO_REW:
+            for lat_projection in lat_connections:
+                post_weights.append(
+                    np.array([
+                        lat_projection._get_synaptic_data(True, 'source'),
+                        lat_projection._get_synaptic_data(True, 'target'),
+                        lat_projection._get_synaptic_data(True, 'weight'),
+                        lat_projection._get_synaptic_data(True, 'delay')]).T)
 
 if args.record_source:
     for source_pop in source_column:
@@ -296,6 +370,8 @@ np.savez(filename,
          simtime=simtime,
          sim_params=sim_params,
          total_time=total_time,
+         testing_numbers=randomised_testing_numbers,
+         testing_file=args.testing,
          exception=None)
 
 if args.plot:
