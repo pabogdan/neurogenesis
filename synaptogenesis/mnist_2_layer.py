@@ -183,24 +183,54 @@ if not args.testing:
         init_lat_connections = [(i, j, g_max, args.delay) for i in range(N_layer)
                                 for j in range(N_layer) if np.random.rand() < .01]
 
-    number = 0
-    rates_on, rates_off = load_mnist_rates('mnist_input_rates/averaged/',
-                                           number, min_noise=5.,
-                                           max_noise=5.,
-                                           mean_rate=f_mean)
-    source_column.append(
-        sim.Population(N_layer,
-                       sim.SpikeSourcePoissonVariable,
-                       {'rate': rates_on[0:simtime // t_stim, :, :]
-                       .reshape(simtime // t_stim, N_layer),
-                        'start': 100,
-                        'duration': simtime,
-                        'rate_interval_duration': t_stim
-                        },
-                       label="Variable-rate Poisson spike source # " +
-                             str(number))
-    )
+    # number = 0
+    # rates_on, rates_off = load_mnist_rates('mnist_input_rates/averaged/',
+    #                                        number, min_noise=5.,
+    #                                        max_noise=5.,
+    #                                        mean_rate=f_mean)
+    # source_column.append(
+    #     sim.Population(N_layer,
+    #                    sim.SpikeSourcePoissonVariable,
+    #                    {'rate': rates_on[0:simtime // t_stim, :, :]
+    #                    .reshape(simtime // t_stim, N_layer),
+    #                     'start': 100,
+    #                     'duration': simtime,
+    #                     'rate_interval_duration': t_stim
+    #                     },
+    #                    label="Variable-rate Poisson spike source # " +
+    #                          str(number))
+    # )
 
+    randomised_testing_numbers = np.random.randint(0, 10, simtime // t_stim)
+
+    # load all rates
+    rates = []
+    for number in range(10):
+        rates_on, rates_off = load_mnist_rates('mnist_input_rates/averaged/',
+                                               number, min_noise=10.,
+                                               max_noise=10.,
+                                               mean_rate=f_mean)
+
+        rates.append(rates_on)
+    testing_rates = np.empty((simtime // t_stim, grid[0], grid[1]))
+    for index in np.arange(randomised_testing_numbers.shape[0]):
+        testing_rates[index, :, :] = \
+            rates[randomised_testing_numbers[index]][np.random.randint(0,
+                                                                       rates[
+                                                                           randomised_testing_numbers[
+                                                                               index]].shape[
+                                                                           0]),
+            :, :]
+    source_pop = sim.Population(N_layer,
+                                sim.SpikeSourcePoissonVariable,
+                                {'rate': testing_rates.reshape(
+                                    simtime // t_stim, N_layer),
+                                 'start': 100,
+                                 'duration': simtime,
+                                 'rate_interval_duration': t_stim
+                                 },
+                                label="VRPSS for testing")
+    source_column.append(source_pop)
 
     for number in range(10):
         rates_on, rates_off = load_mnist_rates('mnist_input_rates/averaged/',
