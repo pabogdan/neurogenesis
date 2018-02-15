@@ -14,7 +14,8 @@ import spynnaker7.pyNN as sim
 
 from function_definitions import *
 from argparser import *
-from pacman.model.constraints.placer_constraints import ChipAndCoreConstraint
+from pacman.model.constraints.placer_constraints import \
+    PlacerChipAndCoreConstraint
 
 case = args.case
 print "Case", case, "selected!"
@@ -217,7 +218,7 @@ else:
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
 # Putting this populations on chip 0 1 makes it easier to copy the provenance
 # data somewhere else
-target_pop.set_constraint(ChipAndCoreConstraint(0, 1))
+target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
 # Connections
 # Plastic Connections between pre_pop and post_pop
 

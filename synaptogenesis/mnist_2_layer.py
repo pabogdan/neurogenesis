@@ -50,7 +50,7 @@ N_layer = n ** 2
 S = (n, n)
 grid = np.asarray(S)
 
-s_max = 32
+s_max = 64
 sigma_form_forward = 2.5
 sigma_form_lateral = 1
 p_form_lateral = args.p_form_lateral
@@ -169,6 +169,7 @@ if not args.testing:
     target_column = []
     lat_connections = []
 
+    randomised_testing_numbers = np.random.randint(0, 1, simtime // t_stim)
 
     if args.case == CASE_CORR_NO_REW:
         init_ff_connections = [(i, j, g_max, args.delay) for i in
@@ -183,52 +184,54 @@ if not args.testing:
         init_lat_connections = [(i, j, g_max, args.delay) for i in range(N_layer)
                                 for j in range(N_layer) if np.random.rand() < .01]
 
-    for number in range(10):
-        rates_on, rates_off = load_mnist_rates('mnist_input_rates/averaged/',
-                                               number, min_noise=5.,
-                                               max_noise=5.,
-                                               mean_rate=f_mean)
-        source_column.append(
-            sim.Population(N_layer,
-                           sim.SpikeSourcePoissonVariable,
-                           {'rate': rates_on[0:simtime // t_stim, :, :]
-                           .reshape(simtime // t_stim, N_layer),
-                            'start': 100,
-                            'duration': simtime,
-                            'rate_interval_duration': t_stim
-                            },
-                           label="Variable-rate Poisson spike source # " +
-                                 str(number))
-        )
+    # load all rates
+    rates = []
+    for number in range(1):
+        rates_on, rates_off = load_mnist_rates(
+            'mnist_input_rates/averaged/',
+            number, min_noise=5.,
+            max_noise=5.,
+            mean_rate=f_mean)
 
-        # Neuron populations
-        target_column.append(
-            sim.Population(N_layer, model, cell_params,
-                           label="TARGET_POP # " + str(number))
-        )
+        rates.append(rates_on)
+    testing_rates = np.empty((simtime // t_stim, grid[0], grid[1]))
+    for index in np.arange(randomised_testing_numbers.shape[0]):
+        testing_rates[index, :, :] = \
+            rates[randomised_testing_numbers[index]][np.random.randint(0,
+                                                                       rates[
+                                                                           randomised_testing_numbers[
+                                                                               index]].shape[
+                                                                           0]),
+            :, :]
 
-        ff_connections.append(
-            sim.Projection(
-                source_column[number], target_column[number],
-                sim.FromListConnector(init_ff_connections),
-                synapse_dynamics=sim.SynapseDynamics(
-                    slow=structure_model_w_stdp),
-                label="plastic_ff_projection"
-            )
-        )
+    source_pop = sim.Population(N_layer,
+                               sim.SpikeSourcePoissonVariable,
+                               {'rate': testing_rates.reshape(
+                                   simtime // t_stim, N_layer),
+                                'start': 100,
+                                'duration': simtime,
+                                'rate_interval_duration': t_stim
+                                },
+                               label="VRPSS for testing")
 
-        if args.case != CASE_CORR_NO_REW:
-            lat_connections.append(
-                sim.Projection(
-                    target_column[number], target_column[number],
-                    sim.FromListConnector(init_lat_connections),
-                    synapse_dynamics=sim.SynapseDynamics(
-                        slow=structure_model_w_stdp),
-                    label="plastic_lat_projection",
-                    target="inhibitory" if args.lateral_inhibition
-                    else "excitatory"
-                )
-            )
+    target_pop = sim.Population(N_layer, model, cell_params,
+                           label="TARGET_POP")
+
+    ff_connection = sim.Projection(
+            source_pop, target_pop,
+            sim.FromListConnector(init_ff_connections),
+            label="ff_projection")
+
+    lat_connection = sim.Projection(
+            target_pop, target_pop,
+            sim.FromListConnector(init_lat_connections),
+            label="lat_projection",
+            target="inhibitory" if args.lateral_inhibition
+            else "excitatory")
+
+    lat_connections.append(lat_connection)
+    ff_connections.append(ff_connection)
+
 else:
     # Testing mode is activated.
     # 1. Retrieve connectivity for each pair of populations
