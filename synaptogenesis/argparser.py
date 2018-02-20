@@ -187,5 +187,13 @@ parser.add_argument('--input_type', type=int,
 #                     help="input stimulus DOES NOT have a Gaussian shape, "
 #                          ",i.e. it's pointy",
 #                     action="store_false")
+parser.add_argument('--random_input',
+                    help="instead of input a digit"
+                         " input noise at prescribed f_mean",
+                    action="store_true")
+parser.add_argument('--no_lateral_conn',
+                    help="run experiment without lateral "
+                         "connectivity",
+                    action="store_true")
 
 args = parser.parse_args()

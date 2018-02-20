@@ -21,7 +21,7 @@ model = sim.IF_cond_exp
 v_rest = -70  # mV
 e_ext = 0  # V
 v_thr = -54  # mV
-g_max = 0.2
+g_max = 0.1
 tau_m = 20  # ms
 tau_ex = 5  # ms
 
@@ -83,6 +83,7 @@ sim_params = {'g_max': g_max,
               'simtime': simtime,
               'f_base': f_base,
               'f_peak': f_peak,
+              'f_mean': f_mean,
               'sigma_stim': sigma_stim,
               't_record': t_record,
               'cell_params': cell_params,
@@ -113,8 +114,6 @@ sim_params = {'g_max': g_max,
 # +-------------------------------------------------------------------+
 
 
-
-
 # Putting this populations on chip 0 1 makes it easier to copy the provenance
 # data somewhere else
 # target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
@@ -131,32 +130,34 @@ stdp_model = sim.STDPMechanism(
 )
 
 if args.case == CASE_CORR_AND_REW:
-    structure_model_w_stdp = sim.StructuralMechanism(stdp_model=stdp_model,
-                                                     weight=g_max,
-                                                     s_max=s_max,
-                                                     grid=grid, f_rew=f_rew,
-                                                     lateral_inhibition=args.lateral_inhibition,
-                                                     random_partner=args.random_partner,
-                                                     p_elim_dep=p_elim_dep,
-                                                     p_elim_pot=p_elim_pot,
-                                                     sigma_form_forward=sigma_form_forward,
-                                                     sigma_form_lateral=sigma_form_lateral,
-                                                     p_form_forward=p_form_forward,
-                                                     p_form_lateral=p_form_lateral)
+    structure_model_w_stdp = sim.StructuralMechanism(
+        stdp_model=stdp_model,
+        weight=g_max,
+        s_max=s_max,
+        grid=grid, f_rew=f_rew,
+        lateral_inhibition=args.lateral_inhibition,
+        random_partner=args.random_partner,
+        p_elim_dep=p_elim_dep,
+        p_elim_pot=p_elim_pot,
+        sigma_form_forward=sigma_form_forward,
+        sigma_form_lateral=sigma_form_lateral,
+        p_form_forward=p_form_forward,
+        p_form_lateral=p_form_lateral)
 elif args.case == CASE_CORR_NO_REW:
     structure_model_w_stdp = stdp_model
 elif args.case == CASE_REW_NO_CORR:
-    structure_model_w_stdp = sim.StructuralMechanism(weight=g_max,
-                                                     s_max=s_max,
-                                                     grid=grid, f_rew=f_rew,
-                                                     lateral_inhibition=args.lateral_inhibition,
-                                                     random_partner=args.random_partner,
-                                                     p_elim_dep=p_elim_dep,
-                                                     p_elim_pot=p_elim_pot,
-                                                     sigma_form_forward=sigma_form_forward,
-                                                     sigma_form_lateral=sigma_form_lateral,
-                                                     p_form_forward=p_form_forward,
-                                                     p_form_lateral=p_form_lateral)
+    structure_model_w_stdp = sim.StructuralMechanism(
+        weight=g_max,
+        s_max=s_max,
+        grid=grid, f_rew=f_rew,
+        lateral_inhibition=args.lateral_inhibition,
+        random_partner=args.random_partner,
+        p_elim_dep=p_elim_dep,
+        p_elim_pot=p_elim_pot,
+        sigma_form_forward=sigma_form_forward,
+        sigma_form_lateral=sigma_form_lateral,
+        p_form_forward=p_form_forward,
+        p_form_lateral=p_form_lateral)
 # if not testing (i.e. training) construct 10 sources + 10 targets
 # grouped into 2 columns
 # For each source VRPSS load mnist rates from file
@@ -169,7 +170,6 @@ if not args.testing:
     target_column = []
     lat_connections = []
 
-
     if args.case == CASE_CORR_NO_REW:
         init_ff_connections = [(i, j, g_max, args.delay) for i in
                                range(N_layer)
@@ -177,16 +177,20 @@ if not args.testing:
                                np.random.rand() < .1]
         init_lat_connections = []
     else:
-        init_ff_connections = [(i, j, g_max, args.delay) for i in range(N_layer)
-                               for j in range(N_layer) if np.random.rand() < .01]
+        init_ff_connections = [(i, j, g_max, args.delay) for i in
+                               range(N_layer)
+                               for j in range(N_layer) if
+                               np.random.rand() < .01]
 
-        init_lat_connections = [(i, j, g_max, args.delay) for i in range(N_layer)
-                                for j in range(N_layer) if np.random.rand() < .01]
+        init_lat_connections = [(i, j, g_max, args.delay) for i in
+                                range(N_layer)
+                                for j in range(N_layer) if
+                                np.random.rand() < .01]
 
     for number in range(10):
         rates_on, rates_off = load_mnist_rates('mnist_input_rates/averaged/',
-                                               number, min_noise=5.,
-                                               max_noise=5.,
+                                               number, min_noise=f_mean/4.,
+                                               max_noise=f_mean/4.,
                                                mean_rate=f_mean)
         source_column.append(
             sim.Population(N_layer,
@@ -240,65 +244,86 @@ else:
     init_ff_connections = None
     init_lat_connections = None
 
-
     source_column = []
     ff_connections = []
     target_column = []
     lat_connections = []
 
-    testing_data = np.load(args.testing)
-    trained_ff_connectivity = testing_data['ff_connections'][-10:]
-    trained_lat_connectivity = testing_data['lat_connections'][-10:]
+    if not args.random_input:
+        testing_data = np.load(args.testing)
+        trained_ff_connectivity = testing_data['ff_connections'][-10:]
+        trained_lat_connectivity = testing_data['lat_connections'][-10:]
 
-    randomised_testing_numbers = np.random.randint(0, 10, simtime // t_stim)
+        randomised_testing_numbers = np.random.randint(0, 10,
+                                                       simtime // t_stim)
 
-    # load all rates
-    rates = []
-    for number in range(10):
-        rates_on, rates_off = load_mnist_rates('mnist_input_rates/testing/',
-                                               number, min_noise=5.,
-                                               max_noise=5.,
-                                               mean_rate=f_mean)
+        # load all rates
+        rates = []
+        for number in range(10):
+            rates_on, rates_off = load_mnist_rates(
+                'mnist_input_rates/testing/',
+                number, min_noise=f_mean/4.,
+                max_noise=f_mean/4.,
+                mean_rate=f_mean)
 
-        rates.append(rates_on)
+            rates.append(rates_on)
     testing_rates = np.empty((simtime // t_stim, grid[0], grid[1]))
-    for index in np.arange(randomised_testing_numbers.shape[0]):
-        testing_rates[index, :, :] = \
-            rates[randomised_testing_numbers[index]][np.random.randint(0, rates[randomised_testing_numbers[index]].shape[0]), :, :]
-    source_pop = sim.Population(N_layer,
-                           sim.SpikeSourcePoissonVariable,
-                           {'rate': testing_rates.reshape(simtime // t_stim, N_layer),
-                            'start': 100,
-                            'duration': simtime,
-                            'rate_interval_duration': t_stim
-                            },
-                           label="VRPSS for testing")
-    source_column.append(source_pop)
-    for number in range(10):
-        # Neuron populations
-        target_column.append(
-            sim.Population(N_layer, model, cell_params,
-                           label="TARGET_POP # " + str(number))
-        )
+    for index in np.arange(testing_rates.shape[0]):
+        if not args.random_input:
+            testing_rates[index, :, :] = \
+                rates[
+                    randomised_testing_numbers[index]] \
+                    [np.random.randint(0, rates[
+                    randomised_testing_numbers[
+                        index]].shape[
+                    0]),
+                :, :]
+            source_pop = sim.Population(
+                N_layer,
+                sim.SpikeSourcePoissonVariable,
+                {'rate': testing_rates.reshape(
+                    simtime // t_stim, N_layer),
+                    'start': 100,
+                    'duration': simtime,
+                    'rate_interval_duration': t_stim
+                },
+                label="VRPSS for testing")
+        else:
+            source_pop = sim.Population(
+                N_layer,
+                sim.SpikeSourcePoisson,
+                {'rate': f_mean,
+                 'start': 100,
+                 'duration': simtime,
+                 },
+                label="PSS for testing")
 
-        ff_connections.append(
-            sim.Projection(
-                source_pop, target_column[number],
-                sim.FromListConnector(trained_ff_connectivity[number]),
-                label="ff_projection"
+        source_column.append(source_pop)
+        for number in range(10):
+            # Neuron populations
+            target_column.append(
+                sim.Population(N_layer, model, cell_params,
+                               label="TARGET_POP # " + str(number))
             )
-        )
-        if args.case != CASE_CORR_NO_REW:
-            lat_connections.append(
+
+            ff_connections.append(
                 sim.Projection(
-                    target_column[number], target_column[number],
-                    sim.FromListConnector(trained_lat_connectivity[number]),
-                    label="lat_projection",
-                    target="inhibitory" if args.lateral_inhibition
-                    else "excitatory"
+                    source_pop, target_column[number],
+                    sim.FromListConnector(trained_ff_connectivity[number]),
+                    label="ff_projection"
                 )
             )
-
+            if args.case != CASE_CORR_NO_REW:
+                lat_connections.append(
+                    sim.Projection(
+                        target_column[number], target_column[number],
+                        sim.FromListConnector(
+                            trained_lat_connectivity[number]),
+                        label="lat_projection",
+                        target="inhibitory" if args.lateral_inhibition
+                        else "excitatory"
+                    )
+                )
 
 if args.record_source:
     for source_pop in source_column:
@@ -336,7 +361,8 @@ for current_run in range(no_runs):
                         lat_projection._get_synaptic_data(True, 'source'),
                         lat_projection._get_synaptic_data(True, 'target'),
                         lat_projection._get_synaptic_data(True, 'weight'),
-                        lat_projection._get_synaptic_data(True, 'delay')]).T)
+                        lat_projection._get_synaptic_data(True,
+                                                          'delay')]).T)
 
 if args.record_source:
     for source_pop in source_column:
@@ -371,7 +397,7 @@ np.savez(filename,
          sim_params=sim_params,
          total_time=total_time,
          testing_numbers=randomised_testing_numbers,
-         testing_file=args.testing,
+         testing_file=args.testing, random_input=args.random_input,
          exception=None)
 
 if args.plot:
@@ -379,7 +405,8 @@ if args.plot:
         if spikes is not None and len(spikes) > 0:
             f, ax1 = plt.subplots(1, 1, figsize=(16, 8))
             ax1.set_xlim((0, simtime))
-            ax1.scatter([i[1] for i in spikes], [i[0] for i in spikes], s=.2)
+            ax1.scatter([i[1] for i in spikes], [i[0] for i in spikes],
+                        s=.2)
             ax1.set_xlabel('Time/ms')
             ax1.set_ylabel('spikes')
             ax1.set_title(title)
