@@ -188,10 +188,10 @@ if not args.testing:
                                 np.random.rand() < .01]
 
     for number in range(10):
-        rates_on, rates_off = load_mnist_rates('mnist_input_rates/averaged/',
+        rates_on, rates_off = load_mnist_rates('mnist_input_rates/centre_surround/',
                                                number, min_noise=f_mean/4.,
                                                max_noise=f_mean/4.,
-                                               mean_rate=f_mean)
+                                               mean_rate=f_mean, suffix="CS")
         source_column.append(
             sim.Population(N_layer,
                            sim.SpikeSourcePoissonVariable,
@@ -261,10 +261,10 @@ else:
         rates = []
         for number in range(10):
             rates_on, rates_off = load_mnist_rates(
-                'mnist_input_rates/testing/',
+                'mnist_input_rates/testing_centre_surround/',
                 number, min_noise=f_mean/4.,
                 max_noise=f_mean/4.,
-                mean_rate=f_mean)
+                mean_rate=f_mean, suffix="CS")
 
             rates.append(rates_on)
     testing_rates = np.empty((simtime // t_stim, grid[0], grid[1]))

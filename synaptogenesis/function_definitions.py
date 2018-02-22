@@ -243,8 +243,9 @@ import glob
 import bz2
 import pickle
 
-def load_mnist_rates(in_path, class_idx, min_noise=-5., max_noise=5.,
-               mean_rate=None):
+
+def load_mnist_rates(in_path, class_idx, min_noise=-5., max_noise=5., mean_rate=None,
+               suffix=None):
     ON, OFF = 0, 1
     IDX, RATE = 0, 1
 
@@ -253,7 +254,11 @@ def load_mnist_rates(in_path, class_idx, min_noise=-5., max_noise=5.,
             obj = pickle.load(f)
             return obj
 
-    fnames = glob.glob(os.path.join(in_path, "*.pickle.bz2"))
+    if suffix is not None:
+        fnames = glob.glob(os.path.join(in_path, "*%s.pickle.bz2" % suffix))
+    else:
+        fnames = glob.glob(os.path.join(in_path, "*.pickle.bz2"))
+    print(fnames)
     on_rates = None
     off_rates = None
     for fname in fnames:
