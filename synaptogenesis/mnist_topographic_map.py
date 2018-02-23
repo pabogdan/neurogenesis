@@ -165,34 +165,37 @@ elif args.case == CASE_REW_NO_CORR:
 randomised_testing_numbers = None
 if not args.testing:
 
-    source_column = []
-    ff_connections = []
+    source_column_on = []
+    source_column_off = []
+    ff_on_connections = []
+    ff_off_connections = []
     target_column = []
     lat_connections = []
 
     if args.case == CASE_CORR_NO_REW:
-        init_ff_connections = [(i, j, g_max, args.delay) for i in
-                               range(N_layer)
-                               for j in range(N_layer) if
-                               np.random.rand() < .1]
+        init_ff_on_connections = [(i, j, g_max, args.delay) for i in
+                                  range(N_layer)
+                                  for j in range(N_layer) if
+                                  np.random.rand() < .1]
         init_lat_connections = []
     else:
-        init_ff_connections = [(i, j, g_max, args.delay) for i in
-                               range(N_layer)
-                               for j in range(N_layer) if
-                               np.random.rand() < .01]
+        init_ff_on_connections = [(i, j, g_max, args.delay) for i in
+                                  range(N_layer)
+                                  for j in range(N_layer) if
+                                  np.random.rand() < .01]
 
         init_lat_connections = [(i, j, g_max, args.delay) for i in
                                 range(N_layer)
                                 for j in range(N_layer) if
                                 np.random.rand() < .01]
-
+    init_ff_off_connections = init_ff_on_connections
     for number in range(10):
-        rates_on, rates_off = load_mnist_rates('mnist_input_rates/centre_surround/',
-                                               number, min_noise=f_mean/4.,
-                                               max_noise=f_mean/4.,
-                                               mean_rate=f_mean, suffix="CS")
-        source_column.append(
+        rates_on, rates_off = load_mnist_rates(
+            'mnist_input_rates/centre_surround/',
+            number, min_noise=f_mean / 4.,
+            max_noise=f_mean / 4.,
+            mean_rate=f_mean, suffix="CS")
+        source_column_on.append(
             sim.Population(N_layer,
                            sim.SpikeSourcePoissonVariable,
                            {'rate': rates_on[0:simtime // t_stim, :, :]
@@ -201,7 +204,19 @@ if not args.testing:
                             'duration': simtime,
                             'rate_interval_duration': t_stim
                             },
-                           label="Variable-rate Poisson spike source # " +
+                           label="Variable-rate Poisson spike source on # " +
+                                 str(number))
+        )
+        source_column_off.append(
+            sim.Population(N_layer,
+                           sim.SpikeSourcePoissonVariable,
+                           {'rate': rates_off[0:simtime // t_stim, :, :]
+                           .reshape(simtime // t_stim, N_layer),
+                            'start': 100,
+                            'duration': simtime,
+                            'rate_interval_duration': t_stim
+                            },
+                           label="Variable-rate Poisson spike source off # " +
                                  str(number))
         )
 
@@ -211,10 +226,19 @@ if not args.testing:
                            label="TARGET_POP # " + str(number))
         )
 
-        ff_connections.append(
+        ff_on_connections.append(
             sim.Projection(
-                source_column[number], target_column[number],
-                sim.FromListConnector(init_ff_connections),
+                source_column_on[number], target_column[number],
+                sim.FromListConnector(init_ff_on_connections),
+                synapse_dynamics=sim.SynapseDynamics(
+                    slow=structure_model_w_stdp),
+                label="plastic_ff_projection"
+            )
+        )
+        ff_off_connections.append(
+            sim.Projection(
+                source_column_off[number], target_column[number],
+                sim.FromListConnector(init_ff_off_connections),
                 synapse_dynamics=sim.SynapseDynamics(
                     slow=structure_model_w_stdp),
                 label="plastic_ff_projection"
@@ -241,16 +265,20 @@ else:
     # 4. Set up connectivity between the source and targets
     # 5. Run for simtime, showing each digit for a 10th of the time, but
     # shuffled randomly. Keep a track of the digits shown!
-    init_ff_connections = None
+    init_ff_on_connections = None
+    init_ff_off_connections = None
     init_lat_connections = None
 
-    source_column = []
-    ff_connections = []
+    source_column_on = []
+    source_column_off = []
+    ff_on_connections = []
+    ff_off_connections = []
     target_column = []
     lat_connections = []
 
     testing_data = np.load(args.testing)
-    trained_ff_connectivity = testing_data['ff_connections'][-10:]
+    trained_ff_on_connectivity = testing_data['ff_on_connections'][-10:]
+    trained_ff_off_connectivity = testing_data['ff_off_connections'][-10:]
     trained_lat_connectivity = testing_data['lat_connections'][-10:]
 
     if not args.random_input:
@@ -258,41 +286,63 @@ else:
                                                        simtime // t_stim)
 
         # load all rates
-        rates = []
+        rates_on = []
+        rates_off = []
         for number in range(10):
-            rates_on, rates_off = load_mnist_rates(
+            rate_on, rate_off = load_mnist_rates(
                 'mnist_input_rates/testing_centre_surround/',
-                number, min_noise=f_mean/4.,
-                max_noise=f_mean/4.,
+                number, min_noise=f_mean / 4.,
+                max_noise=f_mean / 4.,
                 mean_rate=f_mean, suffix="CS")
 
-            rates.append(rates_on)
-    testing_rates = np.empty((simtime // t_stim, grid[0], grid[1]))
-    for index in np.arange(testing_rates.shape[0]):
+            rates_on.append(rate_on)
+            rates_off.append(rate_off)
+    testing_rates_on = np.empty((simtime // t_stim, grid[0], grid[1]))
+    testing_rates_off = np.empty((simtime // t_stim, grid[0], grid[1]))
+    for index in np.arange(testing_rates_on.shape[0]):
         if not args.random_input:
-            testing_rates[index, :, :] = \
-                rates[
-                    randomised_testing_numbers[index]] \
-                    [np.random.randint(0, rates[
-                    randomised_testing_numbers[
-                        index]].shape[
-                    0]),
-                :, :]
+            random_number = np.random.randint(0, rates_on[
+                randomised_testing_numbers[
+                    index]].shape[0])
+            testing_rates_on[index, :, :] = \
+                rates_on[
+                    randomised_testing_numbers[index]][random_number, :, :]
+            testing_rates_off[index, :, :] = \
+                rates_off[
+                    randomised_testing_numbers[index]][random_number, :, :]
         else:
             break
     if not args.random_input:
-        source_pop = sim.Population(
+        source_on_pop = sim.Population(
             N_layer,
             sim.SpikeSourcePoissonVariable,
-            {'rate': testing_rates.reshape(
+            {'rate': testing_rates_on.reshape(
                 simtime // t_stim, N_layer),
                 'start': 100,
                 'duration': simtime,
                 'rate_interval_duration': t_stim
             },
-            label="VRPSS for testing")
+            label="VRPSS for testing on")
+        source_off_pop = sim.Population(
+            N_layer,
+            sim.SpikeSourcePoissonVariable,
+            {'rate': testing_rates_off.reshape(
+                simtime // t_stim, N_layer),
+                'start': 100,
+                'duration': simtime,
+                'rate_interval_duration': t_stim
+            },
+            label="VRPSS for testing off")
     else:
-        source_pop = sim.Population(
+        source_on_pop = sim.Population(
+            N_layer,
+            sim.SpikeSourcePoisson,
+            {'rate': f_mean,
+             'start': 100,
+             'duration': simtime,
+             },
+            label="PSS for testing")
+        source_off_pop = sim.Population(
             N_layer,
             sim.SpikeSourcePoisson,
             {'rate': f_mean,
@@ -301,7 +351,8 @@ else:
              },
             label="PSS for testing")
 
-    source_column.append(source_pop)
+    source_column_on.append(source_on_pop)
+    source_column_off.append(source_off_pop)
     for number in range(10):
         # Neuron populations
         target_column.append(
@@ -309,11 +360,19 @@ else:
                            label="TARGET_POP # " + str(number))
         )
 
-        ff_connections.append(
+        ff_on_connections.append(
             sim.Projection(
-                source_pop, target_column[number],
-                sim.FromListConnector(trained_ff_connectivity[number]),
-                label="ff_projection " + str(number)
+                source_on_pop, target_column[number],
+                sim.FromListConnector(trained_ff_on_connectivity[number]),
+                label="ff_projection on " + str(number)
+            )
+        )
+
+        ff_off_connections.append(
+            sim.Projection(
+                source_off_pop, target_column[number],
+                sim.FromListConnector(trained_ff_off_connectivity[number]),
+                label="ff_projection off " + str(number)
             )
         )
         if args.case != CASE_CORR_NO_REW:
@@ -329,16 +388,20 @@ else:
             )
 
 if args.record_source:
-    for source_pop in source_column:
-        source_pop.record()
+    for source_on_pop in source_column_on:
+        source_on_pop.record()
+    for source_off_pop in source_column_off:
+        source_off_pop.record()
 for target_pop in target_column:
     target_pop.record()
 
 # Run simulation
-pre_spikes = []
+pre_on_spikes = []
+pre_off_spikes = []
 post_spikes = []
 
-pre_weights = []
+pre_on_weights = []
+pre_off_weights = []
 post_weights = []
 
 no_runs = simtime // t_record
@@ -350,8 +413,15 @@ for current_run in range(no_runs):
 
     # Retrieve data if training
     if not args.testing:
-        for ff_projection in ff_connections:
-            pre_weights.append(
+        for ff_projection in ff_on_connections:
+            pre_on_weights.append(
+                np.array([
+                    ff_projection._get_synaptic_data(True, 'source'),
+                    ff_projection._get_synaptic_data(True, 'target'),
+                    ff_projection._get_synaptic_data(True, 'weight'),
+                    ff_projection._get_synaptic_data(True, 'delay')]).T)
+        for ff_projection in ff_off_connections:
+            pre_off_weights.append(
                 np.array([
                     ff_projection._get_synaptic_data(True, 'source'),
                     ff_projection._get_synaptic_data(True, 'target'),
@@ -364,12 +434,13 @@ for current_run in range(no_runs):
                         lat_projection._get_synaptic_data(True, 'source'),
                         lat_projection._get_synaptic_data(True, 'target'),
                         lat_projection._get_synaptic_data(True, 'weight'),
-                        lat_projection._get_synaptic_data(True,
-                                                          'delay')]).T)
+                        lat_projection._get_synaptic_data(True, 'delay')]).T)
 
 if args.record_source:
-    for source_pop in source_column:
-        pre_spikes.append(source_pop.getSpikes(compatible_output=True))
+    for source_on_pop in source_column_on:
+        pre_on_spikes.append(source_on_pop.getSpikes(compatible_output=True))
+    for source_on_pop in source_column_off:
+        pre_off_spikes.append(source_on_pop.getSpikes(compatible_output=True))
 for target_pop in target_column:
     post_spikes.append(target_pop.getSpikes(compatible_output=True))
 # End simulation on SpiNNaker
@@ -388,13 +459,17 @@ else:
     filename = "mnist_topographic_map_results" + str(suffix)
 
 np.savez(filename,
-         pre_spikes=pre_spikes,
+         pre_on_spikes=pre_on_spikes,
+         pre_off_spikes=pre_off_spikes,
          post_spikes=post_spikes,
-         init_ff_connections=init_ff_connections,
+         init_ff_on_connections=init_ff_on_connections,
+         init_ff_off_connections=init_ff_off_connections,
          init_lat_connections=init_lat_connections,
-         ff_connections=pre_weights,
+         ff_on_connections=pre_on_weights,
+         ff_off_connections=pre_off_weights,
          lat_connections=post_weights,
-         final_pre_weights=pre_weights[-10:],
+         final_pre_on_weights=pre_on_weights[-10:],
+         final_pre_off_weights=pre_off_weights[-10:],
          final_post_weights=post_weights[-10:],
          simtime=simtime,
          sim_params=sim_params,
@@ -418,7 +493,7 @@ if args.plot:
             print "No spikes received"
 
 
-    plot_spikes(pre_spikes, "Source layer spikes")
+    plot_spikes(pre_on_spikes, "Source layer spikes")
     plt.show()
     plot_spikes(post_spikes, "Target layer spikes")
     plt.show()
