@@ -244,8 +244,12 @@ import bz2
 import pickle
 
 
-def load_mnist_rates(in_path, class_idx, min_noise=-5., max_noise=5., mean_rate=None,
+def load_mnist_rates(in_path, class_idx, min_noise=0, max_noise=0, mean_rate=None,
                suffix=None):
+    from tempfile import mkdtemp
+    import os
+    import glob
+
     ON, OFF = 0, 1
     IDX, RATE = 0, 1
 
@@ -258,7 +262,8 @@ def load_mnist_rates(in_path, class_idx, min_noise=-5., max_noise=5., mean_rate=
         fnames = glob.glob(os.path.join(in_path, "*%s.pickle.bz2" % suffix))
     else:
         fnames = glob.glob(os.path.join(in_path, "*.pickle.bz2"))
-    print(fnames)
+
+    #     print(fnames)
     on_rates = None
     off_rates = None
     for fname in fnames:
@@ -270,12 +275,18 @@ def load_mnist_rates(in_path, class_idx, min_noise=-5., max_noise=5., mean_rate=
             height = int(spl[3].split('_')[1])
             if mean_rate is not None:
                 new_rate = float(width * height * mean_rate)
-
+            on_rates, off_rates = None, None
             data = load_compressed(fname)
 
+            tmp_dir = mkdtemp()
             np.random.seed()
-            on_rates = np.round(np.random.uniform(min_noise, max_noise, size=(
-            n_smpls, height, width)))
+            filename = os.path.join(tmp_dir, 'on_rates.dat')
+            on_rates = np.memmap(filename, dtype='uint16', mode='w+',
+                                 shape=(n_smpls, height, width))
+            on_rates[:] = np.round(np.random.uniform(min_noise, max_noise,
+                                                     size=(n_smpls, height,
+                                                           width))).astype(
+                'uint16')
             for i in xrange(len(data[ON][IDX])):
                 for idx in data[ON][IDX][i]:
                     r = idx // width
@@ -288,8 +299,13 @@ def load_mnist_rates(in_path, class_idx, min_noise=-5., max_noise=5., mean_rate=
             on_rates[on_rates < 0] = 0.
 
             np.random.seed()
-            off_rates = np.round(np.random.uniform(min_noise, max_noise, size=(
-            n_smpls, height, width)))
+            filename = os.path.join(tmp_dir, 'off_rates.dat')
+            off_rates = np.memmap(filename, dtype='uint16', mode='w+',
+                                  shape=(n_smpls, height, width))
+            off_rates[:] = np.round(np.random.uniform(min_noise, max_noise,
+                                                      size=(n_smpls, height,
+                                                            width))).astype(
+                'uint16')
             for i in xrange(len(data[OFF][IDX])):
                 for idx in data[OFF][IDX][i]:
                     r = idx // width
@@ -301,5 +317,6 @@ def load_mnist_rates(in_path, class_idx, min_noise=-5., max_noise=5., mean_rate=
                             new_rate / len(data[OFF][IDX][i]))
 
             off_rates[off_rates < 0] = 0.
+            del data
 
     return on_rates, off_rates
