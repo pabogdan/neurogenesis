@@ -76,7 +76,8 @@ def poisson_generator(rate, t_start, t_stop):
     return unique_rounded_times[unique_rounded_times < t_stop]
 
 
-def generate_rates(s, grid, f_base=5., f_peak=152.8, sigma_stim=2., f_mean=20.):
+def generate_rates(s, grid, f_base=5., f_peak=152.8, sigma_stim=2.,
+                   f_mean=20.):
     '''
     Function that generates an array the same shape as the input layer so that
     each cell has a value corresponding to the firing rate for the neuron
@@ -135,7 +136,8 @@ def generate_multimodal_gaussian_rates(s, grid, f_base=5, f_peak=152.8,
     return _rates
 
 
-def generate_multimodal_rates(s, grid, f_base=5, f_peak=152.8, sigma_stim=2, f_mean=20.):
+def generate_multimodal_rates(s, grid, f_base=5, f_peak=152.8, sigma_stim=2,
+                              f_mean=20.):
     '''
     Function that generates an array the same shape as the input layer so that
     each cell has a value corresponding to the firing rate for the neuron
@@ -182,7 +184,8 @@ def generate_scaled_pointy_rates(s, grid=np.asarray([16, 16]), f_base=5.,
     means_ratio = float(f_mean - f_base) / (mean_no_base)
     final_rates = denoised_rates * means_ratio + f_base
 
-    assert np.isclose(np.mean(final_rates), f_mean), "{} vs {}".format(np.mean(final_rates), f_mean)
+    assert np.isclose(np.mean(final_rates), f_mean), "{} vs {}".format(
+        np.mean(final_rates), f_mean)
 
     return final_rates
 
@@ -244,8 +247,8 @@ import bz2
 import pickle
 
 
-def load_mnist_rates(in_path, class_idx, min_noise=0, max_noise=0, mean_rate=None,
-               suffix=None):
+def load_mnist_rates(in_path, class_idx, min_noise=0, max_noise=0,
+                     mean_rate=None, suffix=None):
     from tempfile import mkdtemp
     import os
     import glob

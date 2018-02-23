@@ -278,52 +278,55 @@ else:
                         index]].shape[
                     0]),
                 :, :]
-            source_pop = sim.Population(
-                N_layer,
-                sim.SpikeSourcePoissonVariable,
-                {'rate': testing_rates.reshape(
-                    simtime // t_stim, N_layer),
-                    'start': 100,
-                    'duration': simtime,
-                    'rate_interval_duration': t_stim
-                },
-                label="VRPSS for testing")
         else:
-            source_pop = sim.Population(
-                N_layer,
-                sim.SpikeSourcePoisson,
-                {'rate': f_mean,
-                 'start': 100,
-                 'duration': simtime,
-                 },
-                label="PSS for testing")
+            break
+    if not args.random_input:
+        source_pop = sim.Population(
+            N_layer,
+            sim.SpikeSourcePoissonVariable,
+            {'rate': testing_rates.reshape(
+                simtime // t_stim, N_layer),
+                'start': 100,
+                'duration': simtime,
+                'rate_interval_duration': t_stim
+            },
+            label="VRPSS for testing")
+    else:
+        source_pop = sim.Population(
+            N_layer,
+            sim.SpikeSourcePoisson,
+            {'rate': f_mean,
+             'start': 100,
+             'duration': simtime,
+             },
+            label="PSS for testing")
 
-        source_column.append(source_pop)
-        for number in range(10):
-            # Neuron populations
-            target_column.append(
-                sim.Population(N_layer, model, cell_params,
-                               label="TARGET_POP # " + str(number))
+    source_column.append(source_pop)
+    for number in range(10):
+        # Neuron populations
+        target_column.append(
+            sim.Population(N_layer, model, cell_params,
+                           label="TARGET_POP # " + str(number))
+        )
+
+        ff_connections.append(
+            sim.Projection(
+                source_pop, target_column[number],
+                sim.FromListConnector(trained_ff_connectivity[number]),
+                label="ff_projection"+ str(number)
             )
-
-            ff_connections.append(
+        )
+        if args.case != CASE_CORR_NO_REW:
+            lat_connections.append(
                 sim.Projection(
-                    source_pop, target_column[number],
-                    sim.FromListConnector(trained_ff_connectivity[number]),
-                    label="ff_projection"
+                    target_column[number], target_column[number],
+                    sim.FromListConnector(
+                        trained_lat_connectivity[number]),
+                    label="lat_projection"+ str(number),
+                    target="inhibitory" if args.lateral_inhibition
+                    else "excitatory"
                 )
             )
-            if args.case != CASE_CORR_NO_REW:
-                lat_connections.append(
-                    sim.Projection(
-                        target_column[number], target_column[number],
-                        sim.FromListConnector(
-                            trained_lat_connectivity[number]),
-                        label="lat_projection",
-                        target="inhibitory" if args.lateral_inhibition
-                        else "excitatory"
-                    )
-                )
 
 if args.record_source:
     for source_pop in source_column:
