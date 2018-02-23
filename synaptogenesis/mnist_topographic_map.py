@@ -249,11 +249,11 @@ else:
     target_column = []
     lat_connections = []
 
-    if not args.random_input:
-        testing_data = np.load(args.testing)
-        trained_ff_connectivity = testing_data['ff_connections'][-10:]
-        trained_lat_connectivity = testing_data['lat_connections'][-10:]
+    testing_data = np.load(args.testing)
+    trained_ff_connectivity = testing_data['ff_connections'][-10:]
+    trained_lat_connectivity = testing_data['lat_connections'][-10:]
 
+    if not args.random_input:
         randomised_testing_numbers = np.random.randint(0, 10,
                                                        simtime // t_stim)
 
@@ -313,7 +313,7 @@ else:
             sim.Projection(
                 source_pop, target_column[number],
                 sim.FromListConnector(trained_ff_connectivity[number]),
-                label="ff_projection"+ str(number)
+                label="ff_projection " + str(number)
             )
         )
         if args.case != CASE_CORR_NO_REW:
@@ -322,7 +322,7 @@ else:
                     target_column[number], target_column[number],
                     sim.FromListConnector(
                         trained_lat_connectivity[number]),
-                    label="lat_projection"+ str(number),
+                    label="lat_projection " + str(number),
                     target="inhibitory" if args.lateral_inhibition
                     else "excitatory"
                 )
