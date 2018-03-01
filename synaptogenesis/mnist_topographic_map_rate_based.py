@@ -144,9 +144,7 @@ if args.case == CASE_CORR_AND_REW:
         sigma_form_lateral=sigma_form_lateral,
         p_form_forward=p_form_forward,
         p_form_lateral=p_form_lateral)
-elif args.case == CASE_CORR_NO_REW:
-    structure_model_w_stdp = stdp_model
-elif args.case == CASE_REW_NO_CORR:
+elif args.case == CASE_REW_NO_CORR or args.case == CASE_CORR_NO_REW:
     structure_model_w_stdp = sim.StructuralMechanism(
         weight=g_max,
         s_max=s_max,
@@ -171,22 +169,16 @@ if not args.testing:
     target_column = []
     lat_connections = []
 
-    if args.case == CASE_CORR_NO_REW:
-        init_ff_connections = [(i, j, g_max, args.delay) for i in
-                               range(N_layer)
-                               for j in range(N_layer) if
-                               np.random.rand() < .1]
-        init_lat_connections = []
-    else:
-        init_ff_connections = [(i, j, g_max, args.delay) for i in
-                               range(N_layer)
-                               for j in range(N_layer) if
-                               np.random.rand() < .01]
 
-        init_lat_connections = [(i, j, g_max, args.delay) for i in
-                                range(N_layer)
-                                for j in range(N_layer) if
-                                np.random.rand() < .01]
+    init_ff_connections = [(i, j, g_max, args.delay) for i in
+                           range(N_layer)
+                           for j in range(N_layer) if
+                           np.random.rand() < .01]
+
+    init_lat_connections = [(i, j, g_max, args.delay) for i in
+                            range(N_layer)
+                            for j in range(N_layer) if
+                            np.random.rand() < .01]
 
     for number in range(10):
         rates_on, rates_off = load_mnist_rates('mnist_input_rates/averaged/',

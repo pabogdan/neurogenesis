@@ -143,9 +143,7 @@ if args.case == CASE_CORR_AND_REW:
         sigma_form_lateral=sigma_form_lateral,
         p_form_forward=p_form_forward,
         p_form_lateral=p_form_lateral)
-elif args.case == CASE_CORR_NO_REW:
-    structure_model_w_stdp = stdp_model
-elif args.case == CASE_REW_NO_CORR:
+elif args.case == CASE_REW_NO_CORR or args.case == CASE_CORR_NO_REW:
     structure_model_w_stdp = sim.StructuralMechanism(
         weight=g_max,
         s_max=s_max,
