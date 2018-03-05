@@ -41,7 +41,7 @@ cell_params = {'cm': 20.0,  # nF
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
 # +-------------------------------------------------------------------+
-no_iterations = args.no_iterations  # 300000 # 3000000 # 3,000,000 iterations
+no_iterations = args.no_iterations  # iterations
 simtime = no_iterations
 # Wiring
 n = 28
@@ -73,8 +73,6 @@ b = args.b
 tau_plus = 20.  # ms
 tau_minus = 20.  # ms
 a_minus = (a_plus * tau_plus * b) / tau_minus
-
-# Reporting
 
 # Reporting
 
@@ -113,12 +111,6 @@ sim_params = {'g_max': g_max,
 # | Initial network setup                                             |
 # +-------------------------------------------------------------------+
 
-
-# Putting this populations on chip 0 1 makes it easier to copy the provenance
-# data somewhere else
-# target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
-# Connections
-# Plastic Connections between pre_pop and post_pop
 
 stdp_model = sim.STDPMechanism(
     timing_dependence=sim.SpikePairRule(tau_plus=tau_plus,

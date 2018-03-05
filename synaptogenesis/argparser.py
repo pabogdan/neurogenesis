@@ -48,7 +48,6 @@ NO_LESION = 0
 RANDOM_CONNECTIVITY_LESION = 1
 ONE_TO_ONE_LESION = 2
 
-# This is for MNIST network
 
 parser = argparse.ArgumentParser(
     description='Test for topographic map formation using STDP and synaptic rewiring'
@@ -173,20 +172,13 @@ parser.add_argument('-i', '--input', type=str,
                          "initial connectivity for the simulation",
                     dest='initial_connectivity_file')
 
-# parser.add_argument('--insult',
-#                     help="simulate an ischemic network",
-#                     action="store_true")
-
 parser.add_argument('--input_type', type=int,
                     choices=[GAUSSIAN_INPUT, POINTY_INPUT,
                              SCALED_POINTY_INPUT, SQUARE_INPUT],
                     default=GAUSSIAN_INPUT, dest='input_type',
                     help='what type of input shape to use (gaussian, pointy, '
                          'scaled pointy, square)')
-# parser.add_argument('--input_type',
-#                     help="input stimulus DOES NOT have a Gaussian shape, "
-#                          ",i.e. it's pointy",
-#                     action="store_false")
+
 parser.add_argument('--random_input',
                     help="instead of input a digit"
                          " input noise at prescribed f_mean",
