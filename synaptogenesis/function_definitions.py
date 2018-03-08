@@ -8,17 +8,6 @@ from spinn_utilities.progress_bar import ProgressBar
 
 
 # Periodic boundaries
-# https://github.com/pabogdan/neurogenesis/blob/master/notebooks/neurogenesis-in-numbers/Periodic%20boundaries.ipynb
-# def distance(x0, x1, grid=np.asarray([16, 16]), type='euclidian'):
-#     x0 = np.asarray(x0)
-#     x1 = np.asarray(x1)
-#     delta = np.abs(x0 - x1)
-#     delta = np.where(delta > grid * .5, delta - grid, delta)
-#
-#     if type == 'manhattan':
-#         return np.abs(delta).sum(axis=-1)
-#     return np.sqrt((delta ** 2).sum(axis=-1))
-#
 
 def distance(x0, x1, grid=np.asarray([16, 16]), type='euclidian'):
     x0 = np.asarray(x0)
