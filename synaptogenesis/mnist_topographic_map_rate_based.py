@@ -178,16 +178,17 @@ if not args.testing:
                                                max_noise=f_mean/4.,
                                                mean_rate=f_mean)
         source_column.append(
-            sim.Population(N_layer,
-                           sim.SpikeSourcePoissonVariable,
-                           {'rate': rates_on[0:simtime // t_stim, :, :]
-                           .reshape(simtime // t_stim, N_layer),
-                            'start': 100,
-                            'duration': simtime,
-                            'rate_interval_duration': t_stim
-                            },
-                           label="Variable-rate Poisson spike source # " +
-                                 str(number))
+            sim.Population(
+                N_layer,
+                sim.SpikeSourcePoissonVariable,
+                {'rate': rates_on[0:simtime // t_stim, :, :].reshape(
+                   simtime // t_stim, N_layer),
+                 'start': 100,
+                 'duration': simtime,
+                 'rate_interval_duration': t_stim
+                 },
+                label="Variable-rate Poisson spike source # " +
+                      str(number))
         )
 
         # Neuron populations
@@ -218,6 +219,17 @@ if not args.testing:
                     else "excitatory"
                 )
             )
+    if args.lat_lat_conn:
+        for number_pre in range(10):
+            for number_post in range(10):
+                sim.Projection(
+                    target_column[number_pre], target_column[number_post],
+                    sim.OneToOneConnector(g_max, args.delay),
+                    label="lat_lat_projection"
+                          + str(number_pre) + "" + str(number_post),
+                    target="inhibitory"
+                )
+
 else:
     # Testing mode is activated.
     # 1. Retrieve connectivity for each pair of populations
@@ -312,6 +324,16 @@ else:
                     else "excitatory"
                 )
             )
+    if args.lat_lat_conn:
+        for number_pre in range(10):
+            for number_post in range(10):
+                sim.Projection(
+                    target_column[number_pre], target_column[number_post],
+                    sim.OneToOneConnector(g_max, args.delay),
+                    label="lat_lat_projection"
+                          + str(number_pre) + "" + str(number_post),
+                    target="inhibitory"
+                )
 
 if args.record_source:
     for source_pop in source_column:

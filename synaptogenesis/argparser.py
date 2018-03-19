@@ -48,6 +48,9 @@ NO_LESION = 0
 RANDOM_CONNECTIVITY_LESION = 1
 ONE_TO_ONE_LESION = 2
 
+# Enable latero-lateral interaction
+DEFAULT_LAT_LAT_CONN = False
+
 
 parser = argparse.ArgumentParser(
     description='Test for topographic map formation using STDP and synaptic rewiring'
@@ -183,9 +186,15 @@ parser.add_argument('--random_input',
                     help="instead of input a digit"
                          " input noise at prescribed f_mean",
                     action="store_true")
+
 parser.add_argument('--no_lateral_conn',
                     help="run experiment without lateral "
                          "connectivity",
+                    action="store_true")
+
+parser.add_argument('--lat_lat_conn',
+                    help="run experiment with latero-lateral "
+                         "connectivity", default=DEFAULT_LAT_LAT_CONN,
                     action="store_true")
 
 args = parser.parse_args()
