@@ -14,11 +14,9 @@ import spynnaker7.pyNN as sim
 
 from function_definitions import *
 from argparser import *
-from pacman.model.constraints.placer_constraints import \
-    PlacerChipAndCoreConstraint
 
 case = args.case
-print "Case", case, "selected!"
+print("Case", case, "selected!")
 
 # SpiNNaker setup
 start_time = plt.datetime.datetime.now()
@@ -123,20 +121,20 @@ sim_params = {'g_max': g_max,
               'a_plus': a_plus,
               'input_type': args.input_type,
               'random_partner': args.random_partner,
-              'lesion':args.lesion
+              'lesion': args.lesion
               }
 
 if args.input_type == GAUSSIAN_INPUT:
-    print "Gaussian input"
+    print("Gaussian input")
     gen_rate = generate_gaussian_input_rates
 elif args.input_type == POINTY_INPUT:
-    print "Pointy input"
+    print("Pointy input")
     gen_rate = generate_rates
 elif args.input_type == SCALED_POINTY_INPUT:
-    print "Scaled pointy input"
+    print("Scaled pointy input")
     gen_rate = generate_scaled_pointy_rates
 elif args.input_type == SQUARE_INPUT:
-    print "Square input"
+    print("Square input")
     gen_rate = generate_square_rates
 
 # +-------------------------------------------------------------------+
@@ -157,10 +155,10 @@ elif case == CASE_CORR_AND_REW or case == CASE_CORR_NO_REW:
     rates = np.empty((simtime // t_stim, grid[0], grid[1]))
     for rate_id in range(simtime // t_stim):
         r = gen_rate(np.random.randint(0, n, size=2),
-                           f_base=f_base,
-                           grid=grid,
-                           f_peak=args.f_peak,
-                           sigma_stim=sigma_stim)
+                     f_base=f_base,
+                     grid=grid,
+                     f_peak=args.f_peak,
+                     sigma_stim=sigma_stim)
         # assert np.isclose(np.average(r), f_mean, 0.1, 0.1), np.average(r)
 
         rates[rate_id, :, :] = r
@@ -191,7 +189,7 @@ if args.initial_connectivity_file is None:
         sigma_form_lateral, p_form_lateral,
         "\nGenerating initial lateral connectivity...",
         N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=args.delay)
-    print "\n"
+    print("\n")
 else:
     if "npz" in args.initial_connectivity_file:
         initial_connectivity = np.load(args.initial_connectivity_file)
@@ -218,7 +216,6 @@ else:
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
 # Putting this populations on chip 0 1 makes it easier to copy the provenance
 # data somewhere else
-target_pop.set_constraint(PlacerChipAndCoreConstraint(0, 1))
 # Connections
 # Plastic Connections between pre_pop and post_pop
 
@@ -253,7 +250,7 @@ elif case == CASE_CORR_NO_REW:
 # structure_model_w_stdp = sim.StructuralMechanism(weight=g_max, s_max=s_max)
 
 if not args.lesion:
-    print "No insults"
+    print("No insults")
     ff_projection = sim.Projection(
         source_pop, target_pop,
         sim.FromListConnector(init_ff_connections),
@@ -275,7 +272,7 @@ elif args.lesion == ONE_TO_ONE_LESION:
     # subsample_lat = np.random.choice(lat_pos, 10)
     # init_ff_connections = np.asarray(init_ff_connections)
     # init_lat_connections = np.asarray(init_lat_connections)
-    print "Insulted network"
+    print("Insulted network")
 
     # ff_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in range(N_layer) if np.random.rand() < .05]
     # lat_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in range(N_layer) if np.random.rand() < .05]
@@ -320,10 +317,12 @@ elif args.lesion == RANDOM_CONNECTIVITY_LESION:
     # subsample_lat = np.random.choice(lat_pos, 10)
     # init_ff_connections = np.asarray(init_ff_connections)
     # init_lat_connections = np.asarray(init_lat_connections)
-    print "Insulted network"
+    print("Insulted network")
 
-    ff_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in range(N_layer) if np.random.rand() < .05]
-    lat_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in range(N_layer) if np.random.rand() < .05]
+    ff_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in
+                    range(N_layer) if np.random.rand() < .05]
+    lat_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in
+                     range(N_layer) if np.random.rand() < .05]
 
     init_ff_connections = ff_prob_conn
     init_lat_connections = lat_prob_conn
@@ -387,14 +386,14 @@ post_delays = []
 
 # rates_history = np.zeros((16, 16, simtime // t_stim))
 e = None
-print "Starting the sim"
+print("Starting the sim")
 
 no_runs = simtime // t_record
 run_duration = t_record
 
 try:
     for current_run in range(no_runs):
-        print "run", current_run + 1, "of", no_runs
+        print("run", current_run + 1, "of", no_runs)
         sim.run(run_duration)
 
         # this kind of reloading is not yet implemented
@@ -412,7 +411,6 @@ try:
         #         rates[rate_id, :, :] = r
         #     rates = rates.reshape(t_record // t_stim, N_layer)
         #     source_pop.set("rate", rates.ravel())
-
 
         if (current_run + 1) * run_duration % t_record == 0:
             pre_weights.append(
@@ -435,7 +433,7 @@ try:
     # End simulation on SpiNNaker
     sim.end()
 except Exception as e:
-    # print e
+    # print(e)
     traceback.print_exc()
 # print("Weights:", plastic_projection.getWeights())
 end_time = plt.datetime.datetime.now()
@@ -444,7 +442,7 @@ total_time = end_time - start_time
 pre_spikes = np.asarray(pre_spikes)
 post_spikes = np.asarray(post_spikes)
 
-print "Total time elapsed -- " + str(total_time)
+print("Total time elapsed -- " + str(total_time))
 
 suffix = end_time.strftime("_%H%M%S_%d%m%Y")
 
@@ -498,7 +496,7 @@ if args.plot and e is None:
             ax1.set_title(title)
 
         else:
-            print "No spikes received"
+            print("No spikes received")
 
 
     plot_spikes(pre_spikes, "Source layer spikes")
@@ -548,5 +546,5 @@ if args.plot and e is None:
     cbar.set_label("Synaptic conductance - $G_{syn}$", fontsize=16)
     plt.show()
 
-print "Results in", filename
-print "Total time elapsed -- " + str(total_time)
+print("Results in", filename)
+print("Total time elapsed -- " + str(total_time))

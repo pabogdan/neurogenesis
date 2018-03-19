@@ -162,7 +162,6 @@ if not args.testing:
     target_column = []
     lat_connections = []
 
-
     init_ff_connections = [(i, j, g_max, args.delay) for i in
                            range(N_layer)
                            for j in range(N_layer) if
@@ -331,7 +330,7 @@ no_runs = simtime // t_record
 run_duration = t_record
 
 for current_run in range(no_runs):
-    print "run", current_run + 1, "of", no_runs
+    print("run", current_run + 1, "of", no_runs)
     sim.run(run_duration)
 
     # Retrieve data if training
@@ -364,7 +363,7 @@ sim.end()
 end_time = plt.datetime.datetime.now()
 total_time = end_time - start_time
 
-print "Total time elapsed -- " + str(total_time)
+print("Total time elapsed -- " + str(total_time))
 
 suffix = end_time.strftime("_%H%M%S_%d%m%Y")
 
@@ -401,12 +400,12 @@ if args.plot:
             ax1.set_title(title)
 
         else:
-            print "No spikes received"
+            print("No spikes received")
 
 
     plot_spikes(pre_spikes, "Source layer spikes")
     plt.show()
     plot_spikes(post_spikes, "Target layer spikes")
     plt.show()
-print "Results in", filename
-print "Total time elapsed -- " + str(total_time)
+print("Results in", filename)
+print("Total time elapsed -- " + str(total_time))
