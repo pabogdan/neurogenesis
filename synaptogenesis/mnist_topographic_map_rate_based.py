@@ -124,7 +124,7 @@ stdp_model = sim.STDPMechanism(
 )
 
 if args.case == CASE_CORR_AND_REW:
-    structure_model_w_stdp = sim.StructuralMechanism(
+    structure_model_w_stdp = sim.StructuralMechanismSTDP(
         stdp_model=stdp_model,
         weight=g_max,
         s_max=s_max,
@@ -138,7 +138,7 @@ if args.case == CASE_CORR_AND_REW:
         p_form_forward=p_form_forward,
         p_form_lateral=p_form_lateral)
 elif args.case == CASE_REW_NO_CORR or args.case == CASE_CORR_NO_REW:
-    structure_model_w_stdp = sim.StructuralMechanism(
+    structure_model_w_stdp = sim.StructuralMechanismStatic(
         weight=g_max,
         s_max=s_max,
         grid=grid, f_rew=f_rew,

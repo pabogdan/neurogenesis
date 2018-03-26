@@ -6,14 +6,14 @@ http://hdl.handle.net/1842/3997
 # Imports
 import traceback
 
+from function_definitions import *
+from argparser import *
+
 import numpy as np
 import pylab as plt
-import time
 
 import spynnaker7.pyNN as sim
 
-from function_definitions import *
-from argparser import *
 
 case = args.case
 print("Case", case, "selected!")
@@ -228,7 +228,7 @@ stdp_model = sim.STDPMechanism(
                                                    A_minus=a_minus)
 )
 if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
-    structure_model_w_stdp = sim.StructuralMechanism(
+    structure_model_w_stdp = sim.StructuralMechanismSTDP(
         stdp_model=stdp_model,
         weight=g_max,
         delay=args.delay,
