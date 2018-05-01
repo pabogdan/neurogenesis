@@ -53,8 +53,8 @@ DEFAULT_LAT_LAT_CONN = False
 
 
 parser = argparse.ArgumentParser(
-    description='Test for topographic map formation using STDP and synaptic rewiring'
-                ' on SpiNNaker.',
+    description='Test for topographic map formation using STDP and '
+                'synaptic rewiring on SpiNNaker.',
     formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument("-c", '--case', type=int,
                     choices=[CASE_CORR_AND_REW, CASE_CORR_NO_REW,
@@ -71,7 +71,8 @@ parser.add_argument("-l", '--lesion', type=int,
                     choices=[NO_LESION, RANDOM_CONNECTIVITY_LESION,
                              ONE_TO_ONE_LESION],
                     default=NO_LESION, dest='lesion',
-                    help='what type of lesion to do (none, random, 1:1)')
+                    help='what type of lesion to do (none, random, 1:1, '
+                         'all:all)')
 
 parser.add_argument('--p_elim_dep', type=float,
                     default=DEFAULT_P_ELIM_DEP, dest='p_elim_dep',

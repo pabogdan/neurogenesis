@@ -312,3 +312,21 @@ def load_mnist_rates(in_path, class_idx, min_noise=0, max_noise=0,
             del data
 
     return on_rates, off_rates
+
+def generate_rates_very_pointy(s, grid, f_base=5., f_peak=152.8, sigma_stim=2.,
+                   f_mean=20.):
+    '''
+    Function that generates an array the same shape as the input layer so that
+    each cell has a value corresponding to the firing rate for the neuron
+    at that position.
+
+    THIS FUNCTION DOES NOT PRODUCE THE CORRECT FIRING PATTERN!
+    USE ANY OF THE OTHERS!
+    '''
+    _rates = np.empty(grid)
+    for x in range(grid[0]):
+        for y in range(grid[1]):
+            _d = distance(s, (x, y), grid)
+            _rates[x, y] = f_base + (f_peak * (np.exp(
+                (-_d ) / (2 * sigma_stim ** 2))))
+    return _rates

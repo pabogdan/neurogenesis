@@ -90,6 +90,7 @@ b = args.b
 tau_plus = 20.  # ms
 tau_minus = args.t_minus  # ms
 a_minus = (a_plus * tau_plus * b) / tau_minus
+# a_minus = 0.0375
 
 # Reporting
 
@@ -280,25 +281,26 @@ elif args.lesion == ONE_TO_ONE_LESION:
     # init_ff_connections = ff_prob_conn
     # init_lat_connections = lat_prob_conn
 
-    one_to_one_conn = [(i, i, g_max, args.delay) for i in range(N_layer)]
+    # one_to_one_conn = [(i, i, g_max, args.delay) for i in range(N_layer)]
+    one_to_one_conn = []
     ff_projection = sim.Projection(
         source_pop, target_pop,
-        sim.FromListConnector(one_to_one_conn),
+        # sim.FromListConnector(one_to_one_conn),
         # sim.FromListConnector(ff_prob_conn),
         # sim.OneToOneConnector(weights=g_max, delays=args.delay),
         # sim.FromListConnector(init_ff_connections[subsample_ff]),
-        # sim.FixedProbabilityConnector(weights=g_max, p_connect=0.01),
+        sim.FixedProbabilityConnector(p_connect=0.),
         synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
         label="plastic_ff_projection"
     )
 
     lat_projection = sim.Projection(
         target_pop, target_pop,
-        sim.FromListConnector(one_to_one_conn),
+        # sim.FromListConnector(one_to_one_conn),
         # sim.FromListConnector(lat_prob_conn),
         # sim.OneToOneConnector(weights=g_max, delays=args.delay),
         # sim.FromListConnector(init_lat_connections[subsample_lat]),
-        # sim.FixedProbabilityConnector(weights=g_max, p_connect=0.01),
+        sim.FixedProbabilityConnector(p_connect=0.0),
         synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
         label="plastic_lat_projection",
         target="inhibitory" if args.lateral_inhibition else "excitatory"
@@ -396,21 +398,6 @@ try:
         print("run", current_run + 1, "of", no_runs)
         sim.run(run_duration)
 
-        # this kind of reloading is not yet implemented
-        # if case == CASE_CORR_AND_REW or case == CASE_CORR_NO_REW:
-        #
-        #     rates = np.empty((t_record // t_stim, grid[0], grid[1]))
-        #     for rate_id in range(t_record // t_stim):
-        #         r = gen_rate(np.random.randint(0, n, size=2),
-        #                            f_base=f_base,
-        #                            grid=grid,
-        #                            f_peak=args.f_peak,
-        #                            sigma_stim=sigma_stim)
-        #         # assert np.isclose(np.average(r), f_mean, 0.1, 0.1), np.average(r)
-        #
-        #         rates[rate_id, :, :] = r
-        #     rates = rates.reshape(t_record // t_stim, N_layer)
-        #     source_pop.set("rate", rates.ravel())
 
         if (current_run + 1) * run_duration % t_record == 0:
             pre_weights.append(
