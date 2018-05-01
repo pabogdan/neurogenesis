@@ -102,6 +102,10 @@ for file in paths:
 
         last_conn, last_weight = list_to_post_pre(ff_last, lat_last,
                                                   s_max, N_layer)
+        if ff_init.size == 0:
+            ff_init = np.asarray([[0,0,0,0]])
+        if lat_init.size == 0:
+            lat_init = np.asarray([[0,0,0,0]])
         init_conn, init_weight = list_to_post_pre(ff_init, lat_init,
                                                   s_max, N_layer)
 
@@ -187,17 +191,26 @@ for file in paths:
         final_mean_number_ff_synapses = number_ff_incoming_connections / float(
             N_layer)
 
-        initial_weight_mean = np.mean(ff_init[:, 2])
+        initial_weight_mean = np.sum(ff_init[:, 2])
 
-        final_weight_mean = np.mean(ff_last[:, 2])
+        final_weight_mean = np.sum(ff_last[:, 2])
 
         final_weight_proportion = final_weight_mean / initial_weight_mean
+
+        initial_lat_weight_mean = np.sum(lat_init[:, 2])
+        final_lat_weight_mean = np.sum(lat_last[:, 2])
+
+        final_lat_weight_proportion = \
+            final_lat_weight_mean / initial_lat_weight_mean
+
+        print(final_weight_proportion, final_lat_weight_proportion)
 
         # a
 
         init_fan_in = fan_in(init_conn, init_weight, 'conn', 'ff')
 
-        mean_projection, means_and_std_devs, means_for_plot, mean_centred_projection = centre_weights(
+        mean_projection, means_and_std_devs, means_for_plot, \
+        mean_centred_projection = centre_weights(
             init_fan_in, 16)
 
         init_mean_std = np.mean(means_and_std_devs[:, 5])
@@ -209,7 +222,8 @@ for file in paths:
 
         # b
         final_fan_in = fan_in(last_conn, last_weight, 'conn', 'ff')
-        fin_mean_projection, fin_means_and_std_devs, fin_means_for_plot, fin_mean_centred_projection = centre_weights(
+        fin_mean_projection, fin_means_and_std_devs, fin_means_for_plot, \
+        fin_mean_centred_projection = centre_weights(
             final_fan_in, s_max)
         fin_mean_std_conn = np.mean(fin_means_and_std_devs[:, 5])
         fin_mean_AD_conn = np.mean(fin_means_and_std_devs[:, 4])
@@ -281,7 +295,6 @@ for file in paths:
         fin_weight_ff_odc = odc(final_fan_in_weight)
 
         # e
-
         weight_copy = weight_shuffle(last_conn, last_weight, 'ff')
         shuf_weights = fan_in(last_conn, weight_copy, 'weight', 'ff')
 
@@ -358,7 +371,19 @@ for file in paths:
                 wsr_AD_fin_weight_fin_weight_shuffle.pvalue,
                 file
             ))
-
+        # final weight histogram
+        # ff weight histogram
+        plt.figure(figsize=(10, 5), dpi=600)
+        plt.hist(ff_last[:, 2]/g_max, bins=100, normed=True)
+        plt.title("Histogram of feedforward weights")
+        plt.tight_layout()
+        plt.show()
+        # lat weight histogram
+        plt.figure(figsize=(10, 5), dpi=600)
+        plt.hist(lat_last[:, 2]/g_max, bins=100, normed=True)
+        plt.title("Histogram of lateral weights")
+        plt.tight_layout()
+        plt.show()
         # LAT connection bar chart
 
         init_fan_in_rec = fan_in(init_conn, init_weight, 'conn', 'rec')
