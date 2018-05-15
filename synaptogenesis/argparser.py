@@ -9,14 +9,14 @@ SSP = 1
 SSA = 2
 
 DEFAULT_TAU_REFRAC = 5.0
-DEFAULT_T_RECORD = 30000
 DEFAULT_F_PEAK = 152.8
 DEFAULT_NO_INTERATIONS = 300000
+DEFAULT_T_RECORD = DEFAULT_NO_INTERATIONS
 DEFAULT_T_STIM = 20
 DEFAULT_S_MAX = 32
 DEFAULT_F_MEAN = 20
 DEFAULT_F_REW = 10**4
-DEFAULT_LAT_INH = 0
+DEFAULT_LAT_INH = False
 
 DEFAULT_N = 16
 
@@ -114,8 +114,8 @@ parser.add_argument('--t_record', type=int,
                     default=DEFAULT_T_RECORD, dest='t_record',
                     help='time between retrieval of recordings (ms)')
 
-parser.add_argument('--lat_inh', type=int,
-                    default=DEFAULT_LAT_INH, dest='lateral_inhibition',
+parser.add_argument('--lat_inh', action="store_true",
+                    dest='lateral_inhibition',
                     help='enable lateral inhibition')
 
 parser.add_argument('--t_stim', type=int,
