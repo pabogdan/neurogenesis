@@ -15,8 +15,9 @@ DEFAULT_T_RECORD = DEFAULT_NO_INTERATIONS
 DEFAULT_T_STIM = 20
 DEFAULT_S_MAX = 32
 DEFAULT_F_MEAN = 20
-DEFAULT_F_REW = 10**4
+DEFAULT_F_REW = 10 ** 4
 DEFAULT_LAT_INH = False
+DEFAULT_G_MAX = 0.2
 
 DEFAULT_N = 16
 
@@ -51,6 +52,8 @@ ONE_TO_ONE_LESION = 2
 # Enable latero-lateral interaction
 DEFAULT_LAT_LAT_CONN = False
 
+# Topology configuration
+DEFAULT_TOPOLOGY = 1
 
 parser = argparse.ArgumentParser(
     description='Test for topographic map formation using STDP and '
@@ -77,6 +80,10 @@ parser.add_argument("-l", '--lesion', type=int,
 parser.add_argument('--p_elim_dep', type=float,
                     default=DEFAULT_P_ELIM_DEP, dest='p_elim_dep',
                     help='probability of eliminating depressed synapses')
+
+parser.add_argument('--g_max', type=float,
+                    default=DEFAULT_G_MAX, dest='g_max',
+                    help='Maximum synaptic weight')
 
 parser.add_argument('--p_elim_pot', type=float,
                     default=DEFAULT_P_ELIM_POT, dest='p_elim_pot',
@@ -106,7 +113,7 @@ parser.add_argument('--sigma_form_ff', type=float,
                     default=DEFAULT_SIGMA_FORM_FF, dest='sigma_form_ff',
                     help='spread of feedforward formations')
 
-parser.add_argument('-n','--n', type=int,
+parser.add_argument('-n', '--n', type=int,
                     default=DEFAULT_N, dest='n',
                     help='size of one edge of the layer (default 16)')
 
@@ -197,5 +204,11 @@ parser.add_argument('--lat_lat_conn',
                     help="run experiment with latero-lateral "
                          "connectivity", default=DEFAULT_LAT_LAT_CONN,
                     action="store_true")
+
+parser.add_argument('--topology',
+                    help="[Application Dependent] Generally, modifies the "
+                         "architecture of the network ",
+                    type=int, default=DEFAULT_TOPOLOGY,
+                    dest='topology')
 
 args = parser.parse_args()

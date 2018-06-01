@@ -139,107 +139,126 @@ else:
 # +-------------------------------------------------------------------+
 # Need to setup the moving input
 
-if not args.testing:
-
-    input_grating_fname = 'drifting_gratings/spikes_EAST_32x32_200fps.txt'
+fname = 'drifting_gratings/spikes_EAST_32x32_200fps.txt'
+if case == CASE_CORR_AND_REW:
     size_bits = int(np.ceil(np.log2(n)))  # square => width==height
     fps = 200.
     dt_ms = int(1000. / fps)
     print(n, n, fps, size_bits, dt_ms)
 
-    spikes = load_compressed_spikes(input_grating_fname)
+    spikes = load_compressed_spikes(fname)
 
     spk_on, spk_off = split_in_spikes(spikes, row_bits=size_bits,
                                       col_bits=size_bits, chann_bits=1,
                                       width=n)
 
     one_cycle = xyp2ssa(spk_on, n, n)
-    all_gratings = tile_grating_times(one_cycle, simtime)
+    all_gratings = []
+    cycle_end = 10000
+    for i in range(len(one_cycle)):
+        temp_times = np.asarray(one_cycle[i])
+        tiled_times = np.tile(temp_times, simtime // cycle_end)
+        if tiled_times.size > 0:
+            for another_i in range(tiled_times.size // temp_times.size):
+                tiled_times[temp_times.size * another_i:temp_times.size * (
+                        another_i + 1)] += cycle_end * another_i
+
+        noisy_times = tiled_times + np.random.randint(-1, 2,
+                                                      size=tiled_times.size)
+        all_gratings.append(noisy_times)
 
     source_pop = sim.Population(N_layer,
                                 sim.SpikeSourceArray,
                                 {'spike_times': all_gratings
-                                 }, label="Moving grating on population")
+                                 }, label="Moving grating on")
 
     one_cycle = xyp2ssa(spk_off, n, n)
-    all_gratings_off = tile_grating_times(one_cycle, simtime)
+    all_gratings_off = []
+    cycle_end = 10000
+    for i in range(len(one_cycle)):
+        temp_times = np.asarray(one_cycle[i])
+        tiled_times = np.tile(temp_times, simtime // cycle_end)
+        if tiled_times.size > 0:
+            for another_i in range(tiled_times.size // temp_times.size):
+                tiled_times[temp_times.size * another_i:temp_times.size * (
+                        another_i + 1)] += cycle_end * another_i
 
-    source_pop_off = sim.Population(N_layer,
-                                    sim.SpikeSourceArray,
-                                    {'spike_times': all_gratings_off
-                                     }, label="Moving grating off population")
+        noisy_times = tiled_times + np.random.randint(-1, 2,
+                                                      size=tiled_times.size)
+        all_gratings_off.append(noisy_times)
 
     noise_pop = sim.Population(N_layer,
-                               sim.SpikeSourcePoisson,
-                               {'rate': f_base,
-                                'start': 0,
-                                'duration': simtime},
-                               label="Noise population")
-else:
-    input_grating_fname = 'drifting_gratings/spikes_WEST_32x32_200fps.txt'
-    input_grating_fname_original = \
-        'drifting_gratings/spikes_WEST_32x32_200fps.txt'
-    size_bits = int(np.ceil(np.log2(n)))  # square => width==height
-    fps = 200.
-    dt_ms = int(1000. / fps)
-    print(n, n, fps, size_bits, dt_ms)
-
-    spikes = load_compressed_spikes(input_grating_fname)
-
-    spk_on, spk_off = split_in_spikes(spikes, row_bits=size_bits,
-                                      col_bits=size_bits, chann_bits=1,
-                                      width=n)
-
-    spikes_original = load_compressed_spikes(input_grating_fname_original)
-
-    spk_on_original, spk_off_original = split_in_spikes(spikes,
-                                                        row_bits=size_bits,
-                                                        col_bits=size_bits,
-                                                        chann_bits=1,
-                                                        width=n)
-
-    all_gratings = tile_grating_times(
-        xyp2ssa(spk_on, n, n), simtime)
-    all_gratings_off = tile_grating_times(
-        xyp2ssa(spk_off, n, n), simtime)
-    all_original_gratings = tile_grating_times(
-        xyp2ssa(spk_on_original, n, n), simtime)
-    all_original_off_gratings = tile_grating_times(
-        xyp2ssa(spk_off_original, n, n), simtime)
-
-    final_on_gratings = []
-    final_off_gratings = np.array([])
-
-    chunk = 200  # ms
-
-    # TODO Figure out how to tile / sequence two different directions
-    # Maybe generate them fresh here
-
-
-
-
-    source_pop = sim.Population(N_layer,
-                                sim.SpikeSourceArray,
-                                {'spike_times': final_on_gratings
-                                 }, label="Moving grating on population")
-
-    source_pop_off = sim.Population(N_layer,
-                                    sim.SpikeSourceArray,
-                                    {'spike_times': final_off_gratings
-                                     },
-                                    label="Moving grating off population")
-    noise_pop = sim.Population(N_layer,
-                               sim.SpikeSourcePoisson,
-                               {'rate': f_base,
-                                'start': 0,
-                                'duration': simtime},
-                               label="Noise population")
+                               sim.SpikeSourceArray,
+                               {'spike_times': all_gratings_off
+                                }, label="Moving grating off")
+    # rates = np.ones(grid) * f_mean
+    # source_pop = sim.Population(N_layer,
+    #                             sim.SpikeSourcePoisson,
+    #                             {'rate': rates.ravel(),
+    #                              'start': 100,
+    #                              'duration': simtime
+    #                              }, label="Poisson spike source")
+# elif case == CASE_CORR_AND_REW or case == CASE_CORR_NO_REW:
+#
+#     rates = np.empty((simtime // t_stim, grid[0], grid[1]))
+#     for rate_id in range(simtime // t_stim):
+#         r = gen_rate(np.random.randint(0, n, size=2),
+#                      f_base=f_base,
+#                      grid=grid,
+#                      f_peak=args.f_peak,
+#                      sigma_stim=sigma_stim)
+#         # assert np.isclose(np.average(r), f_mean, 0.1, 0.1), np.average(r)
+#
+#         rates[rate_id, :, :] = r
+#     rates = rates.reshape(simtime // t_stim, N_layer)
+#
+#     source_pop = sim.Population(N_layer,
+#                                 sim.SpikeSourcePoissonVariable,
+#                                 {'rate': rates,
+#                                  'start': 100,
+#                                  'duration': simtime,
+#                                  'rate_interval_duration': t_stim
+#                                  }, label="Variable-rate Poisson spike source")
 
 ff_s = np.zeros(N_layer, dtype=np.uint)
 lat_s = np.zeros(N_layer, dtype=np.uint)
 
 init_ff_connections = []
 init_lat_connections = []
+
+# if args.initial_connectivity_file is None:
+#     generate_initial_connectivity(
+#         ff_s, init_ff_connections,
+#         sigma_form_forward, p_form_forward,
+#         "\nGenerating initial feedforward connectivity...",
+#         N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=args.delay)
+#     generate_initial_connectivity(
+#         lat_s, init_lat_connections,
+#         sigma_form_lateral, p_form_lateral,
+#         "\nGenerating initial lateral connectivity...",
+#         N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=args.delay)
+#     print("\n")
+# else:
+#     if "npz" in args.initial_connectivity_file:
+#         initial_connectivity = np.load(args.initial_connectivity_file)
+#     else:
+#         import scipy.io as io
+#
+#         initial_connectivity = io.loadmat(args.initial_connectivity_file)
+#     conn = initial_connectivity['ConnPostToPre'] - 1
+#     weight = initial_connectivity['WeightPostToPre']
+#
+#     for target in range(conn.shape[1]):
+#         for index in range(conn.shape[0]):
+#             if conn[index, target] >= 0:
+#                 if conn[index, target] < N_layer:
+#                     init_ff_connections.append(
+#                         (conn[index, target], target,
+#                          weight[index, target], 1))
+#                 else:
+#                     init_lat_connections.append(
+#                         (conn[index, target] - N_layer, target,
+#                          weight[index, target], 1))
 
 # Neuron populations
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
@@ -261,7 +280,7 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
         stdp_model=stdp_model,
         weight=g_max,
         delay=[1, 15],
-        s_max=s_max * 2,
+        s_max=s_max,
         grid=grid,
         f_rew=f_rew,
         lateral_inhibition=args.lateral_inhibition,
@@ -278,7 +297,7 @@ elif case == CASE_CORR_NO_REW:
 
 # structure_model_w_stdp = sim.StructuralMechanism(weight=g_max, s_max=s_max)
 
-if not args.testing:
+if not args.lesion:
     print("No insults")
     ff_projection = sim.Projection(
         source_pop, target_pop,
@@ -288,18 +307,11 @@ if not args.testing:
         label="plastic_ff_projection"
     )
 
-    ff_off_projection = sim.Projection(
-        source_pop_off, target_pop,
-        sim.FixedProbabilityConnector(0.),
-        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-        label="ff_off_projection"
-    )
-
     noise_projection = sim.Projection(
         noise_pop, target_pop,
         sim.FixedProbabilityConnector(0.),
         synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-        label="noise_projection"
+        label="ff_off_projection"
     )
 
     lat_projection = sim.Projection(
@@ -311,40 +323,98 @@ if not args.testing:
         label="plastic_lat_projection",
         target="inhibitory" if args.lateral_inhibition else "excitatory"
     )
-else:
-    data_file_name = args.testing
-    if ".npz" not in args.testing:
-        data_file_name += ".npz"
-    testing_data = np.load(data_file_name)
-    trained_ff_on_connectivity = testing_data['ff_connections'][0]
-    trained_ff_off_connectivity = testing_data['ff_off_connections'][0]
-    trained_lat_connectivity = testing_data['lat_connections'][0]
-    trained_noise_connectivity = testing_data['noise_connections'][0]
-    print("TESTING PHASE")
+elif args.lesion == ONE_TO_ONE_LESION:
+    # ff_pos = range(len(init_ff_connections))
+    # lat_pos = range(len(init_lat_connections))
+    # subsample_ff = np.random.choice(ff_pos, 10)
+    # subsample_lat = np.random.choice(lat_pos, 10)
+    # init_ff_connections = np.asarray(init_ff_connections)
+    # init_lat_connections = np.asarray(init_lat_connections)
+    print("Insulted network")
+
+    # ff_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in range(N_layer) if np.random.rand() < .05]
+    # lat_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in range(N_layer) if np.random.rand() < .05]
+    #
+    # init_ff_connections = ff_prob_conn
+    # init_lat_connections = lat_prob_conn
+
+    # one_to_one_conn = [(i, i, g_max, args.delay) for i in range(N_layer)]
+    one_to_one_conn = []
     ff_projection = sim.Projection(
         source_pop, target_pop,
-        sim.FromListConnector(trained_ff_on_connectivity),
+        # sim.FromListConnector(one_to_one_conn),
+        # sim.FromListConnector(ff_prob_conn),
+        # sim.OneToOneConnector(weights=g_max, delays=args.delay),
+        # sim.FromListConnector(init_ff_connections[subsample_ff]),
+        sim.FixedProbabilityConnector(p_connect=0.),
+        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
         label="plastic_ff_projection"
-    )
-
-    ff_off_projection = sim.Projection(
-        source_pop_off, target_pop,
-        sim.FromListConnector(trained_ff_off_connectivity),
-        label="ff_off_projection"
-    )
-
-    noise_projection = sim.Projection(
-        noise_pop, target_pop,
-        sim.FromListConnector(trained_noise_connectivity),
-        label="noise_projection"
     )
 
     lat_projection = sim.Projection(
         target_pop, target_pop,
-        sim.FromListConnector(trained_lat_connectivity),
+        # sim.FromListConnector(one_to_one_conn),
+        # sim.FromListConnector(lat_prob_conn),
+        # sim.OneToOneConnector(weights=g_max, delays=args.delay),
+        # sim.FromListConnector(init_lat_connections[subsample_lat]),
+        sim.FixedProbabilityConnector(p_connect=0.0),
+        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
         label="plastic_lat_projection",
         target="inhibitory" if args.lateral_inhibition else "excitatory"
     )
+
+    init_ff_connections = one_to_one_conn
+    init_lat_connections = one_to_one_conn
+
+    # init_ff_connections = init_ff_connections[subsample_ff]
+    # init_lat_connections = init_lat_connections[subsample_lat]
+
+elif args.lesion == RANDOM_CONNECTIVITY_LESION:
+    # ff_pos = range(len(init_ff_connections))
+    # lat_pos = range(len(init_lat_connections))
+    # subsample_ff = np.random.choice(ff_pos, 10)
+    # subsample_lat = np.random.choice(lat_pos, 10)
+    # init_ff_connections = np.asarray(init_ff_connections)
+    # init_lat_connections = np.asarray(init_lat_connections)
+    print("Insulted network")
+
+    ff_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in
+                    range(N_layer) if np.random.rand() < .05]
+    lat_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in
+                     range(N_layer) if np.random.rand() < .05]
+
+    init_ff_connections = ff_prob_conn
+    init_lat_connections = lat_prob_conn
+
+    # one_to_one_conn = [(i, i, g_max, args.delay) for i in range(N_layer)]
+    ff_projection = sim.Projection(
+        source_pop, target_pop,
+        # sim.FromListConnector(one_to_one_conn),
+        sim.FromListConnector(ff_prob_conn),
+        # sim.OneToOneConnector(weights=g_max, delays=args.delay),
+        # sim.FromListConnector(init_ff_connections[subsample_ff]),
+        # sim.FixedProbabilityConnector(weights=g_max, p_connect=0.01),
+        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+        label="plastic_ff_projection"
+    )
+
+    lat_projection = sim.Projection(
+        target_pop, target_pop,
+        # sim.FromListConnector(one_to_one_conn),
+        sim.FromListConnector(lat_prob_conn),
+        # sim.OneToOneConnector(weights=g_max, delays=args.delay),
+        # sim.FromListConnector(init_lat_connections[subsample_lat]),
+        # sim.FixedProbabilityConnector(weights=g_max, p_connect=0.01),
+        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+        label="plastic_lat_projection",
+        target="inhibitory" if args.lateral_inhibition else "excitatory"
+    )
+
+    # init_ff_connections = one_to_one_conn
+    # init_lat_connections = one_to_one_conn
+    #
+    # init_ff_connections = init_ff_connections[subsample_ff]
+    # init_lat_connections = init_lat_connections[subsample_lat]
 
 # +-------------------------------------------------------------------+
 # | Simulation and results                                            |
@@ -368,11 +438,6 @@ pre_targets = []
 pre_weights = []
 pre_delays = []
 
-pre_off_sources = []
-pre_off_targets = []
-pre_off_weights = []
-pre_off_delays = []
-
 noise_sources = []
 noise_targets = []
 noise_weights = []
@@ -395,22 +460,13 @@ try:
         print("run", current_run + 1, "of", no_runs)
         sim.run(run_duration)
 
-        if (current_run + 1) * run_duration % t_record == 0 and not \
-                args.testing:
+        if (current_run + 1) * run_duration % t_record == 0:
             pre_weights.append(
                 np.array([
                     ff_projection._get_synaptic_data(True, 'source'),
                     ff_projection._get_synaptic_data(True, 'target'),
                     ff_projection._get_synaptic_data(True, 'weight'),
                     ff_projection._get_synaptic_data(True, 'delay')]).T)
-            pre_off_weights.append(
-                np.array([
-                    ff_off_projection._get_synaptic_data(True, 'source'),
-                    ff_off_projection._get_synaptic_data(True, 'target'),
-                    ff_off_projection._get_synaptic_data(True, 'weight'),
-                    ff_off_projection._get_synaptic_data(True,
-                                                         'delay')]).T)
-
             noise_weights.append(
                 np.array([
                     noise_projection._get_synaptic_data(True, 'source'),
@@ -446,13 +502,11 @@ suffix = end_time.strftime("_%H%M%S_%d%m%Y")
 
 if args.filename:
     filename = args.filename
-elif args.testing:
-    filename = "testing_" + args.testing
 else:
     filename = "drifting_grating_topographic_map_results" + str(suffix)
 
-# total_target_neuron_mean_spike_rate = \
-#     post_spikes.shape[0] / float(simtime) * 1000. / N_layer
+total_target_neuron_mean_spike_rate = \
+    post_spikes.shape[0] / float(simtime) * 1000. / N_layer
 
 np.savez(filename, pre_spikes=pre_spikes,
          post_spikes=post_spikes,
@@ -460,18 +514,16 @@ np.savez(filename, pre_spikes=pre_spikes,
          init_lat_connections=init_lat_connections,
          ff_connections=pre_weights,
          lat_connections=post_weights,
-         ff_off_connections=pre_off_weights,
          noise_connections=noise_weights,
          final_pre_weights=pre_weights[-1],
          final_post_weights=post_weights[-1],
          simtime=simtime,
          sim_params=sim_params,
          total_time=total_time,
-         mean_firing_rate=None,
+         mean_firing_rate=total_target_neuron_mean_spike_rate,
          exception=e,
          insult=args.lesion,
-         input_type=args.input_type,
-         testing=args.testing)
+         input_type=args.input_type)
 
 # Plotting
 if args.plot and e is None:
@@ -493,8 +545,7 @@ if args.plot and e is None:
         if spikes is not None and len(spikes) > 0:
             f, ax1 = plt.subplots(1, 1, figsize=(16, 8))
             ax1.set_xlim((0, simtime))
-            ax1.scatter([i[1] for i in spikes], [i[0] for i in spikes],
-                        s=.2)
+            ax1.scatter([i[1] for i in spikes], [i[0] for i in spikes], s=.2)
             ax1.set_xlabel('Time/ms')
             ax1.set_ylabel('spikes')
             ax1.set_title(title)

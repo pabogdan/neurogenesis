@@ -6,6 +6,27 @@ def pol2cart(theta, rho):
     y = rho * np.sin(theta)
     return x, y
 
+def cart2pol(x, y):
+    rho = np.sqrt(x**2 + y**2)
+    phi = np.arctan2(y, x)
+    return(rho, phi)
+
+
+def index_to_dist(i1, i2, grid):
+    return distance((i1//grid[0], i1%grid[1]),(i2//grid[0], i2%grid[1]), grid=grid, type='euclidian')
+
+def polar_connectivity(conn_list, grid):
+    polar_conn = []
+    for source, target, weight, delay in conn_list:
+        s_x = np.asarray((source//grid[0], source%grid[1]))
+        t_y = np.asarray((target//grid[0], target%grid[1]))
+        dif = s_x-t_y
+        s_p, t_p = cart2pol(dif[0], dif[1])
+        polar_conn.append((s_p, t_p, weight, delay,
+                           distance(s_x, t_y, grid=grid, type='euclidian')))
+    return polar_conn
+
+
 
 def radial_sample(in_matrix, samplenum):
     _, insize = in_matrix.shape

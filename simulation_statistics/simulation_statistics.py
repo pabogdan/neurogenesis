@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
+from matplotlib import animation, rc, colors
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import scipy
 import scipy.stats as stats
@@ -84,6 +85,7 @@ for file in paths:
             f_rew = simdata['f_rew']
         except:
             # use defaults
+            print "USING DEFAULTS! SOMETHING WENT WRONG!"
             grid = np.asarray([16, 16])
             N_layer = 256
             n = 32
@@ -97,6 +99,7 @@ for file in paths:
             f_rew = 10 ** 4  # Hz
             g_max = .2
 
+        print N_layer
         total_target_neuron_mean_spike_rate = \
             post_spikes.shape[0] / float(simtime) * 1000. / N_layer
 
@@ -444,6 +447,7 @@ for file in paths:
         final_fan_in_ff_rad_conn = \
             radial_sample(final_mean_projection_ff_conn, 100)
 
+
         # Time stuff
 
         end_time = plt.datetime.datetime.now()
@@ -515,11 +519,11 @@ for file in paths:
 
         if args.plot and not sensitivity_analysis:
 
-            final_ff_weight_network = np.ones((256, 256)) * np.nan
-            final_lat_weight_network = np.ones((256, 256)) * np.nan
+            final_ff_weight_network = np.ones((N_layer, N_layer)) * np.nan
+            final_lat_weight_network = np.ones((N_layer, N_layer)) * np.nan
 
-            final_ff_conn_network = np.ones((256, 256)) * np.nan
-            final_lat_conn_network = np.ones((256, 256)) * np.nan
+            final_ff_conn_network = np.ones((N_layer, N_layer)) * np.nan
+            final_lat_conn_network = np.ones((N_layer, N_layer)) * np.nan
             for source, target, weight, delay in ff_last:
                 if np.isnan(final_ff_weight_network[int(source), int(target)]):
                     final_ff_weight_network[int(source), int(target)] = weight
@@ -542,49 +546,42 @@ for file in paths:
                 else:
                     final_lat_conn_network[int(source), int(target)] += 1
 
-            f, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 8), sharey=True)
+            # f, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 8), sharey=True)
+            #
+            # maximum = np.nanmax(
+            #     [final_ff_weight_network, final_lat_weight_network])
+            #
+            # i = ax1.matshow(np.nan_to_num(final_ff_weight_network),
+            #                 vmax=maximum)
+            # i2 = ax2.matshow(np.nan_to_num(final_lat_weight_network),
+            #                  vmax=maximum)
+            # ax1.grid(visible=False)
+            # ax1.set_title("Feedforward weighted connectivity matrix",
+            #               fontsize=16)
+            # ax2.set_title("Lateral weighted connectivity matrix", fontsize=16)
+            #
+            # cbar = f.colorbar(i2, ax=[ax1, ax2])
+            # cbar.set_label("Weight", fontsize=14)
+            #
+            # plt.show()
 
-            maximum = np.nanmax(
-                [final_ff_weight_network, final_lat_weight_network])
+            # f, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7), sharey=True)
+            #
+            # maximum = np.nanmax(
+            #     [final_ff_conn_network, final_lat_conn_network])
+            #
+            # i = ax1.matshow(np.nan_to_num(final_ff_conn_network),
+            #                 vmax=maximum)
+            # i2 = ax2.matshow(np.nan_to_num(final_lat_conn_network),
+            #                  vmax=maximum)
+            # ax1.grid(visible=False)
+            # ax1.set_title("Feedforward connectivity matrix", fontsize=16)
+            # ax2.set_title("Lateral connectivity matrix", fontsize=16)
 
-            i = ax1.matshow(np.nan_to_num(final_ff_weight_network),
-                            vmax=maximum)
-            i2 = ax2.matshow(np.nan_to_num(final_lat_weight_network),
-                             vmax=maximum)
-            ax1.grid(visible=False)
-            ax1.set_title("Feedforward weighted connectivity matrix",
-                          fontsize=16)
-            ax2.set_title("Lateral weighted connectivity matrix", fontsize=16)
-
-            cbar = f.colorbar(i2, ax=[ax1, ax2])
-
-            # divider = make_axes_locatable(plt.gca())
-            # cax = divider.append_axes("right", "5%", pad="3%")
-            # cbar = plt.colorbar(i2, cax=cax)
-            cbar.set_label("Weight", fontsize=14)
-
-            plt.show()
-
-            f, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7), sharey=True)
-
-            maximum = np.nanmax(
-                [final_ff_conn_network, final_lat_conn_network])
-
-            i = ax1.matshow(np.nan_to_num(final_ff_conn_network),
-                            vmax=maximum)
-            i2 = ax2.matshow(np.nan_to_num(final_lat_conn_network),
-                             vmax=maximum)
-            ax1.grid(visible=False)
-            ax1.set_title("Feedforward connectivity matrix", fontsize=16)
-            ax2.set_title("Lateral connectivity matrix", fontsize=16)
-            # divider = make_axes_locatable(plt.gca())
-            # cax = divider.append_axes("right", "5%", pad="3%")
-            # cbar = plt.colorbar(i2, cax=cax)
-
-            cbar = f.colorbar(i2, ax=[ax1, ax2])
-            cbar.set_label("Number of connections", fontsize=14)
-
-            plt.show()
+            # cbar = f.colorbar(i2, ax=[ax1, ax2])
+            # cbar.set_label("Number of connections", fontsize=14)
+            #
+            # plt.show()
 
             # Plot final synaptic capacity usage per postsynaptic neuron
 
@@ -632,26 +629,89 @@ for file in paths:
 
             plt.show()
 
+            # Aligned stuff
+            final_ff_conn_network = np.ones((N_layer, N_layer)) * np.nan
+            final_lat_conn_network = np.ones((N_layer, N_layer)) * np.nan
+            init_ff_conn_network = np.ones((N_layer, N_layer)) * np.nan
+
+            ff_num_network = np.zeros((N_layer, N_layer))
+            lat_num_network = np.zeros((N_layer, N_layer))
+
+            init_ff_num_network = np.zeros((N_layer, N_layer))
+            for source, target, weight, delay in ff_last:
+                if np.isnan(final_ff_conn_network[int(source), int(target)]):
+                    final_ff_conn_network[int(source), int(target)] = weight
+                else:
+                    final_ff_conn_network[int(source), int(target)] += weight
+                ff_num_network[int(source), int(target)] += 1
+
+            for source, target, weight, delay in lat_last:
+                if np.isnan(final_lat_conn_network[int(source), int(target)]):
+                    final_lat_conn_network[int(source), int(target)] = weight
+                else:
+                    final_lat_conn_network[int(source), int(target)] += weight
+                lat_num_network[int(source), int(target)] += 1
+
+            for source, target, weight, delay in init_ff_connections:
+                if np.isnan(init_ff_conn_network[int(source), int(target)]):
+                    init_ff_conn_network[int(source), int(target)] = weight
+                else:
+                    init_ff_conn_network[int(source), int(target)] += weight
+                init_ff_num_network[int(source), int(target)] += 1
+
+            final_ff_conn_field = np.ones(N_layer) * 0
+            final_lat_conn_field = np.ones(N_layer) * 0
+
+            for row in range(final_ff_conn_network.shape[0]):
+                final_ff_conn_field += np.roll(
+                    np.nan_to_num(final_ff_conn_network[row, :]),
+                    (N_layer // 2 + n//2) - row)
+                final_lat_conn_field += np.roll(
+                    np.nan_to_num(final_lat_conn_network[row, :]),
+                    (N_layer // 2 + n//2) - row)
+
+            final_ff_num_field = np.ones(N_layer) * 0
+            final_lat_num_field = np.ones(N_layer) * 0
+
+            for row in range(ff_num_network.shape[0]):
+                final_ff_num_field += np.roll(
+                    np.nan_to_num(ff_num_network[row, :]),
+                    (N_layer // 2 + n//2) - row)
+                final_lat_num_field += np.roll(
+                    np.nan_to_num(lat_num_network[row, :]),
+                    (N_layer // 2 + n//2) - row)
+
+            init_ff_conn_field = np.ones(N_layer) * 0
+            init_ff_num_field = np.ones(N_layer) * 0
+            for row in range(final_ff_conn_network.shape[0]):
+                init_ff_conn_field += np.roll(
+                    np.nan_to_num(init_ff_conn_network[row, :]),
+                    (N_layer // 2 + n//2) - row)
+                init_ff_num_field += np.roll(
+                    np.nan_to_num(init_ff_num_network[row, :]),
+                    (N_layer // 2 + n//2) - row)
+
+
             # Ocular preference
 
-            fig_conn, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8),
-                                                sharey=True)
-
-            ff_conn_ax = ax1.matshow(fin_conn_ff_odc, vmin=0, vmax=1,
-                                     cmap='viridis')
-            lat_conn_ax = ax2.matshow(fin_weight_ff_odc, vmin=0, vmax=1,
-                                      cmap='viridis')
-
-            ax1.set_title("{}".format(np.mean(fin_conn_ff_odc)))
-            ax2.set_title("{}".format(np.mean(fin_weight_ff_odc)))
-
-            # cbar_ax = fig_conn.add_axes([.91, 0.155, 0.025, 0.72])
-            # cbar = fig_conn.colorbar(lat_conn_ax, cax=cbar_ax)
-            cbar = f.colorbar(i2, ax=[ax1, ax2])
-            cbar.set_label("Number of connections", fontsize=14)
-
-            cbar.set_label("Occularity measure", fontsize=12)
-            plt.show()
+            # fig_conn, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8),
+            #                                     sharey=True)
+            #
+            # ff_conn_ax = ax1.matshow(fin_conn_ff_odc, vmin=0, vmax=1,
+            #                          cmap='viridis')
+            # lat_conn_ax = ax2.matshow(fin_weight_ff_odc, vmin=0, vmax=1,
+            #                           cmap='viridis')
+            #
+            # ax1.set_title("{}".format(np.mean(fin_conn_ff_odc)))
+            # ax2.set_title("{}".format(np.mean(fin_weight_ff_odc)))
+            #
+            # # cbar_ax = fig_conn.add_axes([.91, 0.155, 0.025, 0.72])
+            # # cbar = fig_conn.colorbar(lat_conn_ax, cax=cbar_ax)
+            # cbar = f.colorbar(i2, ax=[ax1, ax2])
+            # cbar.set_label("Number of connections", fontsize=14)
+            #
+            # cbar.set_label("Occularity measure", fontsize=12)
+            # plt.show()
 
             plt.figure()
             plt.subplot(1, 3, 1)

@@ -330,3 +330,19 @@ def generate_rates_very_pointy(s, grid, f_base=5., f_peak=152.8, sigma_stim=2.,
             _rates[x, y] = f_base + (f_peak * (np.exp(
                 (-_d ) / (2 * sigma_stim ** 2))))
     return _rates
+
+def tile_grating_times(one_cycle, simtime):
+    all_gratings = []
+    cycle_end = 10000
+    for i in range(len(one_cycle)):
+        temp_times = np.asarray(one_cycle[i])
+        tiled_times = np.tile(temp_times, simtime // cycle_end)
+        if tiled_times.size > 0:
+            for another_i in range(tiled_times.size // temp_times.size):
+                tiled_times[temp_times.size * another_i:temp_times.size * (
+                        another_i + 1)] += cycle_end * another_i
+
+        noisy_times = tiled_times + np.random.randint(-1, 2,
+                                                      size=tiled_times.size)
+        all_gratings.append(noisy_times)
+    return all_gratings
