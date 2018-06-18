@@ -211,7 +211,7 @@ lat_s = np.zeros(N_layer, dtype=np.uint)
 
 init_ff_connections = []
 init_lat_connections = []
-
+input_grating_fname = None
 # Neuron populations
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
 # Putting this populations on chip 0 1 makes it easier to copy the provenance
