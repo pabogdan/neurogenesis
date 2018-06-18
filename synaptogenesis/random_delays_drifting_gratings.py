@@ -182,12 +182,17 @@ else:
     input_grating_fname = "spiking_moving_bar_input/" \
                           "spiking_moving_bar_motif_bank_simtime_600s.npz"
     data = np.load(input_grating_fname)
-    final_on_gratings = data['on_spikes'] + np.random.randint(-1, 2,
-                                                      size=data[
-                                                          'on_spikes'].shape)
-    final_off_gratings = data['off_spikes'] + np.random.randint(-1, 2,
-                                                      size=data[
-                                                          'off_spikes'].shape)
+    on_spikes = data['on_spikes']
+    final_on_gratings = []
+    for row in on_spikes:
+        final_on_gratings.append(row+ np.random.randint(-1, 2,
+                                                      size=row.shape))
+
+    final_off_gratings = []
+    off_spikes = data['off_spikes']
+    for row in off_spikes:
+        final_off_gratings.append(row + np.random.randint(-1, 2,
+                                                          row.shape))
 
     source_pop = sim.Population(N_layer,
                                 sim.SpikeSourceArray,
