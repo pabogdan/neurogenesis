@@ -24,7 +24,7 @@ start_time = plt.datetime.datetime.now()
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
 sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
 sim.set_number_of_neurons_per_core("IF_cond_exp", 256 // 10)
-sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 13)
+# sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 13)
 sim.set_number_of_neurons_per_core("SpikeSourcePoissonVariable", 256 // 13)
 
 # +-------------------------------------------------------------------+
@@ -141,32 +141,35 @@ else:
 
 if not args.testing:
 
-    input_grating_fname = 'drifting_gratings/spikes_EAST_32x32_200fps.txt'
-    size_bits = int(np.ceil(np.log2(n)))  # square => width==height
-    fps = 200.
-    dt_ms = int(1000. / fps)
-    print(n, n, fps, size_bits, dt_ms)
+    # input_grating_fname = 'drifting_gratings/spikes_EAST_32x32_200fps.txt'
+    # size_bits = int(np.ceil(np.log2(n)))  # square => width==height
+    # fps = 200.
+    # dt_ms = int(1000. / fps)
+    # print(n, n, fps, size_bits, dt_ms)
+    #
+    # spikes = load_compressed_spikes(input_grating_fname)
+    #
+    # spk_on, spk_off = split_in_spikes(spikes, row_bits=size_bits,
+    #                                   col_bits=size_bits, chann_bits=1,
+    #                                   width=n)
+    #
+    # one_cycle = xyp2ssa(spk_on, n, n)
+    # final_on_gratings = tile_grating_times(one_cycle, simtime)
 
-    spikes = load_compressed_spikes(input_grating_fname)
-
-    spk_on, spk_off = split_in_spikes(spikes, row_bits=size_bits,
-                                      col_bits=size_bits, chann_bits=1,
-                                      width=n)
-
-    one_cycle = xyp2ssa(spk_on, n, n)
-    all_gratings = tile_grating_times(one_cycle, simtime)
+    _, final_on_gratings, final_off_gratings =generate_bar_input(
+        simtime, 200, N_layer, angles=[0])
 
     source_pop = sim.Population(N_layer,
                                 sim.SpikeSourceArray,
-                                {'spike_times': all_gratings
+                                {'spike_times': final_on_gratings
                                  }, label="Moving grating on population")
 
-    one_cycle = xyp2ssa(spk_off, n, n)
-    all_gratings_off = tile_grating_times(one_cycle, simtime)
+    # one_cycle = xyp2ssa(spk_off, n, n)
+    # final_off_gratings = tile_grating_times(one_cycle, simtime)
 
     source_pop_off = sim.Population(N_layer,
                                     sim.SpikeSourceArray,
-                                    {'spike_times': all_gratings_off
+                                    {'spike_times': final_off_gratings
                                      }, label="Moving grating off population")
 
     noise_pop = sim.Population(N_layer,
@@ -176,47 +179,15 @@ if not args.testing:
                                 'duration': simtime},
                                label="Noise population")
 else:
-    input_grating_fname = 'drifting_gratings/spikes_WEST_32x32_200fps.txt'
-    input_grating_fname_original = \
-        'drifting_gratings/spikes_WEST_32x32_200fps.txt'
-    size_bits = int(np.ceil(np.log2(n)))  # square => width==height
-    fps = 200.
-    dt_ms = int(1000. / fps)
-    print(n, n, fps, size_bits, dt_ms)
-
-    spikes = load_compressed_spikes(input_grating_fname)
-
-    spk_on, spk_off = split_in_spikes(spikes, row_bits=size_bits,
-                                      col_bits=size_bits, chann_bits=1,
-                                      width=n)
-
-    spikes_original = load_compressed_spikes(input_grating_fname_original)
-
-    spk_on_original, spk_off_original = split_in_spikes(spikes,
-                                                        row_bits=size_bits,
-                                                        col_bits=size_bits,
-                                                        chann_bits=1,
-                                                        width=n)
-
-    all_gratings = tile_grating_times(
-        xyp2ssa(spk_on, n, n), simtime)
-    all_gratings_off = tile_grating_times(
-        xyp2ssa(spk_off, n, n), simtime)
-    all_original_gratings = tile_grating_times(
-        xyp2ssa(spk_on_original, n, n), simtime)
-    all_original_off_gratings = tile_grating_times(
-        xyp2ssa(spk_off_original, n, n), simtime)
-
-    final_on_gratings = []
-    final_off_gratings = np.array([])
-
-    chunk = 200  # ms
-
-    # TODO Figure out how to tile / sequence two different directions
-    # Maybe generate them fresh here
-
-
-
+    input_grating_fname = "spiking_moving_bar_input/" \
+                          "spiking_moving_bar_motif_bank_simtime_600s.npz"
+    data = np.load(input_grating_fname)
+    final_on_gratings = data['on_spikes'] + np.random.randint(-1, 2,
+                                                      size=data[
+                                                          'on_spikes'].shape)
+    final_off_gratings = data['off_spikes'] + np.random.randint(-1, 2,
+                                                      size=data[
+                                                          'off_spikes'].shape)
 
     source_pop = sim.Population(N_layer,
                                 sim.SpikeSourceArray,
@@ -260,8 +231,8 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
     structure_model_w_stdp = sim.StructuralMechanismSTDP(
         stdp_model=stdp_model,
         weight=g_max,
-        delay=[1, 15],
-        s_max=s_max * 2,
+        delay=[1, 16],
+        s_max=s_max,
         grid=grid,
         f_rew=f_rew,
         lateral_inhibition=args.lateral_inhibition,
@@ -316,10 +287,10 @@ else:
     if ".npz" not in args.testing:
         data_file_name += ".npz"
     testing_data = np.load(data_file_name)
-    trained_ff_on_connectivity = testing_data['ff_connections'][0]
-    trained_ff_off_connectivity = testing_data['ff_off_connections'][0]
-    trained_lat_connectivity = testing_data['lat_connections'][0]
-    trained_noise_connectivity = testing_data['noise_connections'][0]
+    trained_ff_on_connectivity = testing_data['ff_connections'][-1]
+    trained_ff_off_connectivity = testing_data['ff_off_connections'][-1]
+    trained_lat_connectivity = testing_data['lat_connections'][-1]
+    trained_noise_connectivity = testing_data['noise_connections'][-1]
     print("TESTING PHASE")
     ff_projection = sim.Projection(
         source_pop, target_pop,
@@ -395,34 +366,33 @@ try:
         print("run", current_run + 1, "of", no_runs)
         sim.run(run_duration)
 
-        if (current_run + 1) * run_duration % t_record == 0 and not \
-                args.testing:
-            pre_weights.append(
-                np.array([
-                    ff_projection._get_synaptic_data(True, 'source'),
-                    ff_projection._get_synaptic_data(True, 'target'),
-                    ff_projection._get_synaptic_data(True, 'weight'),
-                    ff_projection._get_synaptic_data(True, 'delay')]).T)
-            pre_off_weights.append(
-                np.array([
-                    ff_off_projection._get_synaptic_data(True, 'source'),
-                    ff_off_projection._get_synaptic_data(True, 'target'),
-                    ff_off_projection._get_synaptic_data(True, 'weight'),
-                    ff_off_projection._get_synaptic_data(True,
-                                                         'delay')]).T)
+    if not args.testing:
+        pre_weights.append(
+            np.array([
+                ff_projection._get_synaptic_data(True, 'source'),
+                ff_projection._get_synaptic_data(True, 'target'),
+                ff_projection._get_synaptic_data(True, 'weight'),
+                ff_projection._get_synaptic_data(True, 'delay')]).T)
+        pre_off_weights.append(
+            np.array([
+                ff_off_projection._get_synaptic_data(True, 'source'),
+                ff_off_projection._get_synaptic_data(True, 'target'),
+                ff_off_projection._get_synaptic_data(True, 'weight'),
+                ff_off_projection._get_synaptic_data(True,
+                                                     'delay')]).T)
 
-            noise_weights.append(
-                np.array([
-                    noise_projection._get_synaptic_data(True, 'source'),
-                    noise_projection._get_synaptic_data(True, 'target'),
-                    noise_projection._get_synaptic_data(True, 'weight'),
-                    noise_projection._get_synaptic_data(True, 'delay')]).T)
-            post_weights.append(
-                np.array([
-                    lat_projection._get_synaptic_data(True, 'source'),
-                    lat_projection._get_synaptic_data(True, 'target'),
-                    lat_projection._get_synaptic_data(True, 'weight'),
-                    lat_projection._get_synaptic_data(True, 'delay')]).T)
+        noise_weights.append(
+            np.array([
+                noise_projection._get_synaptic_data(True, 'source'),
+                noise_projection._get_synaptic_data(True, 'target'),
+                noise_projection._get_synaptic_data(True, 'weight'),
+                noise_projection._get_synaptic_data(True, 'delay')]).T)
+        post_weights.append(
+            np.array([
+                lat_projection._get_synaptic_data(True, 'source'),
+                lat_projection._get_synaptic_data(True, 'target'),
+                lat_projection._get_synaptic_data(True, 'weight'),
+                lat_projection._get_synaptic_data(True, 'delay')]).T)
     if args.record_source:
         pre_spikes = source_pop.getSpikes(compatible_output=True)
     else:
@@ -462,8 +432,6 @@ np.savez(filename, pre_spikes=pre_spikes,
          lat_connections=post_weights,
          ff_off_connections=pre_off_weights,
          noise_connections=noise_weights,
-         final_pre_weights=pre_weights[-1],
-         final_post_weights=post_weights[-1],
          simtime=simtime,
          sim_params=sim_params,
          total_time=total_time,
@@ -471,7 +439,10 @@ np.savez(filename, pre_spikes=pre_spikes,
          exception=e,
          insult=args.lesion,
          input_type=args.input_type,
-         testing=args.testing)
+         testing=args.testing,
+         final_on_gratings=final_on_gratings,
+         final_off_gratings=final_off_gratings,
+         input_grating_fname=input_grating_fname)
 
 # Plotting
 if args.plot and e is None:

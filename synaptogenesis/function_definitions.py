@@ -1,3 +1,5 @@
+import collections
+
 import numpy as np
 from spinn_utilities.progress_bar import ProgressBar
 
@@ -346,3 +348,42 @@ def tile_grating_times(one_cycle, simtime):
                                                       size=tiled_times.size)
         all_gratings.append(noisy_times)
     return all_gratings
+
+
+def generate_bar_input(simtime, chunk, N_layer, angles=np.arange(0, 360, 5),
+                       in_folder="spiking_moving_bar_input"):
+    actual_angles = np.random.choice(angles, int(simtime / chunk))
+    spike_times = []
+    for _ in range(N_layer):
+        spike_times.append([])
+    on_files = []
+    off_files = []
+    for angle in angles:
+        fname = ("/moving_bar_res_32x32__w_3__angle_%03d__fps_200__cycles_0.20s.npz" % angle)
+        data = np.load(in_folder + fname)
+        on_files.append(data['spikes_on'])
+        off_files.append(data['spikes_off'])
+        data.close()
+
+    on_spikes = []
+    off_spikes = []
+    for _ in range(N_layer):
+        on_spikes.append([])
+        off_spikes.append([])
+
+    for chunk_no in range(int(simtime / chunk)):
+        current_angle = actual_angles[chunk_no]
+        angle_index = int(np.argwhere(angles == current_angle))
+
+        on_entries = on_files[angle_index] + (chunk_no * (chunk))
+        off_entries = off_files[angle_index] + (chunk_no * (chunk))
+
+        for index, value in np.ndenumerate(on_entries):
+            if not isinstance(value, collections.Iterable) or len(value) == 1:
+                on_spikes[index[0]].append(value)
+
+        for index, value in np.ndenumerate(off_entries):
+            if not isinstance(value, collections.Iterable) or len(value) == 1:
+                off_spikes[index[0]].append(value)
+
+    return actual_angles, on_spikes, off_spikes
