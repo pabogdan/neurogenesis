@@ -185,12 +185,14 @@ else:
     on_spikes = data['on_spikes']
     final_on_gratings = []
     for row in on_spikes:
+        row = np.asarray(row)
         final_on_gratings.append(row+ np.random.randint(-1, 2,
                                                       size=row.shape))
 
     final_off_gratings = []
     off_spikes = data['off_spikes']
     for row in off_spikes:
+        row = np.asarray(row)
         final_off_gratings.append(row + np.random.randint(-1, 2,
                                                           row.shape))
 
