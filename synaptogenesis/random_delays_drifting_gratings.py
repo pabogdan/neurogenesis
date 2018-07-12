@@ -373,33 +373,33 @@ try:
         print("run", current_run + 1, "of", no_runs)
         sim.run(run_duration)
 
-    if not args.testing:
-        pre_weights.append(
-            np.array([
-                ff_projection._get_synaptic_data(True, 'source'),
-                ff_projection._get_synaptic_data(True, 'target'),
-                ff_projection._get_synaptic_data(True, 'weight'),
-                ff_projection._get_synaptic_data(True, 'delay')]).T)
-        pre_off_weights.append(
-            np.array([
-                ff_off_projection._get_synaptic_data(True, 'source'),
-                ff_off_projection._get_synaptic_data(True, 'target'),
-                ff_off_projection._get_synaptic_data(True, 'weight'),
-                ff_off_projection._get_synaptic_data(True,
-                                                     'delay')]).T)
+        if not args.testing:
+            pre_weights.append(
+                np.array([
+                    ff_projection._get_synaptic_data(True, 'source'),
+                    ff_projection._get_synaptic_data(True, 'target'),
+                    ff_projection._get_synaptic_data(True, 'weight'),
+                    ff_projection._get_synaptic_data(True, 'delay')]).T)
+            pre_off_weights.append(
+                np.array([
+                    ff_off_projection._get_synaptic_data(True, 'source'),
+                    ff_off_projection._get_synaptic_data(True, 'target'),
+                    ff_off_projection._get_synaptic_data(True, 'weight'),
+                    ff_off_projection._get_synaptic_data(True,
+                                                         'delay')]).T)
 
-        noise_weights.append(
-            np.array([
-                noise_projection._get_synaptic_data(True, 'source'),
-                noise_projection._get_synaptic_data(True, 'target'),
-                noise_projection._get_synaptic_data(True, 'weight'),
-                noise_projection._get_synaptic_data(True, 'delay')]).T)
-        post_weights.append(
-            np.array([
-                lat_projection._get_synaptic_data(True, 'source'),
-                lat_projection._get_synaptic_data(True, 'target'),
-                lat_projection._get_synaptic_data(True, 'weight'),
-                lat_projection._get_synaptic_data(True, 'delay')]).T)
+            noise_weights.append(
+                np.array([
+                    noise_projection._get_synaptic_data(True, 'source'),
+                    noise_projection._get_synaptic_data(True, 'target'),
+                    noise_projection._get_synaptic_data(True, 'weight'),
+                    noise_projection._get_synaptic_data(True, 'delay')]).T)
+            post_weights.append(
+                np.array([
+                    lat_projection._get_synaptic_data(True, 'source'),
+                    lat_projection._get_synaptic_data(True, 'target'),
+                    lat_projection._get_synaptic_data(True, 'weight'),
+                    lat_projection._get_synaptic_data(True, 'delay')]).T)
     if args.record_source:
         pre_spikes = source_pop.getSpikes(compatible_output=True)
     else:
