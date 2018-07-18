@@ -107,6 +107,13 @@ tau_minus = args.t_minus  # ms
 a_minus = (a_plus * tau_plus * b) / tau_minus
 # a_minus = 0.0375
 
+
+if args.constant_delay:
+    delay_interval = [1, 1]
+else:
+    delay_interval = [1, 16]
+
+
 # Reporting
 
 sim_params = {'g_max': g_max,
@@ -137,7 +144,8 @@ sim_params = {'g_max': g_max,
               'a_plus': a_plus,
               'input_type': args.input_type,
               'random_partner': args.random_partner,
-              'lesion': args.lesion
+              'lesion': args.lesion,
+              'delay_interval':delay_interval
               }
 
 if args.input_type == GAUSSIAN_INPUT:
@@ -255,7 +263,7 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
     structure_model_w_stdp = sim.StructuralMechanismSTDP(
         stdp_model=stdp_model,
         weight=g_max,
-        delay=[1, 16],
+        delay=delay_interval,
         s_max=s_max,
         grid=grid,
         f_rew=f_rew,

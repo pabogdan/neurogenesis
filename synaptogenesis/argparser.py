@@ -54,6 +54,8 @@ DEFAULT_LAT_LAT_CONN = False
 
 # Topology configuration
 DEFAULT_TOPOLOGY = 1
+DEFAULT_DELAY_TYPE = True
+
 
 parser = argparse.ArgumentParser(
     description='Test for topographic map formation using STDP and '
@@ -198,6 +200,10 @@ parser.add_argument('--random_input',
 parser.add_argument('--no_lateral_conn',
                     help="run experiment without lateral "
                          "connectivity",
+                    action="store_true")
+
+parser.add_argument('--constant_delay',
+                    help="constant delay",
                     action="store_true")
 
 parser.add_argument('--lat_lat_conn',
