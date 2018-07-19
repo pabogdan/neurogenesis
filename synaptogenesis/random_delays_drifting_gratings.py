@@ -322,6 +322,13 @@ if not args.testing:
             label="plastic_inh_lat_projection",
             target="inhibitory"
             )
+        inh_inh_projection = sim.Projection(
+            inh_pop, inh_pop,
+            sim.FixedProbabilityConnector(0.),
+            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+            label="plastic_inh_inh_projection",
+            target="inhibitory"
+        )
         exh_projection = sim.Projection(
             target_pop, inh_pop,
             sim.FixedProbabilityConnector(0.),
