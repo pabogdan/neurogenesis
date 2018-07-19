@@ -348,6 +348,7 @@ else:
     if args.topology == 0:
         trained_inh_lat_connectivity = testing_data['inh_connections'][-1]
         trained_exh_lat_connectivity = testing_data['exh_connections'][-1]
+        trained_inh_inh_connectivity = testing_data['inh_inh_connections'][-1]
     print("TESTING PHASE")
     ff_projection = sim.Projection(
         source_pop, target_pop,
@@ -377,10 +378,16 @@ else:
     if args.topology == 0:
         inh_projection = sim.Projection(
             inh_pop, target_pop,
-        sim.FromListConnector(trained_inh_lat_connectivity),
-            label="plastic_inh_lat_projection",
+            sim.FromListConnector(trained_inh_lat_connectivity),
+                label="plastic_inh_lat_projection",
+                target="inhibitory"
+                )
+        inh_inh_projection = sim.Projection(
+            inh_pop, inh_pop,
+            sim.FromListConnector(trained_inh_inh_connectivity),
+            label="plastic_inh_inh_projection",
             target="inhibitory"
-            )
+        )
         exh_projection = sim.Projection(
             target_pop, inh_pop,
             sim.FromListConnector(trained_exh_lat_connectivity),
@@ -419,6 +426,11 @@ inh_sources = []
 inh_targets = []
 inh_weights = []
 inh_delays = []
+
+inh_inh_sources = []
+inh_inh_targets = []
+inh_inh_weights = []
+inh_inh_delays = []
 
 exh_sources = []
 exh_targets = []
@@ -484,6 +496,13 @@ try:
                     inh_projection._get_synaptic_data(True, 'weight'),
                     inh_projection._get_synaptic_data(True, 'delay')]).T)
 
+            inh_inh_weights.append(
+                np.array([
+                    inh_inh_projection._get_synaptic_data(True, 'source'),
+                    inh_inh_projection._get_synaptic_data(True, 'target'),
+                    inh_inh_projection._get_synaptic_data(True, 'weight'),
+                    inh_inh_projection._get_synaptic_data(True, 'delay')]).T)
+
             exh_weights.append(
                 np.array([
                     exh_projection._get_synaptic_data(True, 'source'),
@@ -530,6 +549,7 @@ np.savez(filename, pre_spikes=pre_spikes,
          ff_off_connections=pre_off_weights,
          noise_connections=noise_weights,
          inh_connections=inh_weights,
+         inh_inh_connections=inh_inh_projection,
          exh_connections=exh_weights,
          simtime=simtime,
          sim_params=sim_params,
