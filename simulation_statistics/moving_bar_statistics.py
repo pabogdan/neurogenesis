@@ -85,7 +85,7 @@ for file in paths:
                               "}s.npz".format(simtime // 1000)
 
         testing_data = np.load(
-            "..\synaptogenesis\spiking_moving_bar_input\\" +
+            "../synaptogenesis/spiking_moving_bar_input/" +
             input_grating_fname)
         chunk = testing_data['chunk'] * ms
         actual_angles = testing_data['actual_angles']
