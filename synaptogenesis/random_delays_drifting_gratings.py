@@ -113,7 +113,23 @@ if args.constant_delay:
 else:
     delay_interval = [1, 16]
 
+input_grating_fname = None
 
+
+inh_sources = []
+inh_targets = []
+inh_weights = []
+inh_delays = []
+
+inh_inh_sources = []
+inh_inh_targets = []
+inh_inh_weights = []
+inh_inh_delays = []
+
+exh_sources = []
+exh_targets = []
+exh_weights = []
+exh_delays = []
 # Reporting
 
 sim_params = {'g_max': g_max,
@@ -240,7 +256,6 @@ lat_s = np.zeros(N_layer, dtype=np.uint)
 
 init_ff_connections = []
 init_lat_connections = []
-input_grating_fname = None
 # Neuron populations
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
 if args.topology == 0:
@@ -315,25 +330,37 @@ if not args.testing:
         target="inhibitory" if args.lateral_inhibition else "excitatory"
     )
     if args.topology == 0:
+        inh_weights = generate_initial_connectivity(5, p_form_forward,
+                                                    "inh ff weights ...",
+                                                    N_layer=N_layer,n=n,
+                                                    s_max=16, g_max=.1,
+                                                    delay=1.)
+        inh_inh_weights = generate_initial_connectivity(5, p_form_forward,
+                                                    "inh ff weights ...",
+                                                    N_layer=N_layer,n=n,
+                                                    s_max=16, g_max=.1,
+                                                    delay=1.)
+        exh_weights = generate_initial_connectivity(5, p_form_forward,
+                                                    "inh ff weights ...",
+                                                    N_layer=N_layer,n=n,
+                                                    s_max=16, g_max=.1,
+                                                    delay=1.)
         inh_projection = sim.Projection(
             inh_pop, target_pop,
-            sim.FixedProbabilityConnector(0.),
-            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-            label="plastic_inh_lat_projection",
+            sim.FromListConnector(inh_weights),
+            label="static_inh_lat_projection",
             target="inhibitory"
             )
         inh_inh_projection = sim.Projection(
             inh_pop, inh_pop,
-            sim.FixedProbabilityConnector(0.),
-            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-            label="plastic_inh_inh_projection",
+            sim.FromListConnector(inh_inh_weights),
+            label="static_inh_inh_projection",
             target="inhibitory"
         )
         exh_projection = sim.Projection(
             target_pop, inh_pop,
-            sim.FixedProbabilityConnector(0.),
-            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-            label="plastic_exh_lat_projection",
+            sim.FromListConnector(exh_weights),
+            label="static_exh_lat_projection",
             target="excitatory"
             )
 else:
@@ -346,9 +373,9 @@ else:
     trained_lat_connectivity = testing_data['lat_connections'][-1]
     trained_noise_connectivity = testing_data['noise_connections'][-1]
     if args.topology == 0:
-        trained_inh_lat_connectivity = testing_data['inh_connections'][-1]
-        trained_exh_lat_connectivity = testing_data['exh_connections'][-1]
-        trained_inh_inh_connectivity = testing_data['inh_inh_connections'][-1]
+        trained_inh_lat_connectivity = testing_data['inh_connections']
+        trained_exh_lat_connectivity = testing_data['exh_connections']
+        trained_inh_inh_connectivity = testing_data['inh_inh_connections']
     print("TESTING PHASE")
     ff_projection = sim.Projection(
         source_pop, target_pop,
@@ -422,20 +449,6 @@ pre_off_targets = []
 pre_off_weights = []
 pre_off_delays = []
 
-inh_sources = []
-inh_targets = []
-inh_weights = []
-inh_delays = []
-
-inh_inh_sources = []
-inh_inh_targets = []
-inh_inh_weights = []
-inh_inh_delays = []
-
-exh_sources = []
-exh_targets = []
-exh_weights = []
-exh_delays = []
 
 noise_sources = []
 noise_targets = []
@@ -471,8 +484,7 @@ try:
                 ff_off_projection._get_synaptic_data(True, 'source'),
                 ff_off_projection._get_synaptic_data(True, 'target'),
                 ff_off_projection._get_synaptic_data(True, 'weight'),
-                ff_off_projection._get_synaptic_data(True,
-                                                     'delay')]).T)
+                ff_off_projection._get_synaptic_data(True, 'delay')]).T)
 
         noise_weights.append(
             np.array([
@@ -487,28 +499,6 @@ try:
                 lat_projection._get_synaptic_data(True, 'target'),
                 lat_projection._get_synaptic_data(True, 'weight'),
                 lat_projection._get_synaptic_data(True, 'delay')]).T)
-
-        if args.topology == 0:
-            inh_weights.append(
-                np.array([
-                    inh_projection._get_synaptic_data(True, 'source'),
-                    inh_projection._get_synaptic_data(True, 'target'),
-                    inh_projection._get_synaptic_data(True, 'weight'),
-                    inh_projection._get_synaptic_data(True, 'delay')]).T)
-
-            inh_inh_weights.append(
-                np.array([
-                    inh_inh_projection._get_synaptic_data(True, 'source'),
-                    inh_inh_projection._get_synaptic_data(True, 'target'),
-                    inh_inh_projection._get_synaptic_data(True, 'weight'),
-                    inh_inh_projection._get_synaptic_data(True, 'delay')]).T)
-
-            exh_weights.append(
-                np.array([
-                    exh_projection._get_synaptic_data(True, 'source'),
-                    exh_projection._get_synaptic_data(True, 'target'),
-                    exh_projection._get_synaptic_data(True, 'weight'),
-                    exh_projection._get_synaptic_data(True, 'delay')]).T)
     if args.record_source:
         pre_spikes = source_pop.getSpikes(compatible_output=True)
     else:
