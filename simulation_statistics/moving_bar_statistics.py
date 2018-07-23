@@ -15,7 +15,7 @@ from pprint import pprint as pp
 from analysis_functions_definitions import *
 from argparser import *
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from brian2.units import *
+# from brian2.units import *
 import os
 
 import matplotlib as mlib
@@ -87,7 +87,7 @@ for file in paths:
         testing_data = np.load(
             "../synaptogenesis/spiking_moving_bar_input/" +
             input_grating_fname)
-        chunk = testing_data['chunk'] * ms
+        chunk = testing_data['chunk']
         actual_angles = testing_data['actual_angles']
 
         # ff_last = data['final_pre_weights']
@@ -133,7 +133,7 @@ for file in paths:
             instaneous_rates = np.empty(int(simtime / chunk))
             for index, value in np.ndenumerate(instaneous_rates):
                 chunk_index = index[0]
-                chunk_size = chunk / ms
+                chunk_size = chunk
 
                 instaneous_rates[chunk_index] = np.count_nonzero(
                     np.logical_and(
