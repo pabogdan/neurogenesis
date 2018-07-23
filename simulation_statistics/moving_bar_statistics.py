@@ -295,7 +295,11 @@ for file in paths:
                  ff_last=ff_last,
                  off_last=off_last,
                  noise_last=noise_last,
-                 lat_last=lat_last
+                 lat_last=lat_last,
+                 final_ff_conn_field=final_ff_conn_field,
+                 final_ff_num_field=final_ff_num_field,
+                 final_lat_conn_field=final_lat_conn_field,
+                 final_lat_num_field=final_lat_num_field
                  )
         if sensitivity_analysis:
             batch_matrix_results.append((
@@ -416,3 +420,4 @@ if sensitivity_analysis:
              )
 
 print("Results in", filename)
+print("Used cached data!")
