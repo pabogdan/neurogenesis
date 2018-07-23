@@ -17,6 +17,7 @@ from argparser import *
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 # from brian2.units import *
 import os
+import ntpath
 
 import matplotlib as mlib
 
@@ -46,6 +47,7 @@ if sensitivity_analysis:
     batch_snapshots = []
     # don't forget about sim_params
     batch_params = []  # append into this sim params in order
+    batch_files = []
     print()
     print("BATCH ANALYSIS!")
     print()
@@ -70,7 +72,7 @@ for file in paths:
 
         cached = False
         # Do we already have a cached version of the results?
-        filename = "results_for" + str(file)
+        filename = "results_for" + str(ntpath.basename(file))
 
         if os.path.isfile(filename + ".npz"):
             print("Analysis has been run before & Cached version of results "
@@ -128,7 +130,7 @@ for file in paths:
             g_max = .2
 
         if not cached:
-            total_target_neuron_mean_spike_rate = \
+            target_neurom_mean_spike_rate = \
                 post_spikes.shape[0] / float(simtime) * 1000. / N_layer
             instaneous_rates = np.empty(int(simtime / chunk))
             for index, value in np.ndenumerate(instaneous_rates):
@@ -160,6 +162,7 @@ for file in paths:
             all_rates = np.asarray(all_rates)
             radians = angles * np.pi / 180.
         else:
+            print("Using cached data.")
             cached_data = np.load(filename + ".npz")
             rate_means = cached_data['rate_means']
             rate_stds = cached_data['rate_stds']
@@ -169,136 +172,17 @@ for file in paths:
             instaneous_rates = cached_data['instaneous_rates']
             angles = cached_data['angles']
             actual_angles = cached_data['actual_angles']
+            target_neurom_mean_spike_rate = cached_data['target_neurom_mean_spike_rate']
 
         print()
         pp(sim_params)
         print()
         print("%-60s" % "Target neuron spike rate",
-              total_target_neuron_mean_spike_rate, "Hz")
-        # print("%-60s" % "Final mean number of feedforward synapses", final_mean_number_ff_synapses)
-        # print("%-60s" % "Weight as proportion of max", final_weight_proportion)
-        # print("%-60s" % "Mean sigma aff init", init_mean_std)
-        # print("%-60s" % "Mean sigma aff fin conn shuffle", fin_mean_std_conn_shuf)
-        # print("%-60s" % "Mean sigma aff fin conn", fin_mean_std_conn)
-        # print("%-60s" % "p(WSR sigma aff fin conn vs sigma aff fin conn shuffle)", wsr_sigma_fin_conn_fin_conn_shuffle.pvalue)
-        # print("%-60s" % "Mean sigma aff fin weight shuffle", fin_mean_std_weight_shuf)
-        # print("%-60s" % "Mean sigma aff fin weight", fin_mean_std_weight)
-        # print("%-60s" % "p(WSR sigma aff fin weight vs sigma aff fin weight shuffle)", wsr_sigma_fin_weight_fin_weight_shuffle.pvalue)
-        # print("%-60s" % "Mean AD init", init_mean_AD)
-        # print("%-60s" % "Mean AD fin conn shuffle", fin_mean_AD_conn_shuf)
-        # print("%-60s" % "Mean AD fin conn", fin_mean_AD_conn)
-        # print("%-60s" % "p(WSR AD fin conn vs AD fin conn shuffle)", wsr_AD_fin_conn_fin_conn_shuffle.pvalue)
-        # print("%-60s" % "Mean AD fin weight shuffle", fin_mean_AD_weight_shuf)
-        # print("%-60s" % "Mean AD fin weight", fin_mean_AD_weight)
-        # print("%-60s" % "p(WSR AD fin weight vs AD fin weight shuffle)", wsr_AD_fin_weight_fin_weight_shuffle.pvalue)
-        #
-        # if sensitivity_analysis:
-        #     batch_matrix_results.append((
-        #         total_target_neuron_mean_spike_rate,
-        #         final_mean_number_ff_synapses,
-        #         final_weight_proportion,
-        #         init_mean_std,
-        #         fin_mean_std_conn_shuf,
-        #         fin_mean_std_conn,
-        #         wsr_sigma_fin_conn_fin_conn_shuffle.pvalue,
-        #         fin_mean_std_weight_shuf,
-        #         fin_mean_std_weight,
-        #         wsr_sigma_fin_weight_fin_weight_shuffle.pvalue,
-        #         init_mean_AD,
-        #         fin_mean_AD_conn_shuf,
-        #         fin_mean_AD_conn,
-        #         wsr_AD_fin_conn_fin_conn_shuffle.pvalue,
-        #         fin_mean_AD_weight_shuf,
-        #         fin_mean_AD_weight,
-        #         wsr_AD_fin_weight_fin_weight_shuffle.pvalue,
-        #         file
-        #     ))
-        # # final weight histogram
-        # # ff weight histogram
-        # plt.figure(figsize=(10, 5), dpi=600)
-        # plt.hist(ff_last[:, 2]/g_max, bins=100, normed=True)
-        # plt.title("Histogram of feedforward weights")
-        # plt.tight_layout()
-        # plt.show()
-        # # lat weight histogram
-        # plt.figure(figsize=(10, 5), dpi=600)
-        # plt.hist(lat_last[:, 2]/g_max, bins=100, normed=True)
-        # plt.title("Histogram of lateral weights")
-        # plt.tight_layout()
-        # plt.show()
-        # # LAT connection bar chart
-        #
-        # init_fan_in_rec = fan_in(init_conn, init_weight, 'conn', 'rec')
-        #
-        # mean_projection_rec, means_and_std_devs_rec, \
-        # means_for_plot_rec, mean_centred_projection_rec = centre_weights(
-        #     init_fan_in_rec, 16)
-        #
-        # init_fan_in_rec_rad = radial_sample(mean_projection_rec, 100)
-        #
-        # final_fan_in_rec = fan_in(last_conn, last_weight, 'weight',
-        #                           'rec')
-        #
-        # final_mean_projection_rec, final_means_and_std_devs_rec, \
-        # final_means_for_plot_rec, final_mean_centred_projection_rec = centre_weights(
-        #     final_fan_in_rec, 16)
-        #
-        # final_fan_in_rec_rad = \
-        #     radial_sample(final_mean_projection_rec, 100)
-        #
-        # final_fan_in_rec_conn = fan_in(last_conn, last_weight, 'conn',
-        #                                'rec')
-        #
-        # final_mean_projection_rec_conn, final_means_and_std_devs_rec_conn, \
-        # final_means_for_plot_rec_conn, final_mean_centred_projection_rec_conn = centre_weights(
-        #     final_fan_in_rec_conn, 16)
-        #
-        # final_fan_in_rec_rad_conn = \
-        #     radial_sample(final_mean_projection_rec_conn, 100)
-        #
-        # ## FF connection bar chart
-        #
-        # init_fan_in_ff = fan_in(init_conn, init_weight, 'conn', 'ff')
-        #
-        # mean_projection_ff, means_and_std_devs_ff, \
-        # means_for_plot_ff, mean_centred_projection_ff = centre_weights(
-        #     init_fan_in_ff, 16)
-        #
-        # init_fan_in_ff_rad = radial_sample(mean_projection_ff, 100)
-        #
-        # final_fan_in_ff = fan_in(last_conn, last_weight, 'weight',
-        #                          'ff')
-        #
-        # final_mean_projection_ff, final_means_and_std_devs_ff, \
-        # final_means_for_plot_ff, final_mean_centred_projection_ff = centre_weights(
-        #     final_fan_in_ff, 16)
-        #
-        # final_fan_in_ff_rad = \
-        #     radial_sample(final_mean_projection_ff, 100)
-        #
-        # final_fan_in_ff_conn = fan_in(last_conn, last_weight, 'conn',
-        #                               'ff')
-        #
-        # final_mean_projection_ff_conn, final_means_and_std_devs_ff_conn, \
-        # final_means_for_plot_ff_conn, final_mean_centred_projection_ff_conn = centre_weights(
-        #     final_fan_in_ff_conn, 16)
-        #
-        # final_fan_in_ff_rad_conn = \
-        #     radial_sample(final_mean_projection_ff_conn, 100)
-        #
-        #
-        # # Time stuff
-        #
-        # end_time = plt.datetime.datetime.now()
-        # suffix = end_time.strftime("_%H%M%S_%d%m%Y")
-        #
-        # elapsed_time = end_time - start_time
-        #
-        # print("Total time elapsed -- " + str(elapsed_time))
-        #
+              target_neurom_mean_spike_rate, "Hz")
+
 
         np.savez(filename, recording_archive_name=file,
-                 target_neurom_mean_spike_rate=total_target_neuron_mean_spike_rate,
+                 target_neurom_mean_spike_rate=target_neurom_mean_spike_rate,
                  instaneous_rates=instaneous_rates,
                  rate_means=rate_means,
                  rate_stds=rate_stds,
@@ -308,7 +192,19 @@ for file in paths:
                  angles=angles,
                  radians=radians
                  )
-
+        if sensitivity_analysis:
+            batch_matrix_results.append((
+                target_neurom_mean_spike_rate,
+                np.copy(instaneous_rates),
+                np.copy(rate_means),
+                np.copy(rate_stds),
+                np.copy(rate_sem),
+                np.copy(all_rates),
+                np.copy(actual_angles),
+                np.copy(angles),
+                np.copy(radians)
+            ))
+            batch_files.append(file)
         if args.plot and not sensitivity_analysis:
             fig = plt.figure(figsize=(16, 8), dpi=600)
             y, binEdges = np.histogram(angles, bins=angles.size)
@@ -408,94 +304,6 @@ for file in paths:
             plt.xlabel("Testing iteration")
             plt.show()
 
-        # if args.snapshots:
-        #
-        #     all_ff_connections = data['ff_connections']
-        #     all_lat_connections = data['lat_connections']
-        #     if data:
-        #         data.close()
-        #     number_of_recordings = all_ff_connections.shape[0]
-        #     all_mean_sigmas = np.ones(number_of_recordings) * np.nan
-        #     all_mean_ADs = np.ones(number_of_recordings) * np.nan
-        #
-        #     all_mean_sigmas_conn = np.ones(number_of_recordings) * np.nan
-        #     all_mean_ADs_conn = np.ones(number_of_recordings) * np.nan
-        #
-        #     all_mean_s = np.zeros(number_of_recordings)
-        #     for index in range(number_of_recordings):
-        #         conn, weight = \
-        #             list_to_post_pre(all_ff_connections[index],
-        #                              all_lat_connections[index], 16,
-        #                              N_layer)
-        #
-        #         current_fan_in = fan_in(conn, weight, 'weight', 'ff')
-        #         mean_projection, means_and_std_devs, means_for_plot, mean_centred_projection = centre_weights(
-        #             current_fan_in, 16)
-        #
-        #         all_mean_sigmas[index] = np.mean(means_and_std_devs[:, 5])
-        #         all_mean_ADs[index] = np.mean(means_and_std_devs[:, 4])
-        #
-        #         all_mean_s[index] = conn[conn != -1].size / float(N_layer)
-        #
-        #         current_fan_in_conn = fan_in(conn, weight, 'conn', 'ff')
-        #         mean_projection_conn, means_and_std_devs_conn, \
-        #         means_for_plot_conn, mean_centred_projection_conn = centre_weights(
-        #             current_fan_in_conn, 16)
-        #
-        #         all_mean_sigmas_conn[index] = np.mean(
-        #             means_and_std_devs_conn[:, 5])
-        #         all_mean_ADs_conn[index] = np.mean(
-        #             means_and_std_devs_conn[:, 4])
-        #
-        #         # mean_std, stds, mean_AD, AD, variances = sigma_and_ad(
-        #         #     all_ff_connections[index, :, :],
-        #         #     unitary_weights=False,
-        #         #     resolution=args.resolution)
-        #         # all_mean_sigmas[index] = mean_std
-        #         # all_mean_ADs[index] = mean_AD
-        #     np.savez("last_std_ad_evo", recording_archive_name=file,
-        #              all_mean_sigmas=all_mean_sigmas,
-        #              all_mean_ads=all_mean_ADs,
-        #              all_mean_sigmas_conn=all_mean_sigmas_conn,
-        #              all_mean_ads_conn=all_mean_ADs_conn)
-        #     if sensitivity_analysis:
-        #         batch_snapshots.append((
-        #             np.copy(all_mean_sigmas),
-        #             np.copy(all_mean_ADs),
-        #             np.copy(all_mean_sigmas_conn),
-        #             np.copy(all_mean_ADs_conn),
-        #             file
-        #         ))
-        #     if args.plot and not sensitivity_analysis:
-        #         plt.plot(all_mean_sigmas)
-        #         plt.ylim([0, 1.1 * np.max(all_mean_sigmas)])
-        #         plt.show()
-        #         plt.plot(all_mean_ADs)
-        #         plt.ylim([0, 1.1 * np.max(all_mean_ADs)])
-        #         plt.show()
-        #
-        #         # Plot evolution of mean synaptic capacity usage per
-        #         # postsynaptic neuron
-        #         f, (ax1) = plt.subplots(1, 1, figsize=(16, 8))
-        #         i = ax1.plot(np.arange(all_mean_s.shape[0]) * 30, all_mean_s,
-        #                      label='Mean synaptic capacity usage')
-        #         ax1.grid(visible=False)
-        #         ax1.set_title(
-        #             "Evolution of synaptic capacity usage",
-        #             fontsize=16)
-        #
-        #         # ax1.plot(final_ff_capacities + final_lat_capacities, c='y',
-        #         #          alpha=.9,
-        #         #          label='Total synaptic capacity usage')
-        #         ax1.axhline(y=s_max * 2, xmin=0, xmax=ff_last.shape[1], c='r',
-        #                     label='$S_{max}$')
-        #         ax1.legend(loc='best')
-        #         ax1.set_ylim([0, 33])
-        #         ax1.set_xlabel("Time(s)")
-        #         ax1.set_ylabel("Mean number of afferent connections")
-        #         plt.show()
-        #
-        #
 
     except IOError as e:
         print("IOError:", e)
@@ -511,5 +319,6 @@ if sensitivity_analysis:
     np.savez("batch_analysis" + suffix_total, recording_archive_name=file,
              snapshots=batch_snapshots,
              params=batch_params,
-             results=batch_matrix_results
+             results=batch_matrix_results,
+             files=batch_files
              )
