@@ -15,7 +15,7 @@ from pprint import pprint as pp
 from analysis_functions_definitions import *
 from argparser import *
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-# from brian2.units import *
+from brian2.units import *
 import os
 import ntpath
 
@@ -72,7 +72,7 @@ for file in paths:
 
         cached = False
         # Do we already have a cached version of the results?
-        filename = "results_for" + str(ntpath.basename(file))
+        filename = "results_for_" + str(ntpath.basename(file))
 
         if os.path.isfile(filename + ".npz"):
             print("Analysis has been run before & Cached version of results "
@@ -80,16 +80,21 @@ for file in paths:
             cached = True
 
         # Don't do extra work if we've already done all of this
-        simtime = int(data['simtime'])
+        simtime = int(data['simtime'])*ms
         post_spikes = data['post_spikes']
 
         input_grating_fname = "spiking_moving_bar_motif_bank_simtime_{" \
-                              "}s.npz".format(simtime // 1000)
+                              "}s.npz".format(int(simtime / second))
 
         testing_data = np.load(
             "../synaptogenesis/spiking_moving_bar_input/" +
             input_grating_fname)
-        chunk = testing_data['chunk']
+
+        connection_data= np.load(ntpath.join(ntpath.dirname(file),
+                                             data['testing'].ravel()[0]))
+
+
+        chunk = testing_data['chunk']*ms
         actual_angles = testing_data['actual_angles']
 
         # ff_last = data['final_pre_weights']
@@ -130,12 +135,12 @@ for file in paths:
             g_max = .2
 
         if not cached:
-            target_neurom_mean_spike_rate = \
-                post_spikes.shape[0] / float(simtime) * 1000. / N_layer
+            target_neuron_mean_spike_rate = \
+                post_spikes.shape[0] / (simtime * N_layer)
             instaneous_rates = np.empty(int(simtime / chunk))
             for index, value in np.ndenumerate(instaneous_rates):
                 chunk_index = index[0]
-                chunk_size = chunk
+                chunk_size = chunk / ms
 
                 instaneous_rates[chunk_index] = np.count_nonzero(
                     np.logical_and(
@@ -161,6 +166,81 @@ for file in paths:
             rate_sem = np.asarray(rate_sem)
             all_rates = np.asarray(all_rates)
             radians = angles * np.pi / 180.
+
+            # Connection information
+
+            ff_connections = connection_data['ff_connections'][0]
+            lat_connections = connection_data['lat_connections'][0]
+            init_ff_connections = connection_data['init_ff_connections']
+            noise_connections = connection_data['noise_connections'][0]
+            ff_off_connections = connection_data['ff_off_connections'][0]
+
+            final_ff_conn_network = np.ones((N_layer, N_layer)) * np.nan
+            final_lat_conn_network = np.ones((N_layer, N_layer)) * np.nan
+            init_ff_conn_network = np.ones((N_layer, N_layer)) * np.nan
+
+            ff_num_network = np.zeros((N_layer, N_layer))
+            lat_num_network = np.zeros((N_layer, N_layer))
+
+            final_ff_conn_field = np.ones(N_layer) * 0
+            final_lat_conn_field = np.ones(N_layer) * 0
+
+            final_ff_num_field = np.ones(N_layer) * 0
+            final_lat_num_field = np.ones(N_layer) * 0
+
+            init_ff_num_network = np.zeros((N_layer, N_layer))
+            for source, target, weight, delay in ff_connections:
+                if np.isnan(final_ff_conn_network[int(source), int(target)]):
+                    final_ff_conn_network[int(source), int(target)] = weight
+                else:
+                    final_ff_conn_network[int(source), int(target)] += weight
+                ff_num_network[int(source), int(target)] += 1
+
+            for source, target, weight, delay in noise_connections:
+                if np.isnan(final_ff_conn_network[int(source), int(target)]):
+                    final_ff_conn_network[int(source), int(target)] = weight
+                else:
+                    final_ff_conn_network[int(source), int(target)] += weight
+                ff_num_network[int(source), int(target)] += 1
+
+            for source, target, weight, delay in ff_off_connections:
+                if np.isnan(final_ff_conn_network[int(source), int(target)]):
+                    final_ff_conn_network[int(source), int(target)] = weight
+                else:
+                    final_ff_conn_network[int(source), int(target)] += weight
+                ff_num_network[int(source), int(target)] += 1
+
+            for source, target, weight, delay in lat_connections:
+                if np.isnan(final_lat_conn_network[int(source), int(target)]):
+                    final_lat_conn_network[int(source), int(target)] = weight
+                else:
+                    final_lat_conn_network[int(source), int(target)] += weight
+                lat_num_network[int(source), int(target)] += 1
+
+
+            for row in range(final_ff_conn_network.shape[0]):
+                final_ff_conn_field += np.roll(
+                    np.nan_to_num(final_ff_conn_network[row, :]),
+                    (N_layer // 2 + n // 2) - row)
+                final_lat_conn_field += np.roll(
+                    np.nan_to_num(final_lat_conn_network[row, :]),
+                    (N_layer // 2 + n // 2) - row)
+
+
+            for row in range(ff_num_network.shape[0]):
+                final_ff_num_field += np.roll(
+                    np.nan_to_num(ff_num_network[row, :]),
+                    (N_layer // 2 + n // 2) - row)
+                final_lat_num_field += np.roll(
+                    np.nan_to_num(lat_num_network[row, :]),
+                    (N_layer // 2 + n // 2) - row)
+
+            ff_last = connection_data['ff_connections'][0]
+            off_last = connection_data['ff_off_connections'][0]
+            noise_last = connection_data['noise_connections'][0]
+            lat_last = connection_data['lat_connections'][0]
+
+
         else:
             print("Using cached data.")
             cached_data = np.load(filename + ".npz")
@@ -172,17 +252,34 @@ for file in paths:
             instaneous_rates = cached_data['instaneous_rates']
             angles = cached_data['angles']
             actual_angles = cached_data['actual_angles']
-            target_neurom_mean_spike_rate = cached_data['target_neurom_mean_spike_rate']
+            target_neuron_mean_spike_rate = cached_data[
+                'target_neuron_mean_spike_rate']
+
+
+            # Connection information
+            ff_connections = cached_data['ff_connections']
+            lat_connections = cached_data['lat_connections']
+            noise_connections = cached_data['noise_connections']
+            ff_off_connections = cached_data['ff_off_connections']
+
+            final_ff_conn_field= cached_data['final_ff_conn_field']
+            final_ff_num_field= cached_data['final_ff_num_field']
+            final_lat_conn_field= cached_data['final_lat_conn_field']
+            final_lat_num_field= cached_data['final_lat_num_field']
+
+            ff_last = cached_data['ff_last']
+            off_last = cached_data['off_last']
+            noise_last = cached_data['noise_last']
+            lat_last = cached_data['lat_last']
 
         print()
         pp(sim_params)
         print()
         print("%-60s" % "Target neuron spike rate",
-              target_neurom_mean_spike_rate, "Hz")
-
+              target_neuron_mean_spike_rate, "Hz")
 
         np.savez(filename, recording_archive_name=file,
-                 target_neurom_mean_spike_rate=target_neurom_mean_spike_rate,
+                 target_neuron_mean_spike_rate=target_neuron_mean_spike_rate,
                  instaneous_rates=instaneous_rates,
                  rate_means=rate_means,
                  rate_stds=rate_stds,
@@ -190,11 +287,19 @@ for file in paths:
                  all_rates=all_rates,
                  actual_angles=actual_angles,
                  angles=angles,
-                 radians=radians
+                 radians=radians,
+                 ff_connections=ff_connections,
+                 ff_off_connections=ff_off_connections,
+                 lat_connections=lat_connections,
+                 noise_connections=noise_connections,
+                 ff_last=ff_last,
+                 off_last=off_last,
+                 noise_last=noise_last,
+                 lat_last=lat_last
                  )
         if sensitivity_analysis:
             batch_matrix_results.append((
-                target_neurom_mean_spike_rate,
+                target_neuron_mean_spike_rate,
                 np.copy(instaneous_rates),
                 np.copy(rate_means),
                 np.copy(rate_stds),
@@ -202,7 +307,15 @@ for file in paths:
                 np.copy(all_rates),
                 np.copy(actual_angles),
                 np.copy(angles),
-                np.copy(radians)
+                np.copy(radians),
+                np.copy(ff_connections),
+                np.copy(ff_off_connections),
+                np.copy(lat_connections),
+                np.copy(noise_connections),
+                np.copy(ff_last),
+                np.copy(off_last),
+                np.copy(noise_last),
+                np.copy(lat_last),
             ))
             batch_files.append(file)
         if args.plot and not sensitivity_analysis:
@@ -230,22 +343,13 @@ for file in paths:
 
             fig = plt.figure(figsize=(10, 10), dpi=600)
             ax = plt.subplot(111, projection='polar')
-            # ax.plot(pol_conn[:,0], pol_conn[:,-1], ls="*")
-            # ax.set_rmax(2)
-            # ax.set_rticks([0.5, 1, 1.5, 2])  # less radial ticks
-            # ax.set_rlabel_position(-22.5)  # get radial labels away from plotted line
-            # ax.grid(True)
             N = 150
             r = 2 * np.random.rand(N)
             theta = 2 * np.pi * np.random.rand(N)
-            # area = 2 * pol_conn[:,3]**2
-            # ax = plt.subplot(111, polar=True)
-            # c = plt.scatter(radians, rate_stds, c=rate_means)#, c=pol_conn[:,2], s=area)
             c = plt.scatter(radians, rate_means, c=rate_sem,
-                            s=100)  # , c=pol_conn[:,2], s=area)
+                            s=100)
             c.set_alpha(0.8)
             plt.ylim([0, 1.2 * np.max(rate_means)])
-            # plt.ylabel("Hz")
             plt.xlabel("Angle")
 
             ax.set_title("Mean firing rate for specific input angle\n",
@@ -259,7 +363,6 @@ for file in paths:
             # '#440357'  '#228b8d', '#b2dd2c'
 
             maximus = np.max((rate_means))
-            # minimus = np.min((random_rate_means, constant_rate_means))
             minimus = 0
 
             c = ax.fill(radians, rate_means, fill=False, edgecolor='#228b8d',
@@ -271,19 +374,8 @@ for file in paths:
             ax.fill(radians, maxs, fill=False, edgecolor='#b2dd2c', lw=2,
                     alpha=1, label="Max response")
             maximus = np.max(maxs)
-            # c.set_alpha(0.8)
             ax.set_ylim([minimus, 1.1 * maximus])
-            # plt.ylabel("Hz")
-            # ax2 = plt.subplot(222, projection='polar')
-
-            # c2.set_alpha(0.8)
-
-            # ax.set_xlabel("Angle")
-            # ax2.set_xlabel("Angle")
             ax.set_xlabel("Random delays")
-
-            # f.suptitle("Mean firing rate for specific input angle", va='bottom')
-            # plt.tight_layout(pad=10)
             plt.savefig("rate_means_min_max_mean.png", bbox_inches='tight')
 
             plt.show()
@@ -322,3 +414,5 @@ if sensitivity_analysis:
              results=batch_matrix_results,
              files=batch_files
              )
+
+print("Results in", filename)
