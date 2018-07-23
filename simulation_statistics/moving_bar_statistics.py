@@ -90,7 +90,7 @@ for file in paths:
             "../synaptogenesis/spiking_moving_bar_input/" +
             input_grating_fname)
 
-        connection_data= np.load(ntpath.join(ntpath.dirname(file),
+        connection_data = np.load(os.path.join(ntpath.dirname(file),
                                              data['testing'].ravel()[0]))
 
 
