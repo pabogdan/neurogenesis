@@ -192,11 +192,13 @@ def formation_rule(potential_pre, post, sigma, p_form):
 
 # Initial connectivity
 
-def generate_initial_connectivity(s, connections, sigma, p, msg,
+def generate_initial_connectivity(sigma, p, msg,
                                   N_layer=256, n=16, s_max=16, g_max=.2,
                                   delay=1.):
     # print "|", 256 // 4 * "-", "|"
     # print "|",
+    connections=[]
+    s = np.zeros(N_layer)
     pbar = ProgressBar(total_number_of_things_to_do=N_layer,
                        string_describing_what_being_progressed=msg)
     for postsynaptic_neuron_index in range(N_layer):
@@ -216,6 +218,7 @@ def generate_initial_connectivity(s, connections, sigma, p, msg,
                 connections.append((potential_pre_index,
                                     postsynaptic_neuron_index, g_max, delay))
                 # print " |"
+    return connections
 
 
 def generate_equivalent_connectivity(s, connections, sigma, p, msg,
