@@ -151,7 +151,7 @@ sim_params = {'g_max': g_max,
               'p_elim_pot': p_elim_pot,
               'f_rew': f_rew,
               'lateral_inhibition': args.lateral_inhibition,
-              'delay_distribution': args.delay_distribution,
+              'delay': args.delay_distribution,
               'b': b,
               't_minus': tau_minus,
               't_plus': tau_plus,
@@ -497,14 +497,14 @@ try:
                 ff_projection._get_synaptic_data(True, 'target'),
                 ff_projection._get_synaptic_data(True, 'weight'),
                 ff_projection._get_synaptic_data(True,
-                                                 'delay_distribution')]).T)
+                                                 'delay')]).T)
         pre_off_weights.append(
             np.array([
                 ff_off_projection._get_synaptic_data(True, 'source'),
                 ff_off_projection._get_synaptic_data(True, 'target'),
                 ff_off_projection._get_synaptic_data(True, 'weight'),
                 ff_off_projection._get_synaptic_data(True,
-                                                     'delay_distribution')]).T)
+                                                     'delay')]).T)
 
         noise_weights.append(
             np.array([
@@ -512,7 +512,7 @@ try:
                 noise_projection._get_synaptic_data(True, 'target'),
                 noise_projection._get_synaptic_data(True, 'weight'),
                 noise_projection._get_synaptic_data(True,
-                                                    'delay_distribution')]).T)
+                                                    'delay')]).T)
 
         post_weights.append(
             np.array([
@@ -520,7 +520,7 @@ try:
                 lat_projection._get_synaptic_data(True, 'target'),
                 lat_projection._get_synaptic_data(True, 'weight'),
                 lat_projection._get_synaptic_data(True,
-                                                  'delay_distribution')]).T)
+                                                  'delay')]).T)
 
         if args.topology == 2:
             inh_weights = \
