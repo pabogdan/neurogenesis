@@ -155,9 +155,9 @@ parser.add_argument('--t_minus', type=int,
                     default=DEFAULT_T_MINUS, dest='t_minus',
                     help='time constant for depression')
 
-parser.add_argument('--delay', type=int,
-                    default=DEFAULT_DELAY, dest='delay',
-                    help='delay (in ms) applied to spikes in the network')
+parser.add_argument('--delay_distribution', type=int,
+                    default=DEFAULT_DELAY, dest='delay_distribution',
+                    help='delay_distribution (in ms) applied to spikes in the network')
 
 parser.add_argument('--no_iterations', type=int,
                     default=DEFAULT_NO_INTERATIONS, dest='no_iterations',
@@ -203,7 +203,7 @@ parser.add_argument('--no_lateral_conn',
                     action="store_true")
 
 parser.add_argument('--constant_delay',
-                    help="constant delay",
+                    help="constant delay_distribution",
                     action="store_true")
 
 parser.add_argument('--lat_lat_conn',
@@ -213,8 +213,11 @@ parser.add_argument('--lat_lat_conn',
 
 parser.add_argument('--topology',
                     help="[Application Dependent] Generally, modifies the "
-                         "architecture of the network ",
+                         "architecture of the network (0. constant lateral "
+                         "inhibition, 1. no lateral inhibition, "
+                         "2. learned lateral inhibition)",
                     type=int, default=DEFAULT_TOPOLOGY,
+                    choices=[0, 1, 2],
                     dest='topology')
 
 args = parser.parse_args()

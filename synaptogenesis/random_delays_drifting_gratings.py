@@ -151,7 +151,7 @@ sim_params = {'g_max': g_max,
               'p_elim_pot': p_elim_pot,
               'f_rew': f_rew,
               'lateral_inhibition': args.lateral_inhibition,
-              'delay': args.delay,
+              'delay_distribution': args.delay,
               'b': b,
               't_minus': tau_minus,
               't_plus': tau_plus,
@@ -259,7 +259,7 @@ init_lat_connections = []
 # Neuron populations
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
 if args.topology == 0:
-    inh_pop = sim.Population(N_layer, model, fsi_cell_params,
+    inh_pop = sim.Population(N_layer, model, cell_params,
                              label="INH_POP")
 # Putting this populations on chip 0 1 makes it easier to copy the provenance
 # data somewhere else
@@ -363,6 +363,29 @@ if not args.testing:
             label="static_exh_lat_projection",
             target="excitatory"
             )
+
+    if args.topology == 2:
+        inh_projection = sim.Projection(
+            inh_pop, target_pop,
+            sim.FixedProbabilityConnector(0.),
+            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+            label="plastic_inh_lat_projection",
+            target="inhibitory"
+        )
+        inh_inh_projection = sim.Projection(
+            inh_pop, inh_pop,
+            sim.FixedProbabilityConnector(0.),
+            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+            label="plastic_inh_inh_projection",
+            target="inhibitory"
+        )
+        exh_projection = sim.Projection(
+            target_pop, inh_pop,
+            sim.FixedProbabilityConnector(0.),
+            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+            label="plastic_exh_lat_projection",
+            target="excitatory"
+        )
 else:
     data_file_name = args.testing
     if ".npz" not in args.testing:
@@ -402,7 +425,7 @@ else:
         target="inhibitory" if args.lateral_inhibition else "excitatory"
     )
 
-    if args.topology == 0:
+    if args.topology == 0 or args.topology == 2:
         inh_projection = sim.Projection(
             inh_pop, target_pop,
             sim.FromListConnector(trained_inh_lat_connectivity),
@@ -421,6 +444,8 @@ else:
             label="plastic_exh_lat_projection",
             target="excitatory"
             )
+
+
 
 # +-------------------------------------------------------------------+
 # | Simulation and results                                            |
@@ -478,27 +503,49 @@ try:
                 ff_projection._get_synaptic_data(True, 'source'),
                 ff_projection._get_synaptic_data(True, 'target'),
                 ff_projection._get_synaptic_data(True, 'weight'),
-                ff_projection._get_synaptic_data(True, 'delay')]).T)
+                ff_projection._get_synaptic_data(True, 'delay_distribution')]).T)
         pre_off_weights.append(
             np.array([
                 ff_off_projection._get_synaptic_data(True, 'source'),
                 ff_off_projection._get_synaptic_data(True, 'target'),
                 ff_off_projection._get_synaptic_data(True, 'weight'),
-                ff_off_projection._get_synaptic_data(True, 'delay')]).T)
+                ff_off_projection._get_synaptic_data(True, 'delay_distribution')]).T)
 
         noise_weights.append(
             np.array([
                 noise_projection._get_synaptic_data(True, 'source'),
                 noise_projection._get_synaptic_data(True, 'target'),
                 noise_projection._get_synaptic_data(True, 'weight'),
-                noise_projection._get_synaptic_data(True, 'delay')]).T)
+                noise_projection._get_synaptic_data(True, 'delay_distribution')]).T)
 
         post_weights.append(
             np.array([
                 lat_projection._get_synaptic_data(True, 'source'),
                 lat_projection._get_synaptic_data(True, 'target'),
                 lat_projection._get_synaptic_data(True, 'weight'),
-                lat_projection._get_synaptic_data(True, 'delay')]).T)
+                lat_projection._get_synaptic_data(True, 'delay_distribution')]).T)
+
+        if args.topology == 2:
+            inh_weights = \
+                np.array([
+                    inh_projection._get_synaptic_data(True, 'source'),
+                    inh_projection._get_synaptic_data(True, 'target'),
+                    inh_projection._get_synaptic_data(True, 'weight'),
+                    inh_projection._get_synaptic_data(True, 'delay')]).T
+
+            inh_inh_weights = \
+                np.array([
+                    inh_inh_projection._get_synaptic_data(True, 'source'),
+                    inh_inh_projection._get_synaptic_data(True, 'target'),
+                    inh_inh_projection._get_synaptic_data(True, 'weight'),
+                    inh_inh_projection._get_synaptic_data(True, 'delay')]).T
+
+            exh_weights = \
+                np.array([
+                    exh_projection._get_synaptic_data(True, 'source'),
+                    exh_projection._get_synaptic_data(True, 'target'),
+                    exh_projection._get_synaptic_data(True, 'weight'),
+                    exh_projection._get_synaptic_data(True, 'delay')]).T
     if args.record_source:
         pre_spikes = source_pop.getSpikes(compatible_output=True)
     else:
@@ -553,82 +600,6 @@ np.savez(filename, pre_spikes=pre_spikes,
          final_off_gratings=final_off_gratings,
          input_grating_fname=input_grating_fname)
 
-# Plotting
-if args.plot and e is None:
-    init_ff_conn_network = np.ones((256, 256)) * np.nan
-    init_lat_conn_network = np.ones((256, 256)) * np.nan
-    for source, target, weight, delay in init_ff_connections:
-        if np.isnan(init_ff_conn_network[int(source), int(target)]):
-            init_ff_conn_network[int(source), int(target)] = weight
-        else:
-            init_ff_conn_network[int(source), int(target)] += weight
-    for source, target, weight, delay in init_lat_connections:
-        if np.isnan(init_lat_conn_network[int(source), int(target)]):
-            init_lat_conn_network[int(source), int(target)] = weight
-        else:
-            init_lat_conn_network[int(source), int(target)] += weight
-
-
-    def plot_spikes(spikes, title):
-        if spikes is not None and len(spikes) > 0:
-            f, ax1 = plt.subplots(1, 1, figsize=(16, 8))
-            ax1.set_xlim((0, simtime))
-            ax1.scatter([i[1] for i in spikes], [i[0] for i in spikes],
-                        s=.2)
-            ax1.set_xlabel('Time/ms')
-            ax1.set_ylabel('spikes')
-            ax1.set_title(title)
-
-        else:
-            print("No spikes received")
-
-
-    plot_spikes(pre_spikes, "Source layer spikes")
-    plt.show()
-    plot_spikes(post_spikes, "Target layer spikes")
-    plt.show()
-
-    final_ff_conn_network = np.ones((256, 256)) * np.nan
-    final_lat_conn_network = np.ones((256, 256)) * np.nan
-    for source, target, weight, delay in pre_weights[-1]:
-        if np.isnan(final_ff_conn_network[int(source), int(target)]):
-            final_ff_conn_network[int(source), int(target)] = weight
-        else:
-            final_ff_conn_network[int(source), int(target)] += weight
-        assert delay == args.delay
-
-    for source, target, weight, delay in post_weights[-1]:
-        if np.isnan(final_lat_conn_network[int(source), int(target)]):
-            final_lat_conn_network[int(source), int(target)] = weight
-        else:
-            final_lat_conn_network[int(source), int(target)] += weight
-        assert delay == args.delay
-
-    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
-    i = ax1.matshow(np.nan_to_num(final_ff_conn_network))
-    i2 = ax2.matshow(np.nan_to_num(final_lat_conn_network))
-    ax1.grid(visible=False)
-    ax1.set_title("Feedforward connectivity matrix", fontsize=16)
-    ax2.set_title("Lateral connectivity matrix", fontsize=16)
-    cbar_ax = f.add_axes([.91, 0.155, 0.025, 0.72])
-    cbar = f.colorbar(i2, cax=cbar_ax)
-    cbar.set_label("Synaptic conductance - $G_{syn}$", fontsize=16)
-    plt.show()
-
-    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
-    i = ax1.matshow(
-        np.nan_to_num(final_ff_conn_network) - np.nan_to_num(
-            init_ff_conn_network))
-    i2 = ax2.matshow(
-        np.nan_to_num(final_lat_conn_network) - np.nan_to_num(
-            init_lat_conn_network))
-    ax1.grid(visible=False)
-    ax1.set_title("Diff- Feedforward connectivity matrix", fontsize=16)
-    ax2.set_title("Diff- Lateral connectivity matrix", fontsize=16)
-    cbar_ax = f.add_axes([.91, 0.155, 0.025, 0.72])
-    cbar = f.colorbar(i2, cax=cbar_ax)
-    cbar.set_label("Synaptic conductance - $G_{syn}$", fontsize=16)
-    plt.show()
 
 print("Results in", filename)
 print("Total time elapsed -- " + str(total_time))
