@@ -91,7 +91,8 @@ for file in paths:
             input_grating_fname)
 
         connection_data = np.load(os.path.join(ntpath.dirname(file),
-                                             data['testing'].ravel()[0]))
+                                             data['testing'].ravel()[
+                                                 0]+".npz"))
 
 
         chunk = testing_data['chunk']*ms
