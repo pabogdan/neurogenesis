@@ -90,9 +90,12 @@ for file in paths:
             "../synaptogenesis/spiking_moving_bar_input/" +
             input_grating_fname)
 
+        if ".npz" in data['testing'].ravel()[0]:
+            conn_data_filename = data['testing'].ravel()[0]
+        else:
+            conn_data_filename = data['testing'].ravel()[0] + ".npz"
         connection_data = np.load(os.path.join(ntpath.dirname(file),
-                                             data['testing'].ravel()[
-                                                 0]+".npz"))
+                                               conn_data_filename))
 
 
         chunk = testing_data['chunk']*ms
