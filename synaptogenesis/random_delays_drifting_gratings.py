@@ -23,7 +23,7 @@ start_time = plt.datetime.datetime.now()
 
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
 sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
-sim.set_number_of_neurons_per_core("IF_cond_exp", 256 // 10)
+sim.set_number_of_neurons_per_core("IF_cond_exp", 50)
 # sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 13)
 sim.set_number_of_neurons_per_core("SpikeSourcePoissonVariable", 256 // 13)
 
@@ -56,17 +56,18 @@ cell_params = {'cm': 20.0,  # nF
                }
 
 fsi_cell_params = {'cm': 10.0,  # nF
-               'i_offset': 0.0,
-               'tau_m': 10.0,
-               'tau_refrac': 1.0,  # KEEP AN EYE OUT FOR THIS!!!!<-------------
-               'tau_syn_E': 5.0,
-               'tau_syn_I': 5.0,
-               'v_reset': -70.0,
-               'v_rest': -70.0,
-               'v_thresh': -50.0,
-               'e_rev_E': 0.,
-               'e_rev_I': -80.
-               }
+                   'i_offset': 0.0,
+                   'tau_m': 10.0,
+                   'tau_refrac': 1.0,
+                   # KEEP AN EYE OUT FOR THIS!!!!<-------------
+                   'tau_syn_E': 5.0,
+                   'tau_syn_I': 5.0,
+                   'v_reset': -70.0,
+                   'v_rest': -70.0,
+                   'v_thresh': -50.0,
+                   'e_rev_E': 0.,
+                   'e_rev_I': -80.
+                   }
 
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
@@ -115,7 +116,6 @@ else:
 
 input_grating_fname = None
 
-
 inh_sources = []
 inh_targets = []
 inh_weights = []
@@ -161,7 +161,7 @@ sim_params = {'g_max': g_max,
               'input_type': args.input_type,
               'random_partner': args.random_partner,
               'lesion': args.lesion,
-              'delay_interval':delay_interval
+              'delay_interval': delay_interval
               }
 
 if args.input_type == GAUSSIAN_INPUT:
@@ -179,25 +179,21 @@ else:
 training_actual_angles = []
 
 if not args.testing:
-    training_actual_angles, final_on_gratings, final_off_gratings = \
+    training_actual_angles, on_gratings, off_gratings = \
         generate_bar_input(simtime, 200, N_layer, angles=args.training_angles)
 
     # Add +-1 ms to all times in input
-    pbar = ProgressBar(total_number_of_things_to_do=len(final_on_gratings),
-                       string_describing_what_being_progressed="\non_+-1ms")
-    for row_index in range(len(final_on_gratings)):
-        for time_index in range(len(final_on_gratings[row_index])):
-            final_on_gratings[row_index][time_index] += np.random.randint(
-                -1, 2)
-        pbar.update()
-    pbar = ProgressBar(total_number_of_things_to_do=len(final_off_gratings),
-                       string_describing_what_being_progressed="\noff_+-1ms")
-    for row_index in range(len(final_off_gratings)):
-        for time_index in range(len(final_off_gratings[row_index])):
-            final_off_gratings[row_index][time_index] += np.random.randint(
-                -1, 2)
-        pbar.update()
+    final_on_gratings = []
+    for row in on_gratings:
+        row = np.asarray(row)
+        final_on_gratings.append(row + np.random.randint(-1, 2,
+                                                         size=row.shape))
 
+    final_off_gratings = []
+    for row in off_gratings:
+        row = np.asarray(row)
+        final_off_gratings.append(row + np.random.randint(-1, 2,
+                                                          size=row.shape))
 
     source_pop = sim.Population(N_layer,
                                 sim.SpikeSourceArray,
@@ -218,21 +214,21 @@ if not args.testing:
 else:
     input_grating_fname = "spiking_moving_bar_input/" \
                           "spiking_moving_bar_motif_bank_simtime_{" \
-                          "}s.npz".format(no_iterations//1000)
+                          "}s.npz".format(no_iterations // 1000)
     data = np.load(input_grating_fname)
     on_spikes = data['on_spikes']
     final_on_gratings = []
     for row in on_spikes:
         row = np.asarray(row)
         final_on_gratings.append(row + np.random.randint(-1, 2,
-                                                      size=row.shape))
+                                                         size=row.shape))
 
     final_off_gratings = []
     off_spikes = data['off_spikes']
     for row in off_spikes:
         row = np.asarray(row)
         final_off_gratings.append(row + np.random.randint(-1, 2,
-                                                          row.shape))
+                                                          size=row.shape))
 
     source_pop = sim.Population(N_layer,
                                 sim.SpikeSourceArray,
@@ -332,17 +328,17 @@ if not args.testing:
     if args.topology == 0:
         inh_weights = generate_initial_connectivity(5, p_form_forward,
                                                     "inh ff weights ...",
-                                                    N_layer=N_layer,n=n,
+                                                    N_layer=N_layer, n=n,
                                                     s_max=16, g_max=.1,
                                                     delay=1.)
         inh_inh_weights = generate_initial_connectivity(5, p_form_forward,
-                                                    "inh ff weights ...",
-                                                    N_layer=N_layer,n=n,
-                                                    s_max=16, g_max=.1,
-                                                    delay=1.)
+                                                        "inh ff weights ...",
+                                                        N_layer=N_layer, n=n,
+                                                        s_max=16, g_max=.1,
+                                                        delay=1.)
         exh_weights = generate_initial_connectivity(5, p_form_forward,
                                                     "inh ff weights ...",
-                                                    N_layer=N_layer,n=n,
+                                                    N_layer=N_layer, n=n,
                                                     s_max=16, g_max=.1,
                                                     delay=1.)
         inh_projection = sim.Projection(
@@ -350,7 +346,7 @@ if not args.testing:
             sim.FromListConnector(inh_weights),
             label="static_inh_lat_projection",
             target="inhibitory"
-            )
+        )
         inh_inh_projection = sim.Projection(
             inh_pop, inh_pop,
             sim.FromListConnector(inh_inh_weights),
@@ -362,7 +358,7 @@ if not args.testing:
             sim.FromListConnector(exh_weights),
             label="static_exh_lat_projection",
             target="excitatory"
-            )
+        )
 
     if args.topology == 2:
         inh_projection = sim.Projection(
@@ -395,7 +391,7 @@ else:
     trained_ff_off_connectivity = testing_data['ff_off_connections'][-1]
     trained_lat_connectivity = testing_data['lat_connections'][-1]
     trained_noise_connectivity = testing_data['noise_connections'][-1]
-    if args.topology == 0:
+    if args.topology == 0 or args.topology == 2:
         trained_inh_lat_connectivity = testing_data['inh_connections']
         trained_exh_lat_connectivity = testing_data['exh_connections']
         trained_inh_inh_connectivity = testing_data['inh_inh_connections']
@@ -429,9 +425,9 @@ else:
         inh_projection = sim.Projection(
             inh_pop, target_pop,
             sim.FromListConnector(trained_inh_lat_connectivity),
-                label="plastic_inh_lat_projection",
-                target="inhibitory"
-                )
+            label="plastic_inh_lat_projection",
+            target="inhibitory"
+        )
         inh_inh_projection = sim.Projection(
             inh_pop, inh_pop,
             sim.FromListConnector(trained_inh_inh_connectivity),
@@ -443,9 +439,7 @@ else:
             sim.FromListConnector(trained_exh_lat_connectivity),
             label="plastic_exh_lat_projection",
             target="excitatory"
-            )
-
-
+        )
 
 # +-------------------------------------------------------------------+
 # | Simulation and results                                            |
@@ -473,7 +467,6 @@ pre_off_sources = []
 pre_off_targets = []
 pre_off_weights = []
 pre_off_delays = []
-
 
 noise_sources = []
 noise_targets = []
@@ -503,27 +496,31 @@ try:
                 ff_projection._get_synaptic_data(True, 'source'),
                 ff_projection._get_synaptic_data(True, 'target'),
                 ff_projection._get_synaptic_data(True, 'weight'),
-                ff_projection._get_synaptic_data(True, 'delay_distribution')]).T)
+                ff_projection._get_synaptic_data(True,
+                                                 'delay_distribution')]).T)
         pre_off_weights.append(
             np.array([
                 ff_off_projection._get_synaptic_data(True, 'source'),
                 ff_off_projection._get_synaptic_data(True, 'target'),
                 ff_off_projection._get_synaptic_data(True, 'weight'),
-                ff_off_projection._get_synaptic_data(True, 'delay_distribution')]).T)
+                ff_off_projection._get_synaptic_data(True,
+                                                     'delay_distribution')]).T)
 
         noise_weights.append(
             np.array([
                 noise_projection._get_synaptic_data(True, 'source'),
                 noise_projection._get_synaptic_data(True, 'target'),
                 noise_projection._get_synaptic_data(True, 'weight'),
-                noise_projection._get_synaptic_data(True, 'delay_distribution')]).T)
+                noise_projection._get_synaptic_data(True,
+                                                    'delay_distribution')]).T)
 
         post_weights.append(
             np.array([
                 lat_projection._get_synaptic_data(True, 'source'),
                 lat_projection._get_synaptic_data(True, 'target'),
                 lat_projection._get_synaptic_data(True, 'weight'),
-                lat_projection._get_synaptic_data(True, 'delay_distribution')]).T)
+                lat_projection._get_synaptic_data(True,
+                                                  'delay_distribution')]).T)
 
         if args.topology == 2:
             inh_weights = \
@@ -601,7 +598,6 @@ np.savez(filename, pre_spikes=pre_spikes,
          input_grating_fname=input_grating_fname,
          training_actual_angles=training_actual_angles
          )
-
 
 print("Results in", filename)
 print("Total time elapsed -- " + str(total_time))
