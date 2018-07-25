@@ -151,7 +151,7 @@ sim_params = {'g_max': g_max,
               'p_elim_pot': p_elim_pot,
               'f_rew': f_rew,
               'lateral_inhibition': args.lateral_inhibition,
-              'delay_distribution': args.delay,
+              'delay_distribution': args.delay_distribution,
               'b': b,
               't_minus': tau_minus,
               't_plus': tau_plus,
@@ -176,33 +176,33 @@ else:
 # +-------------------------------------------------------------------+
 # Need to setup the moving input
 
+training_actual_angles = []
+
 if not args.testing:
+    training_actual_angles, final_on_gratings, final_off_gratings = \
+        generate_bar_input(simtime, 200, N_layer, angles=args.training_angles)
 
-    # input_grating_fname = 'drifting_gratings/spikes_EAST_32x32_200fps.txt'
-    # size_bits = int(np.ceil(np.log2(n)))  # square => width==height
-    # fps = 200.
-    # dt_ms = int(1000. / fps)
-    # print(n, n, fps, size_bits, dt_ms)
-    #
-    # spikes = load_compressed_spikes(input_grating_fname)
-    #
-    # spk_on, spk_off = split_in_spikes(spikes, row_bits=size_bits,
-    #                                   col_bits=size_bits, chann_bits=1,
-    #                                   width=n)
-    #
-    # one_cycle = xyp2ssa(spk_on, n, n)
-    # final_on_gratings = tile_grating_times(one_cycle, simtime)
+    # Add +-1 ms to all times in input
+    pbar = ProgressBar(total_number_of_things_to_do=len(final_on_gratings),
+                       string_describing_what_being_progressed="\non_+-1ms")
+    for row_index in range(len(final_on_gratings)):
+        for time_index in range(len(final_on_gratings[row_index])):
+            final_on_gratings[row_index][time_index] += np.random.randint(
+                -1, 2)
+        pbar.update()
+    pbar = ProgressBar(total_number_of_things_to_do=len(final_off_gratings),
+                       string_describing_what_being_progressed="\noff_+-1ms")
+    for row_index in range(len(final_off_gratings)):
+        for time_index in range(len(final_off_gratings[row_index])):
+            final_off_gratings[row_index][time_index] += np.random.randint(
+                -1, 2)
+        pbar.update()
 
-    _, final_on_gratings, final_off_gratings =generate_bar_input(
-        simtime, 200, N_layer, angles=[0])
 
     source_pop = sim.Population(N_layer,
                                 sim.SpikeSourceArray,
                                 {'spike_times': final_on_gratings
                                  }, label="Moving grating on population")
-
-    # one_cycle = xyp2ssa(spk_off, n, n)
-    # final_off_gratings = tile_grating_times(one_cycle, simtime)
 
     source_pop_off = sim.Population(N_layer,
                                     sim.SpikeSourceArray,
@@ -224,7 +224,7 @@ else:
     final_on_gratings = []
     for row in on_spikes:
         row = np.asarray(row)
-        final_on_gratings.append(row+ np.random.randint(-1, 2,
+        final_on_gratings.append(row + np.random.randint(-1, 2,
                                                       size=row.shape))
 
     final_off_gratings = []
@@ -598,7 +598,9 @@ np.savez(filename, pre_spikes=pre_spikes,
          testing=args.testing,
          final_on_gratings=final_on_gratings,
          final_off_gratings=final_off_gratings,
-         input_grating_fname=input_grating_fname)
+         input_grating_fname=input_grating_fname,
+         training_actual_angles=training_actual_angles
+         )
 
 
 print("Results in", filename)

@@ -56,7 +56,6 @@ DEFAULT_LAT_LAT_CONN = False
 DEFAULT_TOPOLOGY = 1
 DEFAULT_DELAY_TYPE = True
 
-
 parser = argparse.ArgumentParser(
     description='Test for topographic map formation using STDP and '
                 'synaptic rewiring on SpiNNaker.',
@@ -149,7 +148,8 @@ parser.add_argument('--s_max', type=int,
 
 parser.add_argument('--b', type=float,
                     default=DEFAULT_B, dest='b',
-                    help='ration between area under depression curve and area under potentiation curve')
+                    help='ration between area under depression curve and '
+                         'area under potentiation curve')
 
 parser.add_argument('--t_minus', type=int,
                     default=DEFAULT_T_MINUS, dest='t_minus',
@@ -157,11 +157,13 @@ parser.add_argument('--t_minus', type=int,
 
 parser.add_argument('--delay_distribution', type=int,
                     default=DEFAULT_DELAY, dest='delay_distribution',
-                    help='delay_distribution (in ms) applied to spikes in the network')
+                    help='delay_distribution (in ms) applied to '
+                         'spikes in the network')
 
 parser.add_argument('--no_iterations', type=int,
                     default=DEFAULT_NO_INTERATIONS, dest='no_iterations',
-                    help='total number of iterations (or time steps) for the simulation (technically, ms)')
+                    help='total number of iterations (or time steps) for '
+                         'the simulation (technically, ms)')
 
 parser.add_argument('--plot', help="display plots",
                     action="store_true")
@@ -203,7 +205,7 @@ parser.add_argument('--no_lateral_conn',
                     action="store_true")
 
 parser.add_argument('--constant_delay',
-                    help="constant delay_distribution",
+                    help="[App: Movement detection] constant delay_distribution",
                     action="store_true")
 
 parser.add_argument('--lat_lat_conn',
@@ -212,12 +214,19 @@ parser.add_argument('--lat_lat_conn',
                     action="store_true")
 
 parser.add_argument('--topology',
-                    help="[Application Dependent] Generally, modifies the "
+                    help="[App: Movement detection] Modifies the "
                          "architecture of the network (0. constant lateral "
                          "inhibition, 1. no lateral inhibition, "
                          "2. learned lateral inhibition)",
                     type=int, default=DEFAULT_TOPOLOGY,
                     choices=[0, 1, 2],
                     dest='topology')
+
+parser.add_argument('-ta', '--training_angles',
+                   help="[App: Movement detection] Network will be trained "
+                        "using a random succession of these angles (default "
+                        "0)", type=int, nargs="+", default=[0],
+                   dest='training_angles'
+                   )
 
 args = parser.parse_args()
