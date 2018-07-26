@@ -179,21 +179,21 @@ else:
 training_actual_angles = []
 
 if not args.testing:
-    training_actual_angles, on_gratings, off_gratings = \
+    training_actual_angles, final_on_gratings, final_off_gratings = \
         generate_bar_input(simtime, 200, N_layer, angles=args.training_angles)
 
     # Add +-1 ms to all times in input
-    final_on_gratings = []
-    for row in on_gratings:
-        row = np.asarray(row)
-        final_on_gratings.append(row + np.random.randint(-1, 2,
-                                                         size=row.shape))
-
-    final_off_gratings = []
-    for row in off_gratings:
-        row = np.asarray(row)
-        final_off_gratings.append(row + np.random.randint(-1, 2,
-                                                          size=row.shape))
+    # final_on_gratings = []
+    # for row in on_gratings:
+    #     row = np.asarray(row)
+    #     final_on_gratings.append(row + np.random.randint(-1, 2,
+    #                                                      size=row.shape))
+    #
+    # final_off_gratings = []
+    # for row in off_gratings:
+    #     row = np.asarray(row)
+    #     final_off_gratings.append(row + np.random.randint(-1, 2,
+    #                                                       size=row.shape))
 
     source_pop = sim.Population(N_layer,
                                 sim.SpikeSourceArray,
