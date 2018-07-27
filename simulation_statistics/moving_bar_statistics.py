@@ -40,6 +40,7 @@ if len(paths) > 1:
     sensitivity_analysis = True
     # don't display plots
 
+cached = False
 if sensitivity_analysis:
     # set up final matrix
     batch_matrix_results = []
