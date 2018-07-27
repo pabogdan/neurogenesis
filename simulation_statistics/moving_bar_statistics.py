@@ -425,5 +425,5 @@ if sensitivity_analysis:
              )
 
 print("Results in", filename)
-if cached_data:
+if cached:
     print("Used cached data!")
