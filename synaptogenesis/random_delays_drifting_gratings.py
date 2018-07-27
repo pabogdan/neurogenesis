@@ -218,17 +218,19 @@ else:
     data = np.load(input_grating_fname)
     on_spikes = data['on_spikes']
     final_on_gratings = []
-    for row in on_spikes:
-        row = np.asarray(row)
-        final_on_gratings.append(row + np.random.randint(-1, 2,
-                                                         size=row.shape))
+    final_on_gratings= on_spikes
+    # for row in on_spikes:
+    #     row = np.asarray(row)
+    #     final_on_gratings.append(row + np.random.randint(-1, 2,
+    #                                                      size=row.shape))
 
-    final_off_gratings = []
     off_spikes = data['off_spikes']
-    for row in off_spikes:
-        row = np.asarray(row)
-        final_off_gratings.append(row + np.random.randint(-1, 2,
-                                                          size=row.shape))
+    final_off_gratings = []
+    final_off_gratings= off_spikes
+    # for row in off_spikes:
+    #     row = np.asarray(row)
+    #     final_off_gratings.append(row + np.random.randint(-1, 2,
+    #                                                       size=row.shape))
 
     source_pop = sim.Population(N_layer,
                                 sim.SpikeSourceArray,
