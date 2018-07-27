@@ -257,7 +257,7 @@ init_ff_connections = []
 init_lat_connections = []
 # Neuron populations
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
-if args.topology == 0:
+if args.topology == 0 or args.topology == 2:
     inh_pop = sim.Population(N_layer, model, cell_params,
                              label="INH_POP")
 # Putting this populations on chip 0 1 makes it easier to copy the provenance
