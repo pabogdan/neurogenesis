@@ -245,9 +245,11 @@ parser.add_argument('--topology',
                     help="[App: Movement detection] Modifies the "
                          "architecture of the network (0. constant lateral "
                          "inhibition, 1. no lateral inhibition, "
-                         "2. learned lateral inhibition)",
+                         "2. learned lateral inhibition, 3. lat inh now also "
+                         "sees the input)"
+                         " -- [default {}]".format(DEFAULT_TOPOLOGY),
                     type=int, default=DEFAULT_TOPOLOGY,
-                    choices=[0, 1, 2],
+                    choices=[0, 1, 2, 3],
                     dest='topology')
 
 parser.add_argument('-ta', '--training_angles',

@@ -131,6 +131,10 @@ exh_sources = []
 exh_targets = []
 exh_weights = []
 exh_delays = []
+
+on_inh_weights = []
+off_inh_weights = []
+noise_inh_weights = []
 # Reporting
 
 sim_params = {'g_max': g_max,
@@ -162,7 +166,8 @@ sim_params = {'g_max': g_max,
               'input_type': args.input_type,
               'random_partner': args.random_partner,
               'lesion': args.lesion,
-              'delay_interval': delay_interval
+              'delay_interval': delay_interval,
+              'topology': args.topology
               }
 
 if args.input_type == GAUSSIAN_INPUT:
@@ -219,7 +224,7 @@ else:
     data = np.load(input_grating_fname)
     on_spikes = data['on_spikes']
     final_on_gratings = []
-    final_on_gratings= on_spikes
+    final_on_gratings = on_spikes
     # for row in on_spikes:
     #     row = np.asarray(row)
     #     final_on_gratings.append(row + np.random.randint(-1, 2,
@@ -227,7 +232,7 @@ else:
 
     off_spikes = data['off_spikes']
     final_off_gratings = []
-    final_off_gratings= off_spikes
+    final_off_gratings = off_spikes
     # for row in off_spikes:
     #     row = np.asarray(row)
     #     final_off_gratings.append(row + np.random.randint(-1, 2,
@@ -257,7 +262,7 @@ init_ff_connections = []
 init_lat_connections = []
 # Neuron populations
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
-if args.topology == 0 or args.topology == 2:
+if args.topology != DEFAULT_TOPOLOGY:
     inh_pop = sim.Population(N_layer, model, cell_params,
                              label="INH_POP")
 # Putting this populations on chip 0 1 makes it easier to copy the provenance
@@ -363,7 +368,7 @@ if not args.testing:
             target="excitatory"
         )
 
-    if args.topology == 2:
+    if args.topology == 2 or args.topology == 3:
         inh_projection = sim.Projection(
             inh_pop, target_pop,
             sim.FixedProbabilityConnector(0.),
@@ -385,6 +390,28 @@ if not args.testing:
             label="plastic_exh_lat_projection",
             target="excitatory"
         )
+    if args.topology == 3:
+        ff_inh_projection = sim.Projection(
+            source_pop, inh_pop,
+            sim.FixedProbabilityConnector(0.),
+            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+            label="plastic_ff_inh_projection"
+        )
+
+        ff_off_inh_projection = sim.Projection(
+            source_pop_off, inh_pop,
+            sim.FixedProbabilityConnector(0.),
+            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+            label="ff_off_inh_projection"
+        )
+
+        noise_inh_projection = sim.Projection(
+            noise_pop, inh_pop,
+            sim.FixedProbabilityConnector(0.),
+            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+            label="noise_inh_projection"
+        )
+
 else:
     data_file_name = args.testing
     if ".npz" not in args.testing:
@@ -394,10 +421,15 @@ else:
     trained_ff_off_connectivity = testing_data['ff_off_connections'][-1]
     trained_lat_connectivity = testing_data['lat_connections'][-1]
     trained_noise_connectivity = testing_data['noise_connections'][-1]
-    if args.topology == 0 or args.topology == 2:
+    if args.topology != DEFAULT_TOPOLOGY:
         trained_inh_lat_connectivity = testing_data['inh_connections']
         trained_exh_lat_connectivity = testing_data['exh_connections']
         trained_inh_inh_connectivity = testing_data['inh_inh_connections']
+    if args.topology == 3:
+        trained_on_inh_connectivity = testing_data['on_inh_connections']
+        trained_off_inh_connectivity = testing_data['off_inh_connections']
+        trained_noise_inh_connectivity = testing_data['noise_inh_connections']
+
     print("TESTING PHASE")
     ff_projection = sim.Projection(
         source_pop, target_pop,
@@ -424,7 +456,7 @@ else:
         target="inhibitory" if args.lateral_inhibition else "excitatory"
     )
 
-    if args.topology == 0 or args.topology == 2:
+    if args.topology != DEFAULT_TOPOLOGY:
         inh_projection = sim.Projection(
             inh_pop, target_pop,
             sim.FromListConnector(trained_inh_lat_connectivity),
@@ -443,6 +475,24 @@ else:
             label="plastic_exh_lat_projection",
             target="excitatory"
         )
+    if args.topology == 3:
+        ff_inh_projection = sim.Projection(
+            source_pop, inh_pop,
+            sim.FromListConnector(trained_on_inh_connectivity),
+            label="plastic_ff_inh_projection"
+        )
+
+        ff_off_inh_projection = sim.Projection(
+            source_pop_off, inh_pop,
+            sim.FromListConnector(trained_off_inh_connectivity),
+            label="ff_off_inh_projection"
+        )
+
+        noise_inh_projection = sim.Projection(
+            noise_pop, inh_pop,
+            sim.FromListConnector(trained_noise_inh_connectivity),
+            label="noise_inh_projection"
+        )
 
 # +-------------------------------------------------------------------+
 # | Simulation and results                                            |
@@ -460,6 +510,7 @@ target_pop.record()
 # Run simulation
 pre_spikes = []
 post_spikes = []
+inh_post_spikes = []
 
 pre_sources = []
 pre_targets = []
@@ -525,7 +576,7 @@ try:
                 lat_projection._get_synaptic_data(True,
                                                   'delay')]).T)
 
-        if args.topology == 2:
+        if args.topology == 2 or args.topology == 3:
             inh_weights = \
                 np.array([
                     inh_projection._get_synaptic_data(True, 'source'),
@@ -546,11 +597,38 @@ try:
                     exh_projection._get_synaptic_data(True, 'target'),
                     exh_projection._get_synaptic_data(True, 'weight'),
                     exh_projection._get_synaptic_data(True, 'delay')]).T
+        if args.topology == 3:
+            on_inh_weights.append(
+                np.array([
+                    ff_inh_projection._get_synaptic_data(True, 'source'),
+                    ff_inh_projection._get_synaptic_data(True, 'target'),
+                    ff_inh_projection._get_synaptic_data(True, 'weight'),
+                    ff_inh_projection._get_synaptic_data(True,
+                                                     'delay')]).T)
+            off_inh_weights.append(
+                np.array([
+                    ff_off_inh_projection._get_synaptic_data(True, 'source'),
+                    ff_off_inh_projection._get_synaptic_data(True, 'target'),
+                    ff_off_inh_projection._get_synaptic_data(True, 'weight'),
+                    ff_off_inh_projection._get_synaptic_data(True,
+                                                         'delay')]).T)
+
+            noise_inh_weights.append(
+                np.array([
+                    noise_inh_projection._get_synaptic_data(True, 'source'),
+                    noise_inh_projection._get_synaptic_data(True, 'target'),
+                    noise_inh_projection._get_synaptic_data(True, 'weight'),
+                    noise_inh_projection._get_synaptic_data(True,
+                                                        'delay')]).T)
+
     if args.record_source:
         pre_spikes = source_pop.getSpikes(compatible_output=True)
     else:
         pre_spikes = []
     post_spikes = target_pop.getSpikes(compatible_output=True)
+
+    if args.topology != DEFAULT_TOPOLOGY:
+        inh_post_spikes = inh_pop.getSpikes(compatible_output=True)
     # End simulation on SpiNNaker
     sim.end()
 except Exception as e:
@@ -579,15 +657,24 @@ else:
 
 np.savez(filename, pre_spikes=pre_spikes,
          post_spikes=post_spikes,
+         inh_post_spikes=inh_post_spikes,
+
          init_ff_connections=init_ff_connections,
          init_lat_connections=init_lat_connections,
+
          ff_connections=pre_weights,
          lat_connections=post_weights,
          ff_off_connections=pre_off_weights,
          noise_connections=noise_weights,
+
+         on_inh_connections=on_inh_weights,
+         off_inh_connections=off_inh_weights,
+         noise_inh_connections=noise_inh_weights,
+
          inh_connections=inh_weights,
          inh_inh_connections=inh_inh_weights,
          exh_connections=exh_weights,
+
          simtime=simtime,
          sim_params=sim_params,
          total_time=total_time,
