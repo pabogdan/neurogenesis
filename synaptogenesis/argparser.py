@@ -1,5 +1,10 @@
 import argparse
 
+# Current defaults for [App: Movement detection]
+# as of 30.07.2018
+# Previous version:
+#   topographic map formation B.O.T -> 30.07.2018
+
 # Constants
 CASE_CORR_AND_REW = 1
 CASE_CORR_NO_REW = 2
@@ -10,16 +15,16 @@ SSA = 2
 
 DEFAULT_TAU_REFRAC = 5.0
 DEFAULT_F_PEAK = 152.8
-DEFAULT_NO_INTERATIONS = 300000
-DEFAULT_T_RECORD = DEFAULT_NO_INTERATIONS
+DEFAULT_NO_INTERATIONS = 1200000
+DEFAULT_T_RECORD = 100000
 DEFAULT_T_STIM = 20
-DEFAULT_S_MAX = 32
+DEFAULT_S_MAX = 96
 DEFAULT_F_MEAN = 20
 DEFAULT_F_REW = 10 ** 4
 DEFAULT_LAT_INH = False
 DEFAULT_G_MAX = 0.2
 
-DEFAULT_N = 16
+DEFAULT_N = 32
 
 DEFAULT_DELAY = 1
 
@@ -28,8 +33,8 @@ DEFAULT_B = 1.2
 DEFAULT_T_MINUS = 64
 
 DEFAULT_SIGMA_STIM = 2
-DEFAULT_SIGMA_FORM_LAT = 1
-DEFAULT_SIGMA_FORM_FF = 2.5
+DEFAULT_SIGMA_FORM_LAT = 5
+DEFAULT_SIGMA_FORM_FF = 5
 
 # Default probabilities
 
@@ -56,6 +61,8 @@ DEFAULT_LAT_LAT_CONN = False
 DEFAULT_TOPOLOGY = 1
 DEFAULT_DELAY_TYPE = True
 
+DEFAULT_FPS = 200
+
 parser = argparse.ArgumentParser(
     description='Test for topographic map formation using STDP and '
                 'synaptic rewiring on SpiNNaker.',
@@ -64,7 +71,8 @@ parser.add_argument("-c", '--case', type=int,
                     choices=[CASE_CORR_AND_REW, CASE_CORR_NO_REW,
                              CASE_REW_NO_CORR],
                     default=CASE_CORR_AND_REW, dest='case',
-                    help='an integer controlling the experimental setup')
+                    help='an integer controlling the experimental setup'
+                         ' -- [default {}]'.format(CASE_CORR_AND_REW))
 
 parser.add_argument('--testing', type=str, dest='testing',
                     help='put the network in testing mode. provide .npz'
@@ -76,55 +84,68 @@ parser.add_argument("-l", '--lesion', type=int,
                              ONE_TO_ONE_LESION],
                     default=NO_LESION, dest='lesion',
                     help='what type of lesion to do (none, random, 1:1, '
-                         'all:all)')
+                         'all:all)'
+                         ' -- [default {}]'.format(NO_LESION))
 
 parser.add_argument('--p_elim_dep', type=float,
                     default=DEFAULT_P_ELIM_DEP, dest='p_elim_dep',
-                    help='probability of eliminating depressed synapses')
+                    help='probability of eliminating depressed synapses'
+                         ' -- [default {}]'.format(DEFAULT_P_ELIM_DEP))
 
 parser.add_argument('--g_max', type=float,
                     default=DEFAULT_G_MAX, dest='g_max',
-                    help='Maximum synaptic weight')
+                    help='Maximum synaptic weight'
+                         ' -- [default {}]'.format(DEFAULT_G_MAX))
 
 parser.add_argument('--p_elim_pot', type=float,
                     default=DEFAULT_P_ELIM_POT, dest='p_elim_pot',
-                    help='probability of eliminating potentiated synapses')
+                    help='probability of eliminating potentiated synapses'
+                         ' -- [default {}]'.format(DEFAULT_P_ELIM_POT))
 
 parser.add_argument('--p_form_forward', type=float,
                     default=DEFAULT_P_FORM_FORWARD, dest='p_form_forward',
-                    help='probability of forming feedforward synapses')
+                    help='probability of forming feedforward synapses'
+                         ' -- [default {}]'.format(DEFAULT_P_FORM_FORWARD))
 
 parser.add_argument('--p_form_lateral', type=float,
                     default=DEFAULT_P_FORM_LATERAL, dest='p_form_lateral',
-                    help='probability of forming lateral synapses')
+                    help='probability of forming lateral synapses'
+                         ' -- [default {}]'.format(DEFAULT_P_FORM_LATERAL))
 
 parser.add_argument('--tau_refract', type=float,
                     default=DEFAULT_TAU_REFRAC, dest='tau_refrac',
-                    help='refractory time constant (ms)')
+                    help='refractory time constant (ms)'
+                         ' -- [default {}]'.format(DEFAULT_TAU_REFRAC))
 
 parser.add_argument('--sigma_stim', type=float,
                     default=DEFAULT_SIGMA_STIM, dest='sigma_stim',
-                    help='stimulus spread')
+                    help='[App: Topographic map formation] stimulus spread'
+                         ' -- [default {}]'.format(DEFAULT_SIGMA_STIM))
 
 parser.add_argument('--sigma_form_lat', type=float,
                     default=DEFAULT_SIGMA_FORM_LAT, dest='sigma_form_lat',
-                    help='spread of lateral formations')
+                    help='spread of lateral formations'
+                         ' -- [default {}]'.format(DEFAULT_SIGMA_FORM_LAT))
 
 parser.add_argument('--sigma_form_ff', type=float,
                     default=DEFAULT_SIGMA_FORM_FF, dest='sigma_form_ff',
-                    help='spread of feedforward formations')
+                    help='spread of feedforward formations'
+                         ' -- [default {}]'.format(DEFAULT_SIGMA_FORM_FF))
 
 parser.add_argument('-n', '--n', type=int,
                     default=DEFAULT_N, dest='n',
-                    help='size of one edge of the layer (default 16)')
+                    help='size of one edge of the layer'
+                         ' -- [default {}]'.format(DEFAULT_N))
 
 parser.add_argument('--t_record', type=int,
                     default=DEFAULT_T_RECORD, dest='t_record',
-                    help='time between retrieval of recordings (ms)')
+                    help='time between retrieval of recordings (ms)'
+                         ' -- [default {}]'.format(DEFAULT_T_RECORD))
 
 parser.add_argument('--lat_inh', action="store_true",
                     dest='lateral_inhibition',
-                    help='enable lateral inhibition')
+                    help='enable lateral inhibition'
+                         ' -- [default {}]'.format(str(False)))
 
 parser.add_argument('--t_stim', type=int,
                     default=DEFAULT_T_STIM, dest='t_stim',
@@ -144,16 +165,19 @@ parser.add_argument('--f_mean', type=float,
 
 parser.add_argument('--s_max', type=int,
                     default=DEFAULT_S_MAX, dest='s_max',
-                    help='maximum synaptic capacity')
+                    help='maximum synaptic capacity'
+                         ' -- [default {}]'.format(DEFAULT_S_MAX))
 
 parser.add_argument('--b', type=float,
                     default=DEFAULT_B, dest='b',
                     help='ration between area under depression curve and '
-                         'area under potentiation curve')
+                         'area under potentiation curve'
+                         ' -- [default {}]'.format(DEFAULT_B))
 
 parser.add_argument('--t_minus', type=int,
                     default=DEFAULT_T_MINUS, dest='t_minus',
-                    help='time constant for depression')
+                    help='time constant for depression'
+                         ' -- [default {}]'.format(DEFAULT_T_MINUS))
 
 parser.add_argument('--delay_distribution', type=int,
                     default=DEFAULT_DELAY, dest='delay_distribution',
@@ -163,7 +187,8 @@ parser.add_argument('--delay_distribution', type=int,
 parser.add_argument('--no_iterations', type=int,
                     default=DEFAULT_NO_INTERATIONS, dest='no_iterations',
                     help='total number of iterations (or time steps) for '
-                         'the simulation (technically, ms)')
+                         'the simulation (technically, ms)'
+                         ' -- [default {}]'.format(DEFAULT_NO_INTERATIONS))
 
 parser.add_argument('--plot', help="display plots",
                     action="store_true")
@@ -191,8 +216,10 @@ parser.add_argument('--input_type', type=int,
                     choices=[GAUSSIAN_INPUT, POINTY_INPUT,
                              SCALED_POINTY_INPUT, SQUARE_INPUT],
                     default=GAUSSIAN_INPUT, dest='input_type',
-                    help='what type of input shape to use (gaussian, pointy, '
-                         'scaled pointy, square)')
+                    help='[App: Topographic map formation] what type of '
+                         'input shape to use (gaussian, pointy, '
+                         'scaled pointy, square)'
+                         ' -- [default {}]'.format(GAUSSIAN_INPUT))
 
 parser.add_argument('--random_input',
                     help="instead of input a digit"
@@ -200,7 +227,8 @@ parser.add_argument('--random_input',
                     action="store_true")
 
 parser.add_argument('--no_lateral_conn',
-                    help="run experiment without lateral "
+                    help="[App: MNIST]  run experiment without "
+                         "lateral "
                          "connectivity",
                     action="store_true")
 
@@ -224,9 +252,16 @@ parser.add_argument('--topology',
 
 parser.add_argument('-ta', '--training_angles',
                    help="[App: Movement detection] Network will be trained "
-                        "using a random succession of these angles (default "
-                        "0)", type=int, nargs="+", default=[0],
+                        "using a random succession of these angles"
+                        " -- [default {}]".format([0]),
+                    type=int, nargs="+", default=[0],
                    dest='training_angles'
                    )
+
+parser.add_argument('--fps',
+                   help="[App: Movement detection] Bar speed across "
+                        "receptive field (default is 200)",
+                    type=int, default=DEFAULT_FPS,
+                   dest='fps')
 
 args = parser.parse_args()
