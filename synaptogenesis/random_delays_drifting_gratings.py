@@ -601,28 +601,25 @@ try:
                     exh_projection._get_synaptic_data(True, 'weight'),
                     exh_projection._get_synaptic_data(True, 'delay')]).T
         if args.topology == 3:
-            on_inh_weights.append(
+            on_inh_weights = \
                 np.array([
                     ff_inh_projection._get_synaptic_data(True, 'source'),
                     ff_inh_projection._get_synaptic_data(True, 'target'),
                     ff_inh_projection._get_synaptic_data(True, 'weight'),
-                    ff_inh_projection._get_synaptic_data(True,
-                                                     'delay')]).T)
-            off_inh_weights.append(
+                    ff_inh_projection._get_synaptic_data(True, 'delay')]).T
+            off_inh_weights = \
                 np.array([
                     ff_off_inh_projection._get_synaptic_data(True, 'source'),
                     ff_off_inh_projection._get_synaptic_data(True, 'target'),
                     ff_off_inh_projection._get_synaptic_data(True, 'weight'),
-                    ff_off_inh_projection._get_synaptic_data(True,
-                                                         'delay')]).T)
+                    ff_off_inh_projection._get_synaptic_data(True, 'delay')]).T
 
-            noise_inh_weights.append(
+            noise_inh_weights = \
                 np.array([
                     noise_inh_projection._get_synaptic_data(True, 'source'),
                     noise_inh_projection._get_synaptic_data(True, 'target'),
                     noise_inh_projection._get_synaptic_data(True, 'weight'),
-                    noise_inh_projection._get_synaptic_data(True,
-                                                        'delay')]).T)
+                    noise_inh_projection._get_synaptic_data(True, 'delay')]).T
 
     if args.record_source:
         pre_spikes = source_pop.getSpikes(compatible_output=True)
@@ -643,6 +640,7 @@ total_time = end_time - start_time
 
 pre_spikes = np.asarray(pre_spikes)
 post_spikes = np.asarray(post_spikes)
+inh_post_spikes = np.asarray(inh_post_spikes)
 
 print("Total time elapsed -- " + str(total_time))
 
