@@ -73,7 +73,10 @@ fsi_cell_params = {'cm': 10.0,  # nF
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
 # +-------------------------------------------------------------------+
-no_iterations = args.no_iterations  # 300000 # 3000000 # 3,000,000 iterations
+if args.testing:
+    no_iterations = args.testing_iterations
+else:
+    no_iterations = args.no_iterations  # 300000 # 3000000 # 3,000,000 iterations
 simtime = no_iterations
 # Wiring
 n = args.n

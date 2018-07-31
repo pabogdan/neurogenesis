@@ -16,6 +16,7 @@ SSA = 2
 DEFAULT_TAU_REFRAC = 5.0
 DEFAULT_F_PEAK = 152.8
 DEFAULT_NO_INTERATIONS = 1200000
+DEFAULT_TESTING_ITERATIONS = 1200000
 DEFAULT_T_RECORD = 100000
 DEFAULT_T_STIM = 20
 DEFAULT_S_MAX = 96
@@ -189,6 +190,14 @@ parser.add_argument('--no_iterations', type=int,
                     help='total number of iterations (or time steps) for '
                          'the simulation (technically, ms)'
                          ' -- [default {}]'.format(DEFAULT_NO_INTERATIONS))
+
+parser.add_argument('--testing_iterations', type=int,
+                    default=DEFAULT_TESTING_ITERATIONS,
+                    dest='testing_iterations',
+                    help='total number of testing iterations (or time steps) '
+                         'for '
+                         'the simulation (technically, ms)'
+                         ' -- [default {}]'.format(DEFAULT_TESTING_ITERATIONS))
 
 parser.add_argument('--plot', help="display plots",
                     action="store_true")
