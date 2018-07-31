@@ -81,7 +81,7 @@ for file in paths:
             cached = True
 
         # Don't do extra work if we've already done all of this
-        simtime = int(data['simtime'])*ms
+        simtime = int(data['simtime']) * ms
         post_spikes = data['post_spikes']
 
         input_grating_fname = "spiking_moving_bar_motif_bank_simtime_{" \
@@ -98,8 +98,7 @@ for file in paths:
         connection_data = np.load(os.path.join(ntpath.dirname(file),
                                                conn_data_filename))
 
-
-        chunk = testing_data['chunk']*ms
+        chunk = testing_data['chunk'] * ms
         actual_angles = testing_data['actual_angles']
 
         # ff_last = data['final_pre_weights']
@@ -172,6 +171,27 @@ for file in paths:
             all_rates = np.asarray(all_rates)
             radians = angles * np.pi / 180.
 
+            # Per neuron spiking info (for multiple angle analysis)
+
+            per_neuron_instaneous_rates = np.empty((N_layer,
+                                                    int(simtime / chunk)))
+            for index, value in np.ndenumerate(per_neuron_instaneous_rates):
+                neuron_index = index[0]
+                chunk_index = index[1]
+                chunk_size = chunk / ms
+
+                per_neuron_instaneous_rates[neuron_index, chunk_index] = \
+                    np.count_nonzero(
+                        np.logical_and(
+                            np.logical_and(
+                                post_spikes[:, 1] >= (
+                                            chunk_index * chunk_size),
+                                post_spikes[:, 1] <= (
+                                            (chunk_index + 1) * chunk_size)
+                            ), post_spikes[:, 0] == neuron_index
+                        )
+                    ) / (1 * chunk)
+
             # Connection information
 
             ff_connections = connection_data['ff_connections'][0]
@@ -222,7 +242,6 @@ for file in paths:
                     final_lat_conn_network[int(source), int(target)] += weight
                 lat_num_network[int(source), int(target)] += 1
 
-
             for row in range(final_ff_conn_network.shape[0]):
                 final_ff_conn_field += np.roll(
                     np.nan_to_num(final_ff_conn_network[row, :]),
@@ -230,7 +249,6 @@ for file in paths:
                 final_lat_conn_field += np.roll(
                     np.nan_to_num(final_lat_conn_network[row, :]),
                     (N_layer // 2 + n // 2) - row)
-
 
             for row in range(ff_num_network.shape[0]):
                 final_ff_num_field += np.roll(
@@ -259,7 +277,8 @@ for file in paths:
             actual_angles = cached_data['actual_angles']
             target_neuron_mean_spike_rate = cached_data[
                 'target_neuron_mean_spike_rate']
-
+            per_neuron_instaneous_rates = cached_data[
+                'per_neuron_instaneous_rates']
 
             # Connection information
             ff_connections = cached_data['ff_connections']
@@ -267,10 +286,10 @@ for file in paths:
             noise_connections = cached_data['noise_connections']
             ff_off_connections = cached_data['ff_off_connections']
 
-            final_ff_conn_field= cached_data['final_ff_conn_field']
-            final_ff_num_field= cached_data['final_ff_num_field']
-            final_lat_conn_field= cached_data['final_lat_conn_field']
-            final_lat_num_field= cached_data['final_lat_num_field']
+            final_ff_conn_field = cached_data['final_ff_conn_field']
+            final_ff_num_field = cached_data['final_ff_num_field']
+            final_lat_conn_field = cached_data['final_lat_conn_field']
+            final_lat_num_field = cached_data['final_lat_num_field']
 
             ff_last = cached_data['ff_last']
             off_last = cached_data['off_last']
@@ -285,6 +304,8 @@ for file in paths:
 
         np.savez(filename, recording_archive_name=file,
                  target_neuron_mean_spike_rate=target_neuron_mean_spike_rate,
+
+                 # Response information
                  instaneous_rates=instaneous_rates,
                  rate_means=rate_means,
                  rate_stds=rate_stds,
@@ -293,6 +314,11 @@ for file in paths:
                  actual_angles=actual_angles,
                  angles=angles,
                  radians=radians,
+
+                 # Per neuron response information
+                 per_neuron_instaneous_rates=per_neuron_instaneous_rates,
+
+                 # Connection information
                  ff_connections=ff_connections,
                  ff_off_connections=ff_off_connections,
                  lat_connections=lat_connections,
@@ -310,6 +336,7 @@ for file in paths:
             batch_matrix_results.append((
                 target_neuron_mean_spike_rate,
                 np.copy(instaneous_rates),
+                np.copy(per_neuron_instaneous_rates),
                 np.copy(rate_means),
                 np.copy(rate_stds),
                 np.copy(rate_sem),
@@ -386,7 +413,6 @@ for file in paths:
             ax.set_ylim([minimus, 1.1 * maximus])
             ax.set_xlabel("Random delays")
             plt.savefig("rate_means_min_max_mean.png", bbox_inches='tight')
-
             plt.show()
 
             plt.figure(figsize=(14, 8), dpi=600)
