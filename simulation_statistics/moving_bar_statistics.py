@@ -149,7 +149,7 @@ for file in paths:
                 instaneous_rates[chunk_index] = np.count_nonzero(
                     np.logical_and(
                         post_spikes[:, 1] >= (chunk_index * chunk_size),
-                        post_spikes[:, 1] <= ((chunk_index + 1) * chunk_size)
+                        post_spikes[:, 1] < ((chunk_index + 1) * chunk_size)
                     )
                 ) / (N_layer * chunk)
 
@@ -186,7 +186,7 @@ for file in paths:
                             np.logical_and(
                                 post_spikes[:, 1] >= (
                                             chunk_index * chunk_size),
-                                post_spikes[:, 1] <= (
+                                post_spikes[:, 1] < (
                                             (chunk_index + 1) * chunk_size)
                             ), post_spikes[:, 0] == neuron_index
                         )
