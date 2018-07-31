@@ -27,6 +27,8 @@ mlib.rcParams.update({'font.size': 24})
 mlib.rcParams.update({'errorbar.capsize': 5})
 mlib.rcParams.update({'figure.autolayout': True})
 
+
+start_time = plt.datetime.datetime.now()
 paths = []
 for file in args.path:
     if "*" in file:
@@ -173,6 +175,7 @@ for file in paths:
             rate_stds = []
             rate_sem = []
             all_rates = []
+            per_neuron_all_rates=[]
             angles = np.arange(0, 360, 5)
             for angle in angles:
                 rates_for_current_angle = instaneous_rates[
@@ -181,15 +184,13 @@ for file in paths:
                 rate_stds.append(np.std(rates_for_current_angle))
                 rate_sem.append(stats.sem(rates_for_current_angle))
                 all_rates.append(rates_for_current_angle)
+                per_neuron_all_rates.append(per_neuron_instaneous_rates[:,
+                    np.where(actual_angles == angle)].ravel())
             rate_means = np.asarray(rate_means)
             rate_stds = np.asarray(rate_stds)
             rate_sem = np.asarray(rate_sem)
             all_rates = np.asarray(all_rates)
             radians = angles * np.pi / 180.
-
-            # Per neuron spiking info (for multiple angle analysis)
-
-
 
             # Connection information
 
@@ -278,6 +279,7 @@ for file in paths:
                 'target_neuron_mean_spike_rate']
             per_neuron_instaneous_rates = cached_data[
                 'per_neuron_instaneous_rates']
+            per_neuron_all_rates = cached_data['per_neuron_all_rates']
 
             # Connection information
             ff_connections = cached_data['ff_connections']
@@ -301,36 +303,40 @@ for file in paths:
         print("%-60s" % "Target neuron spike rate",
               target_neuron_mean_spike_rate, "Hz")
 
-        np.savez(filename, recording_archive_name=file,
-                 target_neuron_mean_spike_rate=target_neuron_mean_spike_rate,
+        if not cached:
+            np.savez(filename, recording_archive_name=file,
+                     target_neuron_mean_spike_rate=target_neuron_mean_spike_rate,
 
-                 # Response information
-                 instaneous_rates=instaneous_rates,
-                 rate_means=rate_means,
-                 rate_stds=rate_stds,
-                 rate_sem=rate_sem,
-                 all_rates=all_rates,
-                 actual_angles=actual_angles,
-                 angles=angles,
-                 radians=radians,
+                     # Response information
+                     instaneous_rates=instaneous_rates,
+                     rate_means=rate_means,
+                     rate_stds=rate_stds,
+                     rate_sem=rate_sem,
+                     all_rates=all_rates,
+                     actual_angles=actual_angles,
+                     angles=angles,
+                     radians=radians,
 
-                 # Per neuron response information
-                 per_neuron_instaneous_rates=per_neuron_instaneous_rates,
+                     # Per neuron response information
+                     per_neuron_instaneous_rates=per_neuron_instaneous_rates,
+                     per_neuron_all_rates=per_neuron_all_rates,
 
-                 # Connection information
-                 ff_connections=ff_connections,
-                 ff_off_connections=ff_off_connections,
-                 lat_connections=lat_connections,
-                 noise_connections=noise_connections,
-                 ff_last=ff_last,
-                 off_last=off_last,
-                 noise_last=noise_last,
-                 lat_last=lat_last,
-                 final_ff_conn_field=final_ff_conn_field,
-                 final_ff_num_field=final_ff_num_field,
-                 final_lat_conn_field=final_lat_conn_field,
-                 final_lat_num_field=final_lat_num_field
-                 )
+                     # Connection information
+                     ff_connections=ff_connections,
+                     ff_off_connections=ff_off_connections,
+                     lat_connections=lat_connections,
+                     noise_connections=noise_connections,
+                     ff_last=ff_last,
+                     off_last=off_last,
+                     noise_last=noise_last,
+                     lat_last=lat_last,
+                     final_ff_conn_field=final_ff_conn_field,
+                     final_ff_num_field=final_ff_num_field,
+                     final_lat_conn_field=final_lat_conn_field,
+                     final_lat_num_field=final_lat_num_field
+                     )
+        else:
+            print("Not re-saving the npz archive...")
         if sensitivity_analysis:
             batch_matrix_results.append((
                 target_neuron_mean_spike_rate,
@@ -448,7 +454,9 @@ if sensitivity_analysis:
              results=batch_matrix_results,
              files=batch_files
              )
-
+end_time = plt.datetime.datetime.now()
+total_time = end_time - start_time
 print("Results in", filename)
+print("Total time elapsed -- " + str(total_time))
 if cached:
     print("Used cached data!")
