@@ -508,6 +508,9 @@ else:
 # if case == CASE_REW_NO_CORR:
 if args.record_source:
     source_pop.record()
+
+if args.topology!=DEFAULT_TOPOLOGY:
+    inh_pop.record()
 target_pop.record()
 
 # Run simulation
