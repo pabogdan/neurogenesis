@@ -21,6 +21,8 @@ import ntpath
 
 import matplotlib as mlib
 
+from spinn_utilities.progress_bar import ProgressBar
+
 mlib.rcParams.update({'font.size': 24})
 mlib.rcParams.update({'errorbar.capsize': 5})
 mlib.rcParams.update({'figure.autolayout': True})
@@ -141,17 +143,31 @@ for file in paths:
         if not cached:
             target_neuron_mean_spike_rate = \
                 post_spikes.shape[0] / (simtime * N_layer)
-            instaneous_rates = np.empty(int(simtime / chunk))
-            for index, value in np.ndenumerate(instaneous_rates):
-                chunk_index = index[0]
-                chunk_size = chunk / ms
+            # instaneous_rates = np.empty(int(simtime / chunk))
+            per_neuron_instaneous_rates = np.empty((N_layer,
+                                                    int(simtime / chunk)))
+            chunk_size = chunk / ms
+            # Cache coherent implementation
+            pbar = ProgressBar(total_number_of_things_to_do=N_layer,
+                               string_describing_what_being_progressed=
+                               "\nBinning firing activity per neuron...")
+            for neuron_index in np.arange(N_layer):
 
-                instaneous_rates[chunk_index] = np.count_nonzero(
-                    np.logical_and(
-                        post_spikes[:, 1] >= (chunk_index * chunk_size),
-                        post_spikes[:, 1] < ((chunk_index + 1) * chunk_size)
-                    )
-                ) / (N_layer * chunk)
+                firings_for_neuron = post_spikes[
+                    post_spikes[:, 0] == neuron_index]
+                for chunk_index in np.arange(per_neuron_instaneous_rates.shape[
+                                              1]):
+                    per_neuron_instaneous_rates[neuron_index, chunk_index] = \
+                        np.count_nonzero(
+                            np.logical_and(
+                                firings_for_neuron[:, 1] >= (
+                                        chunk_index * chunk_size),
+                                firings_for_neuron[:, 1] < (
+                                        (chunk_index + 1) * chunk_size)
+                            )
+                        ) / (1 * chunk)
+                pbar.update()
+            instaneous_rates = np.sum(per_neuron_instaneous_rates, axis=0)/N_layer
 
             rate_means = []
             rate_stds = []
@@ -173,24 +189,7 @@ for file in paths:
 
             # Per neuron spiking info (for multiple angle analysis)
 
-            per_neuron_instaneous_rates = np.empty((N_layer,
-                                                    int(simtime / chunk)))
-            for index, value in np.ndenumerate(per_neuron_instaneous_rates):
-                neuron_index = index[0]
-                chunk_index = index[1]
-                chunk_size = chunk / ms
 
-                per_neuron_instaneous_rates[neuron_index, chunk_index] = \
-                    np.count_nonzero(
-                        np.logical_and(
-                            np.logical_and(
-                                post_spikes[:, 1] >= (
-                                            chunk_index * chunk_size),
-                                post_spikes[:, 1] < (
-                                            (chunk_index + 1) * chunk_size)
-                            ), post_spikes[:, 0] == neuron_index
-                        )
-                    ) / (1 * chunk)
 
             # Connection information
 
