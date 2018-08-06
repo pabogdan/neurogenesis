@@ -269,6 +269,13 @@ parser.add_argument('-ta', '--training_angles',
                    dest='training_angles'
                    )
 
+parser.add_argument('--all_angles',
+                   help="[App: Movement detection] Network will be trained "
+                        "using a random succession of all angles",
+                   action="store_true",
+                   dest='all_angles'
+                   )
+
 parser.add_argument('--fps',
                    help="[App: Movement detection] Bar speed across "
                         "receptive field (default is 200)",

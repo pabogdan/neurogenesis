@@ -138,6 +138,14 @@ exh_delays = []
 on_inh_weights = []
 off_inh_weights = []
 noise_inh_weights = []
+
+if args.training_angles and not args.all_angles:
+    training_angles = args.training_angles
+elif not args.training_angles and args.all_angles:
+    training_angles = np.arange(0, 360, 5)
+else:
+    raise AttributeError("Can't have both a selection of angles and all "
+                         "angles at the same time!")
 # Reporting
 
 sim_params = {'g_max': g_max,
@@ -185,7 +193,7 @@ else:
 # +-------------------------------------------------------------------+
 # Need to setup the moving input
 
-training_actual_angles = []
+testing_actual_angles = []
 
 if not args.testing:
     if n == 32:
@@ -194,9 +202,9 @@ if not args.testing:
         chunk = 400
     else:
         raise AttributeError("What do I do for the specified grid size?")
-    training_actual_angles, final_on_gratings, final_off_gratings = \
+    testing_actual_angles, final_on_gratings, final_off_gratings = \
         generate_bar_input(simtime, chunk, N_layer,
-                           angles=args.training_angles)
+                           angles=training_angles)
 
     # Add +-1 ms to all times in input
     # final_on_gratings = []
@@ -697,9 +705,10 @@ np.savez(filename, pre_spikes=pre_spikes,
          final_on_gratings=final_on_gratings,
          final_off_gratings=final_off_gratings,
          input_grating_fname=input_grating_fname,
-         training_actual_angles=training_actual_angles,
+         testing_actual_angles=testing_actual_angles,
 
-         topology=args.topology
+         topology=args.topology,
+         training_angles=training_angles
          )
 
 print("Results in", filename)
