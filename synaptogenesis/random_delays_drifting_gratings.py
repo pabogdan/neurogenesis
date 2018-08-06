@@ -193,7 +193,7 @@ else:
 # +-------------------------------------------------------------------+
 # Need to setup the moving input
 
-testing_actual_angles = []
+actual_angles = []
 
 if not args.testing:
     if n == 32:
@@ -202,9 +202,11 @@ if not args.testing:
         chunk = 400
     else:
         raise AttributeError("What do I do for the specified grid size?")
-    testing_actual_angles, final_on_gratings, final_off_gratings = \
-        generate_bar_input(simtime, chunk, N_layer,
+
+    aa, final_on_gratings, final_off_gratings = \
+        generate_bar_input(t_record, chunk, N_layer,
                            angles=training_angles)
+    actual_angles.append(aa)
 
     # Add +-1 ms to all times in input
     # final_on_gratings = []
@@ -240,6 +242,10 @@ else:
                           "spiking_moving_bar_motif_bank_simtime_" \
                           "{}x{}_{}s.npz".format(n, n, no_iterations // 1000)
     data = np.load(input_grating_fname)
+    try:
+        actual_angles = data['actual_angles']
+    except:
+        print("Can't load actual angles. Did the name change?")
     on_spikes = data['on_spikes']
     # final_on_gratings = []
     final_on_gratings = on_spikes
@@ -565,29 +571,35 @@ try:
         print("run", current_run + 1, "of", no_runs)
         sim.run(run_duration)
 
+        if not args.testing:
+            aa, final_on_gratings, final_off_gratings = \
+                generate_bar_input(t_record, chunk, N_layer,
+                                   angles=training_angles,
+                                   offset=current_run * run_duration)
+            actual_angles.append(aa)
+            source_pop.tset("spike_times", final_on_gratings)
+            source_pop_off.tset("spike_times", final_off_gratings)
+
     if not args.testing:
         pre_weights.append(
             np.array([
                 ff_projection._get_synaptic_data(True, 'source'),
                 ff_projection._get_synaptic_data(True, 'target'),
                 ff_projection._get_synaptic_data(True, 'weight'),
-                ff_projection._get_synaptic_data(True,
-                                                 'delay')]).T)
+                ff_projection._get_synaptic_data(True, 'delay')]).T)
         pre_off_weights.append(
             np.array([
                 ff_off_projection._get_synaptic_data(True, 'source'),
                 ff_off_projection._get_synaptic_data(True, 'target'),
                 ff_off_projection._get_synaptic_data(True, 'weight'),
-                ff_off_projection._get_synaptic_data(True,
-                                                     'delay')]).T)
+                ff_off_projection._get_synaptic_data(True, 'delay')]).T)
 
         noise_weights.append(
             np.array([
                 noise_projection._get_synaptic_data(True, 'source'),
                 noise_projection._get_synaptic_data(True, 'target'),
                 noise_projection._get_synaptic_data(True, 'weight'),
-                noise_projection._get_synaptic_data(True,
-                                                    'delay')]).T)
+                noise_projection._get_synaptic_data(True, 'delay')]).T)
 
         post_weights.append(
             np.array([
@@ -707,7 +719,7 @@ np.savez(filename, pre_spikes=pre_spikes,
          final_on_gratings=final_on_gratings,
          final_off_gratings=final_off_gratings,
          input_grating_fname=input_grating_fname,
-         testing_actual_angles=testing_actual_angles,
+         actual_angles=actual_angles,
 
          topology=args.topology,
          training_angles=training_angles
