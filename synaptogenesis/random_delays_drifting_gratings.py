@@ -524,7 +524,7 @@ else:
 if args.record_source:
     source_pop.record()
 
-if args.topology != DEFAULT_TOPOLOGY:
+if args.topology != DEFAULT_TOPOLOGY and args.record_inh:
     inh_pop.record()
 target_pop.record()
 
@@ -645,8 +645,10 @@ try:
         pre_spikes = []
     post_spikes = target_pop.getSpikes(compatible_output=True)
 
-    if args.topology != DEFAULT_TOPOLOGY:
+    if args.topology != DEFAULT_TOPOLOGY and args.record_inh:
         inh_post_spikes = inh_pop.getSpikes(compatible_output=True)
+    else:
+        inh_post_spikes = []
     # End simulation on SpiNNaker
     sim.end()
 except Exception as e:
