@@ -356,7 +356,7 @@ def tile_grating_times(one_cycle, simtime):
 
 
 def generate_bar_input(simtime, chunk, N_layer, angles=np.arange(0, 360, 5),
-                       in_folder="spiking_moving_bar_input"):
+                       in_folder="spiking_moving_bar_input", offset=0):
     n = int(np.sqrt(N_layer))
     actual_angles = np.random.choice(angles, int(simtime / chunk))
     spike_times = []
@@ -365,8 +365,12 @@ def generate_bar_input(simtime, chunk, N_layer, angles=np.arange(0, 360, 5),
     on_files = []
     off_files = []
     for angle in angles:
-        fname = ("/moving_bar_res_%02dx%02d__w_3__angle_%03d__fps_200__"
-                 "cycles_0.40s.npz" % (n, n, angle))
+        if chunk == 200:
+            fname = ("/moving_bar_res_%02dx%02d__w_3__angle_%03d__fps_200__"
+                     "cycles_0.20s.npz" % (n, n, angle))
+        else:
+            fname = ("/moving_bar_res_%02dx%02d__w_3__angle_%03d__fps_200__"
+                     "cycles_0.40s.npz" % (n, n, angle))
         data = np.load(in_folder + fname)
         on_files.append(data['spikes_on'])
         off_files.append(data['spikes_off'])
@@ -382,8 +386,8 @@ def generate_bar_input(simtime, chunk, N_layer, angles=np.arange(0, 360, 5),
         current_angle = actual_angles[chunk_no]
         angle_index = int(np.argwhere(angles == current_angle))
 
-        on_entries = on_files[angle_index] + (chunk_no * (chunk))
-        off_entries = off_files[angle_index] + (chunk_no * (chunk))
+        on_entries = on_files[angle_index] + (chunk_no * (chunk)) + offset
+        off_entries = off_files[angle_index] + (chunk_no * (chunk)) + offset
 
         for index, value in np.ndenumerate(on_entries):
             if not isinstance(value, collections.Iterable) or len(value) == 1:
