@@ -188,8 +188,15 @@ else:
 training_actual_angles = []
 
 if not args.testing:
+    if n == 32:
+        chunk = 200
+    elif n == 64:
+        chunk = 400
+    else:
+        raise AttributeError("What do I do for the specified grid size?")
     training_actual_angles, final_on_gratings, final_off_gratings = \
-        generate_bar_input(simtime, 200, N_layer, angles=args.training_angles)
+        generate_bar_input(simtime, chunk, N_layer,
+                           angles=args.training_angles)
 
     # Add +-1 ms to all times in input
     # final_on_gratings = []
@@ -222,11 +229,11 @@ if not args.testing:
                                label="Noise population")
 else:
     input_grating_fname = "spiking_moving_bar_input/" \
-                          "spiking_moving_bar_motif_bank_simtime_{" \
-                          "}s.npz".format(no_iterations // 1000)
+                          "spiking_moving_bar_motif_bank_simtime_" \
+                          "{}x{}_{}s.npz".format(n, n, no_iterations // 1000)
     data = np.load(input_grating_fname)
     on_spikes = data['on_spikes']
-    final_on_gratings = []
+    # final_on_gratings = []
     final_on_gratings = on_spikes
     # for row in on_spikes:
     #     row = np.asarray(row)
@@ -234,7 +241,7 @@ else:
     #                                                      size=row.shape))
 
     off_spikes = data['off_spikes']
-    final_off_gratings = []
+    # final_off_gratings = []
     final_off_gratings = off_spikes
     # for row in off_spikes:
     #     row = np.asarray(row)
@@ -509,7 +516,7 @@ else:
 if args.record_source:
     source_pop.record()
 
-if args.topology!=DEFAULT_TOPOLOGY:
+if args.topology != DEFAULT_TOPOLOGY:
     inh_pop.record()
 target_pop.record()
 
@@ -690,7 +697,9 @@ np.savez(filename, pre_spikes=pre_spikes,
          final_on_gratings=final_on_gratings,
          final_off_gratings=final_off_gratings,
          input_grating_fname=input_grating_fname,
-         training_actual_angles=training_actual_angles
+         training_actual_angles=training_actual_angles,
+
+         topology=args.topology
          )
 
 print("Results in", filename)

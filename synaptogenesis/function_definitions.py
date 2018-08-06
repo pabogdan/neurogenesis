@@ -197,7 +197,7 @@ def generate_initial_connectivity(sigma, p, msg,
                                   delay=1.):
     # print "|", 256 // 4 * "-", "|"
     # print "|",
-    connections=[]
+    connections = []
     s = np.zeros(N_layer)
     pbar = ProgressBar(total_number_of_things_to_do=N_layer,
                        string_describing_what_being_progressed=msg)
@@ -318,8 +318,9 @@ def load_mnist_rates(in_path, class_idx, min_noise=0, max_noise=0,
 
     return on_rates, off_rates
 
+
 def generate_rates_very_pointy(s, grid, f_base=5., f_peak=152.8, sigma_stim=2.,
-                   f_mean=20.):
+                               f_mean=20.):
     '''
     Function that generates an array the same shape as the input layer so that
     each cell has a value corresponding to the firing rate for the neuron
@@ -333,8 +334,9 @@ def generate_rates_very_pointy(s, grid, f_base=5., f_peak=152.8, sigma_stim=2.,
         for y in range(grid[1]):
             _d = distance(s, (x, y), grid)
             _rates[x, y] = f_base + (f_peak * (np.exp(
-                (-_d ) / (2 * sigma_stim ** 2))))
+                (-_d) / (2 * sigma_stim ** 2))))
     return _rates
+
 
 def tile_grating_times(one_cycle, simtime):
     all_gratings = []
@@ -355,6 +357,7 @@ def tile_grating_times(one_cycle, simtime):
 
 def generate_bar_input(simtime, chunk, N_layer, angles=np.arange(0, 360, 5),
                        in_folder="spiking_moving_bar_input"):
+    n = int(np.sqrt(N_layer))
     actual_angles = np.random.choice(angles, int(simtime / chunk))
     spike_times = []
     for _ in range(N_layer):
@@ -362,7 +365,8 @@ def generate_bar_input(simtime, chunk, N_layer, angles=np.arange(0, 360, 5),
     on_files = []
     off_files = []
     for angle in angles:
-        fname = ("/moving_bar_res_32x32__w_3__angle_%03d__fps_200__cycles_0.20s.npz" % angle)
+        fname = ("/moving_bar_res_%02dx%02d__w_3__angle_%03d__fps_200__"
+                 "cycles_0.40s.npz" % (n, n, angle))
         data = np.load(in_folder + fname)
         on_files.append(data['spikes_on'])
         off_files.append(data['spikes_off'])
