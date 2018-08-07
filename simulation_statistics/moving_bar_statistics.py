@@ -27,7 +27,6 @@ mlib.rcParams.update({'font.size': 24})
 mlib.rcParams.update({'errorbar.capsize': 5})
 mlib.rcParams.update({'figure.autolayout': True})
 
-
 start_time = plt.datetime.datetime.now()
 paths = []
 for file in args.path:
@@ -88,30 +87,6 @@ for file in paths:
         simtime = int(data['simtime']) * ms
         post_spikes = data['post_spikes']
 
-        input_grating_fname = "spiking_moving_bar_motif_bank_simtime_{" \
-                              "}s.npz".format(int(simtime / second))
-
-        testing_data = np.load(
-            "../synaptogenesis/spiking_moving_bar_input/" +
-            input_grating_fname)
-
-        if ".npz" in data['testing'].ravel()[0]:
-            conn_data_filename = data['testing'].ravel()[0]
-        else:
-            conn_data_filename = data['testing'].ravel()[0] + ".npz"
-        connection_data = np.load(os.path.join(ntpath.dirname(file),
-                                               conn_data_filename))
-
-        chunk = testing_data['chunk'] * ms
-        actual_angles = testing_data['actual_angles']
-
-        # ff_last = data['final_pre_weights']
-        # lat_last = data['final_post_weights']
-        # init_ff_weights = data['init_ff_connections']
-        # init_lat_weights = data['init_lat_connections']
-        # ff_init = data['init_ff_connections']
-        # lat_init = data['init_lat_connections']
-
         try:
             # retrieve some important sim params
             grid = sim_params['grid']
@@ -142,6 +117,31 @@ for file in paths:
             f_rew = 10 ** 4  # Hz
             g_max = .2
 
+        input_grating_fname = "spiking_moving_bar_motif_bank_simtime_" \
+                              "{}x{}_{}s.npz".format(n, n, int(simtime /
+                                                               second))
+
+        testing_data = np.load(
+            "../synaptogenesis/spiking_moving_bar_input/" +
+            input_grating_fname)
+
+        if ".npz" in data['testing'].ravel()[0]:
+            conn_data_filename = data['testing'].ravel()[0]
+        else:
+            conn_data_filename = data['testing'].ravel()[0] + ".npz"
+        connection_data = np.load(os.path.join(ntpath.dirname(file),
+                                               conn_data_filename))
+
+        chunk = testing_data['chunk'] * ms
+        actual_angles = testing_data['actual_angles']
+
+        # ff_last = data['final_pre_weights']
+        # lat_last = data['final_post_weights']
+        # init_ff_weights = data['init_ff_connections']
+        # init_lat_weights = data['init_lat_connections']
+        # ff_init = data['init_ff_connections']
+        # lat_init = data['init_lat_connections']
+
         if not cached:
             target_neuron_mean_spike_rate = \
                 post_spikes.shape[0] / (simtime * N_layer)
@@ -158,7 +158,7 @@ for file in paths:
                 firings_for_neuron = post_spikes[
                     post_spikes[:, 0] == neuron_index]
                 for chunk_index in np.arange(per_neuron_instaneous_rates.shape[
-                                              1]):
+                                                 1]):
                     per_neuron_instaneous_rates[neuron_index, chunk_index] = \
                         np.count_nonzero(
                             np.logical_and(
@@ -169,13 +169,14 @@ for file in paths:
                             )
                         ) / (1 * chunk)
                 pbar.update()
-            instaneous_rates = np.sum(per_neuron_instaneous_rates, axis=0)/N_layer
+            instaneous_rates = np.sum(per_neuron_instaneous_rates,
+                                      axis=0) / N_layer
 
             rate_means = []
             rate_stds = []
             rate_sem = []
             all_rates = []
-            per_neuron_all_rates=[]
+            per_neuron_all_rates = []
             angles = np.arange(0, 360, 5)
             for angle in angles:
                 rates_for_current_angle = instaneous_rates[
@@ -185,7 +186,8 @@ for file in paths:
                 rate_sem.append(stats.sem(rates_for_current_angle))
                 all_rates.append(rates_for_current_angle)
                 per_neuron_all_rates.append(per_neuron_instaneous_rates[:,
-                    np.where(actual_angles == angle)].ravel())
+                                            np.where(
+                                                actual_angles == angle)].ravel())
             rate_means = np.asarray(rate_means)
             rate_stds = np.asarray(rate_stds)
             rate_sem = np.asarray(rate_sem)
