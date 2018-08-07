@@ -692,6 +692,8 @@ elif args.testing:
 else:
     filename = "drifting_grating_topographic_map_results" + str(suffix)
 
+if e:
+    filename = "error_" + filename
 # total_target_neuron_mean_spike_rate = \
 #     post_spikes.shape[0] / float(simtime) * 1000. / N_layer
 
