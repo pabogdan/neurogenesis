@@ -286,7 +286,7 @@ init_ff_connections = []
 init_lat_connections = []
 # Neuron populations
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
-if args.topology != DEFAULT_TOPOLOGY:
+if args.topology != 1:
     inh_pop = sim.Population(N_layer, model, cell_params,
                              label="INH_POP")
 # Putting this populations on chip 0 1 makes it easier to copy the provenance
@@ -445,7 +445,7 @@ else:
     trained_ff_off_connectivity = testing_data['ff_off_connections'][-1]
     trained_lat_connectivity = testing_data['lat_connections'][-1]
     trained_noise_connectivity = testing_data['noise_connections'][-1]
-    if args.topology != DEFAULT_TOPOLOGY:
+    if args.topology != 1:
         trained_inh_lat_connectivity = testing_data['inh_connections']
         trained_exh_lat_connectivity = testing_data['exh_connections']
         trained_inh_inh_connectivity = testing_data['inh_inh_connections']
@@ -480,7 +480,7 @@ else:
         target="inhibitory" if args.lateral_inhibition else "excitatory"
     )
 
-    if args.topology != DEFAULT_TOPOLOGY:
+    if args.topology != 1:
         inh_projection = sim.Projection(
             inh_pop, target_pop,
             sim.FromListConnector(trained_inh_lat_connectivity),
@@ -530,7 +530,7 @@ else:
 if args.record_source:
     source_pop.record()
 
-if args.topology != DEFAULT_TOPOLOGY and args.record_inh:
+if args.topology != 1 and args.record_inh:
     inh_pop.record()
 target_pop.record()
 
@@ -657,7 +657,7 @@ try:
         pre_spikes = []
     post_spikes = target_pop.getSpikes(compatible_output=True)
 
-    if args.topology != DEFAULT_TOPOLOGY and args.record_inh:
+    if args.topology != 1 and args.record_inh:
         inh_post_spikes = inh_pop.getSpikes(compatible_output=True)
     else:
         inh_post_spikes = []
