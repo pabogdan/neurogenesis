@@ -1,7 +1,8 @@
 """
-Test for topographic map formation using STDP and synaptic rewiring.
+Spatio-temporal Selectivity arising from Synaptic Rewiring Procedure
 
-http://hdl.handle.net/1842/3997
+Author: Petrut A. Bogdan
+
 """
 # Imports
 import traceback
@@ -26,7 +27,6 @@ sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
 sim.set_number_of_neurons_per_core("IF_cond_exp", 50)
 sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256)
 sim.set_number_of_neurons_per_core("SpikeSourceArray", 256)
-sim.set_number_of_neurons_per_core("SpikeSourcePoissonVariable", 256 // 13)
 
 # +-------------------------------------------------------------------+
 # | General Parameters                                                |
@@ -532,7 +532,9 @@ if args.record_source:
 
 if args.topology != 1 and args.record_inh:
     inh_pop.record()
-target_pop.record()
+
+if args.testing:
+    target_pop.record()
 
 # Run simulation
 pre_spikes = []
@@ -655,7 +657,12 @@ try:
         pre_spikes = source_pop.getSpikes(compatible_output=True)
     else:
         pre_spikes = []
-    post_spikes = target_pop.getSpikes(compatible_output=True)
+
+
+    if args.testing:
+        post_spikes = target_pop.getSpikes(compatible_output=True)
+    else:
+        post_spikes = []
 
     if args.topology != 1 and args.record_inh:
         inh_post_spikes = inh_pop.getSpikes(compatible_output=True)
