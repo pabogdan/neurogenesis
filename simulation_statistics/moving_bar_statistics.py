@@ -308,6 +308,7 @@ for file in paths:
         if not cached:
             np.savez(filename, recording_archive_name=file,
                      target_neuron_mean_spike_rate=target_neuron_mean_spike_rate,
+                     sim_params=sim_params,
 
                      # Response information
                      instaneous_rates=instaneous_rates,
