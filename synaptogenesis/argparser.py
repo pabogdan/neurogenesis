@@ -1,7 +1,7 @@
 import argparse
 
 # Current defaults for [App: Movement detection]
-# as of 30.07.2018
+# as of 7.08.2018
 # Previous version:
 #   topographic map formation B.O.T -> 30.07.2018
 
@@ -59,7 +59,7 @@ ONE_TO_ONE_LESION = 2
 DEFAULT_LAT_LAT_CONN = False
 
 # Topology configuration
-DEFAULT_TOPOLOGY = 1
+DEFAULT_TOPOLOGY = 3
 DEFAULT_DELAY_TYPE = True
 
 DEFAULT_FPS = 200
