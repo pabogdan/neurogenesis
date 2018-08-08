@@ -204,7 +204,7 @@ if not args.testing:
         raise AttributeError("What do I do for the specified grid size?")
 
     aa, final_on_gratings, final_off_gratings = \
-        generate_bar_input(t_record, chunk, N_layer,
+        generate_bar_input(no_iterations, chunk, N_layer,
                            angles=training_angles)
     actual_angles.append(aa)
 
@@ -573,14 +573,14 @@ try:
         print("run", current_run + 1, "of", no_runs)
         sim.run(run_duration)
 
-        if not args.testing:
-            aa, final_on_gratings, final_off_gratings = \
-                generate_bar_input(t_record, chunk, N_layer,
-                                   angles=training_angles,
-                                   offset=current_run * run_duration)
-            actual_angles.append(aa)
-            source_pop.tset("spike_times", final_on_gratings)
-            source_pop_off.tset("spike_times", final_off_gratings)
+        # if not args.testing:
+        #     aa, final_on_gratings, final_off_gratings = \
+        #         generate_bar_input(t_record, chunk, N_layer,
+        #                            angles=training_angles,
+        #                            offset=current_run * run_duration)
+        #     actual_angles.append(aa)
+        #     source_pop.tset("spike_times", final_on_gratings)
+        #     source_pop_off.tset("spike_times", final_off_gratings)
 
     if not args.testing:
         pre_weights.append(
