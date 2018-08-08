@@ -15,7 +15,7 @@ SSA = 2
 
 DEFAULT_TAU_REFRAC = 5.0
 DEFAULT_F_PEAK = 152.8
-DEFAULT_NO_INTERATIONS = 2400000
+DEFAULT_NO_ITERATIONS = 2400000
 DEFAULT_TESTING_ITERATIONS = 1200000
 DEFAULT_T_RECORD = 100000
 DEFAULT_T_STIM = 20
@@ -186,10 +186,10 @@ parser.add_argument('--delay_distribution', type=int,
                          'spikes in the network')
 
 parser.add_argument('--no_iterations', type=int,
-                    default=DEFAULT_NO_INTERATIONS, dest='no_iterations',
+                    default=DEFAULT_NO_ITERATIONS, dest='no_iterations',
                     help='total number of iterations (or time steps) for '
                          'the simulation (technically, ms)'
-                         ' -- [default {}]'.format(DEFAULT_NO_INTERATIONS))
+                         ' -- [default {}]'.format(DEFAULT_NO_ITERATIONS))
 
 parser.add_argument('--testing_iterations', type=int,
                     default=DEFAULT_TESTING_ITERATIONS,
