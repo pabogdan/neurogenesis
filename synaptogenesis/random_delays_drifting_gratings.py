@@ -141,7 +141,7 @@ noise_inh_weights = []
 
 if args.training_angles and not args.all_angles:
     training_angles = args.training_angles
-elif not args.training_angles and args.all_angles:
+elif args.training_angles == [0] and args.all_angles:
     training_angles = np.arange(0, 360, 5)
 else:
     raise AttributeError("Can't have both a selection of angles and all "
