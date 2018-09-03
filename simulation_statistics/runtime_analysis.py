@@ -25,7 +25,8 @@ training_random_delay_files = []
 training_constant_delay_files = []
 exceptions = []
 ke_count = 0
-
+io_count = 0
+exception_strings = []
 for f in only_delay_npz_files:
     try:
         is_constant_delay = False
@@ -83,8 +84,10 @@ for f in only_delay_npz_files:
             break
     except KeyError as ke:
         ke_count += 1
+    except IOError as io:
+        io_count += 1
     except Exception as e:
-        # print(e)
+        exception_strings.append(str(e))
         traceback.print_exc()
 
 end_time = plt.datetime.datetime.now()
@@ -101,7 +104,9 @@ np.savez(filename,
          training_random_delay_files=training_random_delay_files,
          training_constant_delay_files=training_constant_delay_files,
          exceptions=exceptions,
-         keyerror_count=ke_count)
+         keyerror_count=ke_count,
+         ioerror_count=io_count,
+         exception_strings=exception_strings)
 
 print("Results in", filename)
 print("Total time elapsed -- " + str(total_time))
