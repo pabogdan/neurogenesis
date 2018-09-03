@@ -28,6 +28,7 @@ ke_count = 0
 
 for f in only_delay_npz_files:
     try:
+        is_constant_delay = False
         pathed_file = join(synaptogenesis_folder_relative_location, f)
         data = np.load(pathed_file)
         if data['exception']:
@@ -36,7 +37,11 @@ for f in only_delay_npz_files:
         elif data['testing']:
             # Testing
             sim_params = np.array(data['sim_params']).ravel()[0]
-            if sim_params['delay_interval'] == [1, 1]:
+            if 'delay_interval' in sim_params.keys():
+                is_constant_delay = sim_params['delay_interval'] == [1, 1]
+            else:
+                is_constant_delay = "constant" in f
+            if is_constant_delay:
                 testing_constant_delay_files.append((
                     f, sim_params['simtime'],
                     np.array(data['total_time']).ravel()[
@@ -53,7 +58,11 @@ for f in only_delay_npz_files:
         elif not data['testing']:
             # Training
             sim_params = np.array(data['sim_params']).ravel()[0]
-            if sim_params['delay_interval'] == [1, 1]:
+            if 'delay_interval' in sim_params.keys():
+                is_constant_delay = sim_params['delay_interval'] == [1, 1]
+            else:
+                is_constant_delay = "constant" in f
+            if is_constant_delay:
                 training_constant_delay_files.append((
                     f, sim_params['simtime'],
                     np.array(data['total_time']).ravel()[
