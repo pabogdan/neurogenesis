@@ -32,8 +32,8 @@ for f in only_delay_npz_files:
         is_constant_delay = False
         pathed_file = join(synaptogenesis_folder_relative_location, f)
         data = np.load(pathed_file)
-        if (data['exception'] and \
-                not np.array(data['sim_params']).ravel()[0]=="None") \
+        if (data['exception'] and
+                not data['exception'].ravel()[0] == "None") \
                 or "error_" in f:
             # Broken
             exceptions.append((f, data['exception']))
