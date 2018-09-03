@@ -196,6 +196,7 @@ else:
 actual_angles = []
 
 if not args.testing:
+    # TRAINING REGIME!
     if n == 32:
         chunk = 200
     elif n == 64:
@@ -209,18 +210,9 @@ if not args.testing:
     actual_angles.append(aa)
 
     # Add +-1 ms to all times in input
-    # final_on_gratings = []
-    # for row in on_gratings:
-    #     row = np.asarray(row)
-    #     final_on_gratings.append(row + np.random.randint(-1, 2,
-    #                                                      size=row.shape))
-    #
-    # final_off_gratings = []
-    # for row in off_gratings:
-    #     row = np.asarray(row)
-    #     final_off_gratings.append(row + np.random.randint(-1, 2,
-    #                                                       size=row.shape))
-
+    if args.jitter:
+        final_on_gratings, final_off_gratings = jitter_the_input(
+            final_on_gratings, final_off_gratings)
     source_pop = sim.Population(N_layer,
                                 sim.SpikeSourceArray,
                                 {'spike_times': final_on_gratings
@@ -238,6 +230,7 @@ if not args.testing:
                                 'duration': simtime},
                                label="Noise population")
 else:
+    # TESTING REGIME!
     input_grating_fname = "spiking_moving_bar_input/" \
                           "spiking_moving_bar_motif_bank_simtime_" \
                           "{}x{}_{}s.npz".format(n, n, no_iterations // 1000)
@@ -261,6 +254,11 @@ else:
     #     row = np.asarray(row)
     #     final_off_gratings.append(row + np.random.randint(-1, 2,
     #                                                       size=row.shape))
+
+    # Add +-1 ms to all times in input
+    if args.jitter:
+        final_on_gratings, final_off_gratings = jitter_the_input(
+            on_spikes, off_spikes)
 
     source_pop = sim.Population(N_layer,
                                 sim.SpikeSourceArray,

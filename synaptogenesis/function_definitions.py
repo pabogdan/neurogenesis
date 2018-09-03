@@ -398,3 +398,20 @@ def generate_bar_input(simtime, chunk, N_layer, angles=np.arange(0, 360, 5),
                 off_spikes[index[0]].append(value)
 
     return actual_angles, on_spikes, off_spikes
+
+
+def jitter_the_input(ons, offs):
+    on_gratings = np.copy(ons)
+    final_on_gratings = []
+    for row in on_gratings:
+        row = np.asarray(row)
+        final_on_gratings.append(row + np.random.randint(-1, 2,
+                                                         size=row.shape))
+    off_gratings = np.copy(offs)
+    final_off_gratings = []
+    for row in off_gratings:
+        row = np.asarray(row)
+        final_off_gratings.append(row + np.random.randint(-1, 2,
+                                                          size=row.shape))
+
+    return final_on_gratings, final_off_gratings
