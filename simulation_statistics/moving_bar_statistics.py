@@ -86,6 +86,7 @@ for file in paths:
         # Don't do extra work if we've already done all of this
         simtime = int(data['simtime']) * ms
         post_spikes = data['post_spikes']
+        inh_post_spikes = data['inh_post_spikes']
 
         try:
             # retrieve some important sim params
@@ -134,7 +135,8 @@ for file in paths:
 
         chunk = testing_data['chunk'] * ms
         actual_angles = testing_data['actual_angles']
-        training_sim_params = np.array(connection_data['sim_params']).ravel()[0]
+        training_sim_params = np.array(connection_data['sim_params']).ravel()[
+            0]
         # ff_last = data['final_pre_weights']
         # lat_last = data['final_post_weights']
         # init_ff_weights = data['init_ff_connections']
@@ -150,9 +152,11 @@ for file in paths:
                                                     int(simtime / chunk)))
             chunk_size = chunk / ms
             # Cache coherent implementation
+            # Excitatory population
             pbar = ProgressBar(total_number_of_things_to_do=N_layer,
                                string_describing_what_being_progressed=
-                               "\nBinning firing activity per neuron...")
+                               "\nBinning firing activity per excitatory "
+                               "neuron...")
             for neuron_index in np.arange(N_layer):
 
                 firings_for_neuron = post_spikes[
@@ -171,6 +175,63 @@ for file in paths:
                 pbar.update()
             instaneous_rates = np.sum(per_neuron_instaneous_rates,
                                       axis=0) / N_layer
+
+            # Inhibitory population
+            if inh_post_spikes.size > 0:
+                inh_per_neuron_instaneous_rates = np.empty(
+                    (N_layer,int(simtime / chunk)))
+                pbar = ProgressBar(total_number_of_things_to_do=N_layer,
+                                   string_describing_what_being_progressed=
+                                   "\nBinning firing activity per inhibitory "
+                                   "neuron...")
+                for neuron_index in np.arange(N_layer):
+
+                    firings_for_neuron = inh_post_spikes[
+                        inh_post_spikes[:, 0] == neuron_index]
+                    for chunk_index in \
+                            np.arange(
+                                inh_per_neuron_instaneous_rates.shape[1]):
+                        inh_per_neuron_instaneous_rates[neuron_index,
+                                                        chunk_index] = \
+                            np.count_nonzero(
+                                np.logical_and(
+                                    firings_for_neuron[:, 1] >= (
+                                            chunk_index * chunk_size),
+                                    firings_for_neuron[:, 1] < (
+                                            (chunk_index + 1) * chunk_size)
+                                )
+                            ) / (1 * chunk)
+                    pbar.update()
+                inh_instaneous_rates = np.sum(inh_per_neuron_instaneous_rates,
+                                              axis=0) / N_layer
+                inh_rate_means = []
+                inh_rate_stds = []
+                inh_rate_sem = []
+                inh_all_rates = []
+                inh_per_neuron_all_rates = []
+                angles = np.arange(0, 360, 5)
+                for angle in angles:
+                    inh_rates_for_current_angle = inh_instaneous_rates[
+                        np.where(actual_angles == angle)]
+                    inh_rate_means.append(np.mean(inh_rates_for_current_angle))
+                    inh_rate_stds.append(np.std(inh_rates_for_current_angle))
+                    inh_rate_sem.append(stats.sem(inh_rates_for_current_angle))
+                    inh_all_rates.append(inh_rates_for_current_angle)
+                    inh_per_neuron_all_rates.append(per_neuron_instaneous_rates[:,
+                                                np.where(
+                                                    actual_angles == angle)].ravel())
+                inh_rate_means = np.asarray(inh_rate_means)
+                inh_rate_stds = np.asarray(inh_rate_stds)
+                inh_rate_sem = np.asarray(inh_rate_sem)
+                inh_all_rates = np.asarray(inh_all_rates)
+            else:
+                inh_rate_means = []
+                inh_rate_stds = []
+                inh_rate_sem = []
+                inh_all_rates = []
+                inh_per_neuron_all_rates = []
+                inh_per_neuron_instaneous_rates = np.asarray([])
+                inh_instaneous_rates = np.asarray([])
 
             rate_means = []
             rate_stds = []
@@ -282,6 +343,15 @@ for file in paths:
             per_neuron_instaneous_rates = cached_data[
                 'per_neuron_instaneous_rates']
             per_neuron_all_rates = cached_data['per_neuron_all_rates']
+            # Inhibitory info
+            inh_ratemeans = cached_data['inh_ratemeans']
+            inh_ratestds = cached_data['inh_ratestds']
+            inh_ratesem = cached_data['inh_ratesem']
+            inh_all_rates = cached_data['inh_all_rates']
+            inh_instaneous_rates = cached_data['inh_instaneous_rates']
+            inh_per_neuron_instaneous_rates = cached_data[
+                'inh_per_neuron_instaneous_rates']
+            inh_per_neuron_all_rates = cached_data['inh_per_neuron_all_rates']
 
             # Connection information
             ff_connections = cached_data['ff_connections']
@@ -311,6 +381,7 @@ for file in paths:
                      sim_params=sim_params,
 
                      # Response information
+                     # Excitatory
                      instaneous_rates=instaneous_rates,
                      rate_means=rate_means,
                      rate_stds=rate_stds,
@@ -319,10 +390,21 @@ for file in paths:
                      actual_angles=actual_angles,
                      angles=angles,
                      radians=radians,
+                     # Inhibitory
+                     inh_instaneous_rates=inh_instaneous_rates,
+                     inh_rate_means=inh_rate_means,
+                     inh_rate_stds=inh_rate_stds,
+                     inh_rate_sem=inh_rate_sem,
+                     inh_all_rates=inh_all_rates,
 
                      # Per neuron response information
+                     # Excitatory
                      per_neuron_instaneous_rates=per_neuron_instaneous_rates,
                      per_neuron_all_rates=per_neuron_all_rates,
+                     # Inhibitory
+                     inh_per_neuron_instaneous_rates=inh_per_neuron_instaneous_rates,
+                     inh_per_neuron_all_rates=inh_per_neuron_all_rates,
+
 
                      # Connection information
                      ff_connections=ff_connections,
