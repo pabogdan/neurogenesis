@@ -180,7 +180,8 @@ sim_params = {'g_max': g_max,
               'delay_interval': delay_interval,
               'topology': args.topology,
               'constant_delay': args.constant_delay,
-              'training_angles': training_angles
+              'training_angles': training_angles,
+              'argparser': vars(args)
               }
 
 if args.input_type == GAUSSIAN_INPUT:
