@@ -15,6 +15,7 @@ SSA = 2
 
 DEFAULT_TAU_REFRAC = 5.0
 DEFAULT_F_PEAK = 152.8
+DEFAULT_F_BASE = 5
 DEFAULT_NO_ITERATIONS = 2400000
 DEFAULT_TESTING_ITERATIONS = 1200000
 DEFAULT_T_RECORD = 100000
@@ -157,6 +158,10 @@ parser.add_argument('--t_stim', type=int,
 parser.add_argument('--f_peak', type=float,
                     default=DEFAULT_F_PEAK, dest='f_peak',
                     help='peak input spike rate (Hz)')
+
+parser.add_argument('--f_base', type=float,
+                    default=DEFAULT_F_BASE, dest='f_base',
+                    help='base input spike rate (Hz)')
 
 parser.add_argument('--f_rew', type=float,
                     default=DEFAULT_F_REW, dest='f_rew',

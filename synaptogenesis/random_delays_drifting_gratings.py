@@ -96,7 +96,7 @@ f_rew = args.f_rew  # 10 ** 4  # Hz
 
 # Inputs
 f_mean = args.f_mean  # Hz
-f_base = 5  # Hz
+f_base = args.f_base  # Hz
 f_peak = args.f_peak  # 152.8  # Hz
 sigma_stim = args.sigma_stim  # 2
 t_stim = args.t_stim  # 20  # ms
