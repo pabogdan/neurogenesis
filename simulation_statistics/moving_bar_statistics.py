@@ -134,7 +134,7 @@ for file in paths:
 
         chunk = testing_data['chunk'] * ms
         actual_angles = testing_data['actual_angles']
-
+        training_sim_params = np.array(connection_data['sim_params']).ravel()[0]
         # ff_last = data['final_pre_weights']
         # lat_last = data['final_post_weights']
         # init_ff_weights = data['init_ff_connections']
@@ -336,7 +336,11 @@ for file in paths:
                      final_ff_conn_field=final_ff_conn_field,
                      final_ff_num_field=final_ff_num_field,
                      final_lat_conn_field=final_lat_conn_field,
-                     final_lat_num_field=final_lat_num_field
+                     final_lat_num_field=final_lat_num_field,
+
+                     # Simulation parameters
+                     testing_sim_params=sim_params,
+                     training_sim_params=training_sim_params,
                      )
         else:
             print("Not re-saving the npz archive...")

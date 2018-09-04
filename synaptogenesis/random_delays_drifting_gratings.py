@@ -178,7 +178,9 @@ sim_params = {'g_max': g_max,
               'random_partner': args.random_partner,
               'lesion': args.lesion,
               'delay_interval': delay_interval,
-              'topology': args.topology
+              'topology': args.topology,
+              'constant_delay': args.constant_delay,
+              'training_angles': training_angles
               }
 
 if args.input_type == GAUSSIAN_INPUT:
@@ -655,7 +657,6 @@ try:
         pre_spikes = source_pop.getSpikes(compatible_output=True)
     else:
         pre_spikes = []
-
 
     if args.testing:
         post_spikes = target_pop.getSpikes(compatible_output=True)
