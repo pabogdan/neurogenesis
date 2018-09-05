@@ -680,7 +680,7 @@ try:
     else:
         post_spikes = []
 
-    if args.topology != 1 and args.record_inh:
+    if args.topology != 1 and args.record_inh and args.testing:
         inh_post_spikes = inh_pop.getSpikes(compatible_output=True)
     else:
         inh_post_spikes = []
