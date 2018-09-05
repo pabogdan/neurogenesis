@@ -344,9 +344,9 @@ for file in paths:
                 'per_neuron_instaneous_rates']
             per_neuron_all_rates = cached_data['per_neuron_all_rates']
             # Inhibitory info
-            inh_ratemeans = cached_data['inh_ratemeans']
-            inh_ratestds = cached_data['inh_ratestds']
-            inh_ratesem = cached_data['inh_ratesem']
+            inh_rate_means = cached_data['inh_rate_means']
+            inh_rate_stds = cached_data['inh_rate_stds']
+            inh_rate_sem = cached_data['inh_rate_sem']
             inh_all_rates = cached_data['inh_all_rates']
             inh_instaneous_rates = cached_data['inh_instaneous_rates']
             inh_per_neuron_instaneous_rates = cached_data[
