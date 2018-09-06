@@ -262,7 +262,7 @@ for file in paths:
             init_ff_connections = connection_data['init_ff_connections']
             noise_connections = connection_data['noise_connections'][0]
             ff_off_connections = connection_data['ff_off_connections'][0]
-            inh_connections = connection_data['inh_connections'][0]
+            inh_connections = connection_data['inh_connections']
 
             final_ff_conn_network = np.ones((N_layer, N_layer)) * np.nan
             final_lat_conn_network = np.ones((N_layer, N_layer)) * np.nan
@@ -336,14 +336,14 @@ for file in paths:
             off_last = connection_data['ff_off_connections'][0]
             noise_last = connection_data['noise_connections'][0]
             lat_last = connection_data['lat_connections'][0]
-            inh_to_exh_last = connection_data['inh_connections'][0]
+            inh_to_exh_last = connection_data['inh_connections']
 
             # Incoming connections to target INHIBITORY population
             inh_ff_last = connection_data['inh_connections'][0]
             inh_off_last = connection_data['off_inh_connections'][0]
-            inh_noise_last = connection_data['noise_inh_connections'][0]
-            inh_lat_last = connection_data['inh_inh_connections'][0]
-            exh_to_inh_last = connection_data['exh_connections'][0]
+            inh_noise_last = connection_data['noise_inh_connections']
+            inh_lat_last = connection_data['inh_inh_connections']
+            exh_to_inh_last = connection_data['exh_connections']
 
         else:
             print("Using cached data.")
