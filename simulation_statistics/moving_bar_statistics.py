@@ -262,6 +262,7 @@ for file in paths:
             init_ff_connections = connection_data['init_ff_connections']
             noise_connections = connection_data['noise_connections'][0]
             ff_off_connections = connection_data['ff_off_connections'][0]
+            inh_connections = connection_data['inh_connections'][0]
 
             final_ff_conn_network = np.ones((N_layer, N_layer)) * np.nan
             final_lat_conn_network = np.ones((N_layer, N_layer)) * np.nan
@@ -305,6 +306,15 @@ for file in paths:
                     final_lat_conn_network[int(source), int(target)] += weight
                 lat_num_network[int(source), int(target)] += 1
 
+            # NB: for these purposes I count afferent inhibition as a lateral
+            # signal
+            for source, target, weight, delay in inh_connections:
+                if np.isnan(final_lat_conn_network[int(source), int(target)]):
+                    final_lat_conn_network[int(source), int(target)] = weight
+                else:
+                    final_lat_conn_network[int(source), int(target)] += weight
+                lat_num_network[int(source), int(target)] += 1
+
             for row in range(final_ff_conn_network.shape[0]):
                 final_ff_conn_field += np.roll(
                     np.nan_to_num(final_ff_conn_network[row, :]),
@@ -321,11 +331,19 @@ for file in paths:
                     np.nan_to_num(lat_num_network[row, :]),
                     (N_layer // 2 + n // 2) - row)
 
+            # Incoming connections to target EXCITATORY population
             ff_last = connection_data['ff_connections'][0]
             off_last = connection_data['ff_off_connections'][0]
             noise_last = connection_data['noise_connections'][0]
             lat_last = connection_data['lat_connections'][0]
+            inh_to_exh_last = connection_data['inh_connections'][0]
 
+            # Incoming connections to target INHIBITORY population
+            inh_ff_last = connection_data['inh_connections'][0]
+            inh_off_last = connection_data['off_inh_connections'][0]
+            inh_noise_last = connection_data['noise_inh_connections'][0]
+            inh_lat_last = connection_data['inh_inh_connections'][0]
+            exh_to_inh_last = connection_data['exh_connections'][0]
 
         else:
             print("Using cached data.")
