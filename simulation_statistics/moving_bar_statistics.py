@@ -394,7 +394,7 @@ for file in paths:
               target_neuron_mean_spike_rate, "Hz")
 
         if not cached:
-            np.savez(filename, recording_archive_name=file,
+            np.savez_compressed(filename, recording_archive_name=file,
                      target_neuron_mean_spike_rate=target_neuron_mean_spike_rate,
                      sim_params=sim_params,
 
@@ -555,7 +555,7 @@ for file in paths:
 if sensitivity_analysis:
     curr_time = plt.datetime.datetime.now()
     suffix_total = curr_time.strftime("_%H%M%S_%d%m%Y")
-    np.savez("batch_analysis" + suffix_total, recording_archive_name=file,
+    np.savez_compressed("batch_analysis" + suffix_total, recording_archive_name=file,
              snapshots=batch_snapshots,
              params=batch_params,
              results=batch_matrix_results,

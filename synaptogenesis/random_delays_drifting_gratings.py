@@ -713,7 +713,7 @@ if e:
 # total_target_neuron_mean_spike_rate = \
 #     post_spikes.shape[0] / float(simtime) * 1000. / N_layer
 
-np.savez(filename, pre_spikes=pre_spikes,
+np.savez_compressed(filename, pre_spikes=pre_spikes,
          post_spikes=post_spikes,
          inh_post_spikes=inh_post_spikes,
 
