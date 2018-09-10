@@ -218,7 +218,7 @@ for file in paths:
                     inh_rate_sem.append(stats.sem(inh_rates_for_current_angle))
                     inh_all_rates.append(inh_rates_for_current_angle)
                     inh_per_neuron_all_rates.append(
-                        per_neuron_instaneous_rates[:,
+                        inh_per_neuron_instaneous_rates[:,
                         np.where(
                             actual_angles == angle)].ravel())
                 inh_rate_means = np.asarray(inh_rate_means)
