@@ -179,7 +179,7 @@ for file in paths:
             # Inhibitory population
             if inh_post_spikes.size > 0:
                 inh_per_neuron_instaneous_rates = np.empty(
-                    (N_layer,int(simtime / chunk)))
+                    (N_layer, int(simtime / chunk)))
                 pbar = ProgressBar(total_number_of_things_to_do=N_layer,
                                    string_describing_what_being_progressed=
                                    "\nBinning firing activity per inhibitory "
@@ -217,9 +217,10 @@ for file in paths:
                     inh_rate_stds.append(np.std(inh_rates_for_current_angle))
                     inh_rate_sem.append(stats.sem(inh_rates_for_current_angle))
                     inh_all_rates.append(inh_rates_for_current_angle)
-                    inh_per_neuron_all_rates.append(per_neuron_instaneous_rates[:,
-                                                np.where(
-                                                    actual_angles == angle)].ravel())
+                    inh_per_neuron_all_rates.append(
+                        per_neuron_instaneous_rates[:,
+                        np.where(
+                            actual_angles == angle)].ravel())
                 inh_rate_means = np.asarray(inh_rate_means)
                 inh_rate_stds = np.asarray(inh_rate_stds)
                 inh_rate_sem = np.asarray(inh_rate_sem)
@@ -387,6 +388,16 @@ for file in paths:
             noise_last = cached_data['noise_last']
             lat_last = cached_data['lat_last']
 
+            lat_num_network = cached_data['lat_num_network']
+            ff_num_network = cached_data['ff_num_network']
+
+            inh_lat_last = cached_data['inh_lat_last']
+            exh_to_inh_last = cached_data['exh_to_inh_last']
+            inh_to_exh_last = cached_data['inh_to_exh_last']
+            inh_ff_last = cached_data['inh_ff_last']
+            inh_off_last = cached_data['inh_off_last']
+            inh_noise_last = cached_data['inh_noise_last']
+
         print()
         pp(sim_params)
         print()
@@ -394,54 +405,64 @@ for file in paths:
               target_neuron_mean_spike_rate, "Hz")
 
         if not cached:
-            np.savez_compressed(filename, recording_archive_name=file,
-                     target_neuron_mean_spike_rate=target_neuron_mean_spike_rate,
-                     sim_params=sim_params,
+            np.savez_compressed(
+                filename, recording_archive_name=file,
+                target_neuron_mean_spike_rate=target_neuron_mean_spike_rate,
+                sim_params=sim_params,
 
-                     # Response information
-                     # Excitatory
-                     instaneous_rates=instaneous_rates,
-                     rate_means=rate_means,
-                     rate_stds=rate_stds,
-                     rate_sem=rate_sem,
-                     all_rates=all_rates,
-                     actual_angles=actual_angles,
-                     angles=angles,
-                     radians=radians,
-                     # Inhibitory
-                     inh_instaneous_rates=inh_instaneous_rates,
-                     inh_rate_means=inh_rate_means,
-                     inh_rate_stds=inh_rate_stds,
-                     inh_rate_sem=inh_rate_sem,
-                     inh_all_rates=inh_all_rates,
+                # Response information
+                # Excitatory
+                instaneous_rates=instaneous_rates,
+                rate_means=rate_means,
+                rate_stds=rate_stds,
+                rate_sem=rate_sem,
+                all_rates=all_rates,
+                actual_angles=actual_angles,
+                angles=angles,
+                radians=radians,
+                # Inhibitory
+                inh_instaneous_rates=inh_instaneous_rates,
+                inh_rate_means=inh_rate_means,
+                inh_rate_stds=inh_rate_stds,
+                inh_rate_sem=inh_rate_sem,
+                inh_all_rates=inh_all_rates,
 
-                     # Per neuron response information
-                     # Excitatory
-                     per_neuron_instaneous_rates=per_neuron_instaneous_rates,
-                     per_neuron_all_rates=per_neuron_all_rates,
-                     # Inhibitory
-                     inh_per_neuron_instaneous_rates=inh_per_neuron_instaneous_rates,
-                     inh_per_neuron_all_rates=inh_per_neuron_all_rates,
+                # Per neuron response information
+                # Excitatory
+                per_neuron_instaneous_rates=per_neuron_instaneous_rates,
+                per_neuron_all_rates=per_neuron_all_rates,
+                # Inhibitory
+                inh_per_neuron_instaneous_rates=inh_per_neuron_instaneous_rates,
+                inh_per_neuron_all_rates=inh_per_neuron_all_rates,
 
+                # Connection information
+                ff_connections=ff_connections,
+                ff_off_connections=ff_off_connections,
+                lat_connections=lat_connections,
+                noise_connections=noise_connections,
+                ff_last=ff_last,
+                off_last=off_last,
+                noise_last=noise_last,
+                lat_last=lat_last,
+                inh_lat_last=inh_lat_last,
+                exh_to_inh_last=exh_to_inh_last,
+                inh_to_exh_last=inh_to_exh_last,
+                inh_ff_last=inh_ff_last,
+                inh_off_last=inh_off_last,
+                inh_noise_last=inh_noise_last,
 
-                     # Connection information
-                     ff_connections=ff_connections,
-                     ff_off_connections=ff_off_connections,
-                     lat_connections=lat_connections,
-                     noise_connections=noise_connections,
-                     ff_last=ff_last,
-                     off_last=off_last,
-                     noise_last=noise_last,
-                     lat_last=lat_last,
-                     final_ff_conn_field=final_ff_conn_field,
-                     final_ff_num_field=final_ff_num_field,
-                     final_lat_conn_field=final_lat_conn_field,
-                     final_lat_num_field=final_lat_num_field,
+                final_ff_conn_field=final_ff_conn_field,
+                final_ff_num_field=final_ff_num_field,
+                final_lat_conn_field=final_lat_conn_field,
+                final_lat_num_field=final_lat_num_field,
 
-                     # Simulation parameters
-                     testing_sim_params=sim_params,
-                     training_sim_params=training_sim_params,
-                     )
+                lat_num_network=lat_num_network,
+                ff_num_network=ff_num_network,
+
+                # Simulation parameters
+                testing_sim_params=sim_params,
+                training_sim_params=training_sim_params,
+            )
         else:
             print("Not re-saving the npz archive...")
         if sensitivity_analysis:
@@ -555,12 +576,13 @@ for file in paths:
 if sensitivity_analysis:
     curr_time = plt.datetime.datetime.now()
     suffix_total = curr_time.strftime("_%H%M%S_%d%m%Y")
-    np.savez_compressed("batch_analysis" + suffix_total, recording_archive_name=file,
-             snapshots=batch_snapshots,
-             params=batch_params,
-             results=batch_matrix_results,
-             files=batch_files
-             )
+    np.savez_compressed("batch_analysis" + suffix_total,
+                        recording_archive_name=file,
+                        snapshots=batch_snapshots,
+                        params=batch_params,
+                        results=batch_matrix_results,
+                        files=batch_files
+                        )
 end_time = plt.datetime.datetime.now()
 total_time = end_time - start_time
 print("Results in", filename)
