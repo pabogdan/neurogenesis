@@ -298,4 +298,9 @@ parser.add_argument('--jitter',
                     help="[App: Motion detection] jitter the input by +-1 ms",
                     action="store_true")
 
+parser.add_argument('--common_rewiring_seed',
+                    help="[App: Motion detection] common rewiring shared "
+                         "seed means post neurons are selected in tandem",
+                    action="store_true")
+
 args = parser.parse_args()
