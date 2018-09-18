@@ -21,6 +21,7 @@ onlyfiles = [f for f in listdir(synaptogenesis_folder_relative_location) if
 
 only_delay_npz_files = [f for f in onlyfiles if ".npz" in f and "delay" in f]
 
+print(only_delay_npz_files)
 testing_random_delay_files = []
 testing_constant_delay_files = []
 training_random_delay_files = []
@@ -85,7 +86,6 @@ for f in only_delay_npz_files:
         else:
             sim_params = np.array(data['sim_params']).ravel()[0]
             print("Something went wrong with", f, sim_params)
-            break
     except KeyError as ke:
         ke_count += 1
     except IOError as io:
