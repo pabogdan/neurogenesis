@@ -32,6 +32,7 @@ io_count = 0
 bzf_count = 0
 exception_strings = []
 for f in only_delay_npz_files:
+    print(f)
     try:
         is_constant_delay = False
         pathed_file = join(synaptogenesis_folder_relative_location, f)
