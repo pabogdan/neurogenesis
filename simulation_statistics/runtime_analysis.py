@@ -92,6 +92,8 @@ for f in only_delay_npz_files:
         io_count += 1
     except BadZipfile as bzf:
         bzf_count += 1
+    except TypeError as te:
+        print(te)
     except Exception as e:
         exception_strings.append(str(e))
         traceback.print_exc()
