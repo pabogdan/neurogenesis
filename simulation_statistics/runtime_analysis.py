@@ -5,6 +5,8 @@ Author: Petrut A. Bogdan
 
 """
 # Imports
+from zipfile import BadZipfile
+
 from common_analysis_imports import *
 from os import listdir
 from os.path import isfile, join
@@ -26,6 +28,7 @@ training_constant_delay_files = []
 exceptions = []
 ke_count = 0
 io_count = 0
+bzf_count = 0
 exception_strings = []
 for f in only_delay_npz_files:
     try:
@@ -87,6 +90,8 @@ for f in only_delay_npz_files:
         ke_count += 1
     except IOError as io:
         io_count += 1
+    except BadZipfile as bzf:
+        bzf_count += 1
     except Exception as e:
         exception_strings.append(str(e))
         traceback.print_exc()
@@ -107,6 +112,7 @@ np.savez(filename,
          exceptions=exceptions,
          keyerror_count=ke_count,
          ioerror_count=io_count,
+         badzipfileerror_count=bzf_count,
          exception_strings=exception_strings)
 
 print("Results in", filename)
