@@ -71,7 +71,8 @@ for phase in PHASES:
             else:
                 subprocess.Popen(call,
                                  stdout=null, stderr=null)
-print "All done!"
+                print("{} sims done".format(concurrently_active_processes))
+print("All done!")
 
 end_time = plt.datetime.datetime.now()
 total_time = end_time - currrent_time
