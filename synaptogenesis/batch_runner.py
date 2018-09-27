@@ -41,16 +41,16 @@ log_calls = []
 for phase in PHASES:
     for sigma_form_ff in sigma_form_ffs:
         for sigma_form_lat in sigma_form_lats:
-            filename = "random_delay_"
-            "smax_{}_"
-            "gmax_{}_"
-            "sigmaformff_{}_"
-            "sigmaformlat{}_"
-            "_@{}".format(S_MAX,
-                          G_MAX,
-                          sigma_form_ff,
-                          sigma_form_lat,
-                          suffix)
+            filename = "random_delay_" + \
+                "smax_{}_" + \
+                "gmax_{}_" + \
+                "sigmaformff_{}_" + \
+                "sigmaformlat{}_" + \
+                "_@{}".format(S_MAX,
+                              G_MAX,
+                              sigma_form_ff,
+                              sigma_form_lat,
+                              suffix)
             concurrently_active_processes += 1
             null = open(os.devnull, 'w')
             print "Run ", concurrently_active_processes, "..."
