@@ -15,6 +15,8 @@ suffix = hashlib.md5(string_time).hexdigest()
 
 # Some constants
 NO_CPUS = 32
+MAX_CONCURRENT_PROCESSES = 24
+
 TRAINING_PHASE = 0
 TESTING_PHASE = 1
 PHASES = [TRAINING_PHASE, TESTING_PHASE]
@@ -41,11 +43,11 @@ log_calls = []
 for phase in PHASES:
     for sigma_form_ff in sigma_form_ffs:
         for sigma_form_lat in sigma_form_lats:
-            filename = "random_delay_" + \
-                "smax_{}_" + \
-                "gmax_{}_" + \
-                "sigmaformff_{}_" + \
-                "sigmaformlat{}_" + \
+            filename = "random_delay_" \
+                "smax_{}_" \
+                "gmax_{}_" \
+                "sigmaformff_{}_" \
+                "sigmaformlat_{}_" \
                 "_@{}".format(S_MAX,
                               G_MAX,
                               sigma_form_ff,
@@ -53,7 +55,7 @@ for phase in PHASES:
                               suffix)
             concurrently_active_processes += 1
             null = open(os.devnull, 'w')
-            print "Run ", concurrently_active_processes, "..."
+            print("Run ", concurrently_active_processes, "...")
 
             call = [sys.executable,
                     'random_delays_drifting_gratings.py',
@@ -65,7 +67,7 @@ for phase in PHASES:
                     '--sigma_form_lat', str(sigma_form_lat)
                     ]
             log_calls.append(call)
-            if concurrently_active_processes % 16 == 0:
+            if concurrently_active_processes % MAX_CONCURRENT_PROCESSES == 0:
                 subprocess.call(call,
                                 stdout=null, stderr=null)
             else:
@@ -76,7 +78,7 @@ print("All done!")
 
 end_time = plt.datetime.datetime.now()
 total_time = end_time - currrent_time
-np.savez("batch_{}".format(suffix),
+np.savez_compressed("batch_{}".format(suffix),
          parameters_of_interest=parameters_of_interest,
          total_time=total_time,
          log_calls=log_calls)
