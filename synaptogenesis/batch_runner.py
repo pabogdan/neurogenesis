@@ -33,6 +33,9 @@ iterations = 19200000  # trying to optimise fastest run
 sigma_form_ffs = np.arange(2, 10.5, .5)
 sigma_form_lats = np.copy(sigma_form_ffs)
 
+# Compute total number of runs
+total_runs = sigma_form_ffs.size * sigma_form_lats.size * len(PHASES)
+
 parameters_of_interest = {
     'sigma_form_ff': sigma_form_ffs,
     'sigma_form_lat': sigma_form_lats
@@ -67,13 +70,16 @@ for phase in PHASES:
                     '--sigma_form_lat', str(sigma_form_lat)
                     ]
             log_calls.append(call)
-            if concurrently_active_processes % MAX_CONCURRENT_PROCESSES == 0:
+            if concurrently_active_processes % MAX_CONCURRENT_PROCESSES == 0\
+                    or concurrently_active_processes == total_runs:
+                # Blocking
                 subprocess.call(call,
                                 stdout=null, stderr=null)
+                print("{} sims done".format(concurrently_active_processes))
             else:
+                # Non-blocking
                 subprocess.Popen(call,
                                  stdout=null, stderr=null)
-                print("{} sims done".format(concurrently_active_processes))
 print("All done!")
 
 end_time = plt.datetime.datetime.now()
