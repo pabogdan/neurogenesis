@@ -4,17 +4,18 @@ import argparse
 # as of 24.09.2018
 
 # Default values
-DEFAULT_CHUNK_SIZE = 200
+DEFAULT_CHUNK_SIZE = 200  # ms
 DEFAULT_W_MIN = 0
 DEFAULT_W_MAX = .2
 DEFAULT_CLASSES = [0, 90]
 DEFAULT_NO_ITERATIONS = DEFAULT_CHUNK_SIZE * (100 * len(DEFAULT_CLASSES))
-DEFAULT_LATERAL_INHIBITION = True
+DEFAULT_T_RECORD = 200000
+DEFAULT_P_CONNECT = .1  # 10%
 
 DEFAULT_B = 1.2
-DEFAULT_TAU_MINUS = 64
-DEFAULT_TAU_REFRAC = 5.0
-DEFAULT_TAU_PLUS = 20
+DEFAULT_TAU_MINUS = 60  # ms
+DEFAULT_TAU_PLUS = 60  # ms
+DEFAULT_TAU_REFRAC = 1.0  # ms
 DEFAULT_A_PLUS = 0.1
 DEFAULT_A_MINUS = (DEFAULT_A_PLUS * DEFAULT_TAU_PLUS * DEFAULT_B) \
                   / float(DEFAULT_TAU_MINUS)
@@ -22,6 +23,7 @@ DEFAULT_A_MINUS = (DEFAULT_A_PLUS * DEFAULT_TAU_PLUS * DEFAULT_B) \
 # Default flags
 DEFAULT_REWIRING_FLAG = False
 DEFAULT_MNIST_FLAG = False
+DEFAULT_LATERAL_INHIBITION = True
 
 # Argument parser
 parser = argparse.ArgumentParser(
@@ -96,6 +98,12 @@ parser.add_argument('--w_min', type=float,
                     help='minimum weight'
                          ' -- [default {}]'.format(DEFAULT_W_MIN))
 
+parser.add_argument('--p_connect', type=float,
+                    default=DEFAULT_P_CONNECT,
+                    help='readout neurons have, on average, p_connect '
+                         'connectivity (0<=p_connect<=1)'
+                         ' -- [default {}]'.format(DEFAULT_P_CONNECT))
+
 parser.add_argument('--plot', help="display plots",
                     action="store_true")
 
@@ -141,5 +149,10 @@ parser.add_argument('--classes',
                     type=int, nargs="+", default=DEFAULT_CLASSES,
                     dest='classes'
                     )
+
+parser.add_argument('--t_record', type=int,
+                    default=DEFAULT_T_RECORD, dest='t_record',
+                    help='time between retrieval of recordings (ms)'
+                         ' -- [default {}]'.format(DEFAULT_T_RECORD))
 
 args = parser.parse_args()
