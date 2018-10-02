@@ -121,7 +121,7 @@ for path in args.path:
         label_time_offset = np.asarray(args.label_time_offset)
         inhibition_weight_multiplier = 8
         if args.unsupervised:
-            inhibition_weight_multiplier = 16
+            inhibition_weight_multiplier = 8
 
         # store ALL parameters
         readout_sim_params = {  # 'g_max': g_max,
