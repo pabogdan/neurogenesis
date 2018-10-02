@@ -315,12 +315,14 @@ for path in args.path:
 
             # Sometimes retrieve lateral connectivity
             if args.wta_readout or args.unsupervised:
-                trained_wta_readout_connectivity = \
-                    readout_training_data['wta_projection']
+                all_to_all_connections = []
+                for i in range(classes.size):
+                    for j in range(classes.size):
+                        all_to_all_connections.append((i, j, 4 * w_max, 1))
                 wta_projection = sim.Projection(
                     readout_pop, readout_pop,
-                    sim.FromListConnector(trained_wta_readout_connectivity),
-                    label="trained wta_strong_inhibition_readout",
+                    sim.FromListConnector(all_to_all_connections),
+                    label="wta_strong_inhibition_readout",
                     target="inhibitory")
 
             # We can ignore the label_pop in the testing phase
