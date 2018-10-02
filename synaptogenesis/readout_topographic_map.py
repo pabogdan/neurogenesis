@@ -261,7 +261,7 @@ for path in args.path:
                     # with lower connection weight
                     label_projection = sim.Projection(
                         label_pop, readout_pop,
-                        sim.OneToOneConnector(weights=4 * w_max),
+                        sim.OneToOneConnector(weights=8 * w_max),
                         label="max_label_projection",
                         target="excitatory"
                     )
@@ -285,7 +285,7 @@ for path in args.path:
                 all_to_all_connections = []
                 for i in range(classes.size):
                     for j in range(classes.size):
-                        all_to_all_connections.append((i, j, 4*w_max, 1))
+                        all_to_all_connections.append((i, j, 8*w_max, 1))
 
                 wta_projection = sim.Projection(
                     readout_pop, readout_pop,
