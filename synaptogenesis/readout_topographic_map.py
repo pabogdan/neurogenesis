@@ -513,5 +513,6 @@ for path in args.path:
             exception=str(e),
             phase=phase,
             phase_name=PHASES_NAMES[phase],
-            actual_classes=actual_classes
+            actual_classes=actual_classes,
+            chunk=chunk,  # ms
         )
