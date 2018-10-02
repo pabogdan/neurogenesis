@@ -277,6 +277,7 @@ for path in args.path:
                     target_pop, readout_pop,
                     sim.FixedProbabilityConnector(p_connect=p_connect,
                                                   weights=w_max),
+                    synapse_dynamics=sim.SynapseDynamics(slow=stdp_model),
                     label="unsupervised_readout_sampling",
                     target="excitatory")
 
