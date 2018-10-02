@@ -119,6 +119,9 @@ for path in args.path:
         p_connect = args.p_connect
         classes = np.asarray(args.classes)
         label_time_offset = np.asarray(args.label_time_offset)
+        inhibition_weight_multiplier = 8
+        if args.unsupervised:
+            inhibition_weight_multiplier = 12
 
         # store ALL parameters
         readout_sim_params = {  # 'g_max': g_max,
@@ -285,7 +288,8 @@ for path in args.path:
                 all_to_all_connections = []
                 for i in range(classes.size):
                     for j in range(classes.size):
-                        all_to_all_connections.append((i, j, 8*w_max, 1))
+                        all_to_all_connections.append(
+                            (i, j, inhibition_weight_multiplier*w_max, 1))
 
                 wta_projection = sim.Projection(
                     readout_pop, readout_pop,
@@ -308,7 +312,7 @@ for path in args.path:
             target_readout_projection = sim.Projection(
                 target_pop, readout_pop,
                 sim.FromListConnector(trained_target_readout_connectivity),
-                label="max_readout_sampling",
+                label="target_readout_sampling",
                 target="excitatory")
 
             # Sometimes retrieve lateral connectivity
@@ -316,7 +320,8 @@ for path in args.path:
                 all_to_all_connections = []
                 for i in range(classes.size):
                     for j in range(classes.size):
-                        all_to_all_connections.append((i, j, 4 * w_max, 1))
+                        all_to_all_connections.append(
+                            (i, j, inhibition_weight_multiplier * w_max, 1))
                 wta_projection = sim.Projection(
                     readout_pop, readout_pop,
                     sim.FromListConnector(all_to_all_connections),
