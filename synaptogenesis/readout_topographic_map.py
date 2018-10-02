@@ -156,6 +156,7 @@ for path in args.path:
             'actual_classes': np.copy(actual_classes)
         }
 
+        # TODO add rewiring with no distance dependence
         stdp_model = sim.STDPMechanism(
             timing_dependence=sim.SpikePairRule(tau_plus=tau_plus,
                                                 tau_minus=tau_minus),
@@ -260,7 +261,7 @@ for path in args.path:
                     # with lower connection weight
                     label_projection = sim.Projection(
                         label_pop, readout_pop,
-                        sim.OneToOneConnector(weights=2 * w_max),
+                        sim.OneToOneConnector(weights=4 * w_max),
                         label="max_label_projection",
                         target="excitatory"
                     )
@@ -281,8 +282,11 @@ for path in args.path:
                 # Create a strong inhibitory projection between the readout
                 # neurons
                 # AllToAll connector is behaving weirdly
-                all_to_all_connections = [(i, j, 2*w_max, 1) for i in range(
-                    classes.size) for j in range(classes.size)]
+                all_to_all_connections = []
+                for i in range(classes.size):
+                    for j in range(classes.size):
+                        all_to_all_connections.append((i, j, 4*w_max, 1))
+
                 wta_projection = sim.Projection(
                     readout_pop, readout_pop,
                     sim.FromListConnector(all_to_all_connections),
@@ -326,7 +330,7 @@ for path in args.path:
                 "Phase {} unrecognised. What is  the connectivity for "
                 "readout neurons?".format(phase))
 
-        # TODO record spikes for everything. simulations are so short that this
+        # record spikes for everything. simulations are so short that this
         # can't hurt, right?
         readout_pop.record()
         target_pop.record()

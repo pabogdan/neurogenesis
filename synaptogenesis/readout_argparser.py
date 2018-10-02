@@ -1,12 +1,12 @@
 import argparse
 
 # Current defaults for [App: Motion detection]
-# as of 24.09.2018
+# as of 02.10.2018
 
 # Default values
 DEFAULT_CHUNK_SIZE = 200  # ms
 DEFAULT_W_MIN = 0
-DEFAULT_W_MAX = .4
+DEFAULT_W_MAX = .1
 DEFAULT_CLASSES = [0, 90]
 DEFAULT_NO_ITERATIONS = DEFAULT_CHUNK_SIZE * (100 * len(DEFAULT_CLASSES))
 DEFAULT_T_RECORD = 200000
