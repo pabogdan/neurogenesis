@@ -78,11 +78,6 @@ parser.add_argument('--tau_plus', type=float,
                     help='time constant for potentiation'
                          ' -- [default {}]'.format(DEFAULT_TAU_PLUS))
 
-parser.add_argument('--a_minus', type=float,
-                    default=DEFAULT_A_MINUS,
-                    help='depression learning rate'
-                         ' -- [default {}]'.format(DEFAULT_A_MINUS))
-
 parser.add_argument('--a_plus', type=float,
                     default=DEFAULT_A_PLUS,
                     help='potentiation learning rate'

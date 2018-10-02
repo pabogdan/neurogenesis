@@ -111,9 +111,9 @@ for path in args.path:
         # Readout set parameters
         tau_minus = args.tau_minus
         tau_plus = args.tau_plus
-        a_minus = args.a_minus
         a_plus = args.a_plus
         b = args.b
+        a_minus = (a_plus * tau_plus * b) / tau_minus
         w_max = args.w_max
         w_min = args.w_min
         p_connect = args.p_connect
