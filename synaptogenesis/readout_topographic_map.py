@@ -316,7 +316,7 @@ for path in args.path:
             # Sometimes retrieve lateral connectivity
             if args.wta_readout or args.unsupervised:
                 trained_wta_readout_connectivity = \
-                    readout_training_data['wta_projection'][-1]
+                    readout_training_data['wta_projection']
                 wta_projection = sim.Projection(
                     readout_pop, readout_pop,
                     sim.FromListConnector(trained_wta_readout_connectivity),
