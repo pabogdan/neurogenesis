@@ -492,6 +492,9 @@ for path in args.path:
         if phase == TRAINING_PHASE:
             current_training_file = filename
 
+        if args.suffix:
+            filename += "_" + args.suffix
+
         # save testing and training results
         # save training and testing connectivity
         # save actual training and testing classes

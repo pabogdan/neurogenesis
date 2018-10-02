@@ -62,6 +62,10 @@ parser.add_argument('-o', '--output', type=str,
                     help="name of the numpy archive storing simulation results",
                     dest='filename')
 
+parser.add_argument('--suffix', type=str,
+                    help="add a recognisable suffix to the filename",
+                    dest='suffix')
+
 parser.add_argument('--b', type=float,
                     default=DEFAULT_B,
                     help='ration between area under depression curve and '
