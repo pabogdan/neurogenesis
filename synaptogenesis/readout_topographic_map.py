@@ -280,9 +280,12 @@ for path in args.path:
             if args.wta_readout or args.unsupervised:
                 # Create a strong inhibitory projection between the readout
                 # neurons
+                # AllToAll connector is behaving weirdly
+                all_to_all_connections = [(i, j, 2*w_max, 1) for i in range(
+                    classes.size) for j in range(classes.size)]
                 wta_projection = sim.Projection(
                     readout_pop, readout_pop,
-                    sim.AllToAllConnector(weights=2 * w_max),
+                    sim.FromListConnector(all_to_all_connections),
                     label="wta_strong_inhibition_readout",
                     target="inhibitory")
 
