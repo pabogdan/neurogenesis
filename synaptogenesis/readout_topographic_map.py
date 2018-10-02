@@ -96,7 +96,7 @@ for path in args.path:
         # Population parameters
         model = sim.IF_cond_exp
         readout_cell_params = {
-            'cm': 5.0,  # nF
+            'cm': 20.0,  # nF
             'i_offset': 0.0,
             'tau_m': 20.0,
             'tau_refrac': DEFAULT_TAU_REFRAC,
@@ -298,11 +298,9 @@ for path in args.path:
             # Retrieve readout connectivity (ff and lat)
             # Always retrieve ff connectivity
             if current_training_file is None:
-                # raise AttributeError(
-                #     "Training failed or something else went wrong")
+                raise AttributeError(
+                    "Training failed or something else went wrong")
 
-                # Moving on to next file in path
-                break
             readout_training_data = np.load(current_training_file + ".npz")
             trained_target_readout_connectivity = \
                 readout_training_data['target_readout_projection'][-1]
@@ -472,6 +470,8 @@ for path in args.path:
         target_spikes = np.asarray(target_spikes)
         inhibitory_spikes = np.asarray(inhibitory_spikes)
         readout_spikes = np.asarray(readout_spikes)
+        target_weights = np.asarray(target_weights)
+        wta_weights = np.asarray(wta_weights)
 
         # need to retrieve name of the file (not the entire path)
         prefix = "training_readout_for_"
