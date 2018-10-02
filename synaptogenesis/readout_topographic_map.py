@@ -52,8 +52,8 @@ for path in args.path:
     cell_params = sim_params['cell_params']
     grid = sim_params['grid']
     topology = data['topology']
-    N_layer = grid[0] * grid[1]  # Total number of neurons
-    n = np.sqrt(N_layer)
+    N_layer = int(grid[0] * grid[1])  # Total number of neurons
+    n = int(np.sqrt(N_layer))
     f_base = sim_params['f_base']  # Hz
     if (n == 32 and not args.mnist) or (n == 28 and args.mnist):
         chunk = 200  # ms
@@ -236,6 +236,7 @@ for path in args.path:
                         target_pop, readout_pop,
                         sim.FixedProbabilityConnector(p_connect=p_connect,
                                                       weights=w_min),
+                        synapse_dynamics=sim.SynapseDynamics(slow=stdp_model),
                         label="min_readout_sampling",
                         target="excitatory")
                     # Supervision provided by an extra Spike Source Array
@@ -252,6 +253,7 @@ for path in args.path:
                         target_pop, readout_pop,
                         sim.FixedProbabilityConnector(p_connect=p_connect,
                                                       weights=w_max),
+                        synapse_dynamics=sim.SynapseDynamics(slow=stdp_model),
                         label="max_readout_sampling",
                         target="excitatory")
                     # Supervision provided by an extra Spike Source Array
@@ -267,7 +269,7 @@ for path in args.path:
                 # Sample from target_pop with initial weight of w_max
                 # because there is no extra signal that can cause readout
                 # neurons to fire
-                lateral_readout_projection = sim.Projection(
+                target_readout_projection = sim.Projection(
                     target_pop, readout_pop,
                     sim.FixedProbabilityConnector(p_connect=p_connect,
                                                   weights=w_max),
@@ -424,28 +426,27 @@ for path in args.path:
             for current_run in range(no_runs):
                 print("run", current_run + 1, "of", no_runs)
                 sim.run(run_duration)
-            if phase != TESTING_PHASE:
-                target_weights.append(
+            target_weights.append(
+                np.array([
+                    target_readout_projection
+                        ._get_synaptic_data(True, 'source'),
+                    target_readout_projection
+                        ._get_synaptic_data(True, 'target'),
+                    target_readout_projection
+                        ._get_synaptic_data(True, 'weight'),
+                    target_readout_projection
+                        ._get_synaptic_data(True, 'delay')]).T)
+            if args.wta_readout or args.unsupervised:
+                wta_weights.append(
                     np.array([
-                        target_readout_projection
-                            ._get_synaptic_data(True, 'source'),
-                        target_readout_projection
-                            ._get_synaptic_data(True, 'target'),
-                        target_readout_projection
-                            ._get_synaptic_data(True, 'weight'),
-                        target_readout_projection
-                            ._get_synaptic_data(True, 'delay')]).T)
-                if args.wta_readout or args.unsupervised:
-                    wta_weights.append(
-                        np.array([
-                            wta_projection._get_synaptic_data(True,
-                                                              'source'),
-                            wta_projection._get_synaptic_data(True,
-                                                              'target'),
-                            wta_projection._get_synaptic_data(True,
-                                                              'weight'),
-                            wta_projection._get_synaptic_data(True,
-                                                              'delay')]).T)
+                        wta_projection._get_synaptic_data(True,
+                                                          'source'),
+                        wta_projection._get_synaptic_data(True,
+                                                          'target'),
+                        wta_projection._get_synaptic_data(True,
+                                                          'weight'),
+                        wta_projection._get_synaptic_data(True,
+                                                          'delay')]).T)
             target_spikes = target_pop.getSpikes(compatible_output=True)
             if topology != 1:
                 inhibitory_spikes = inh_pop.getSpikes(compatible_output=True)
