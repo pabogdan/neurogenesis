@@ -471,6 +471,12 @@ for path in args.path:
         prefix = "training_readout_for_"
         if phase == TESTING_PHASE:
             prefix = "testing_readout_for_"
+        if args.min_supervised:
+            prefix += "min_"
+        elif args.max_supervised:
+            prefix += "max_"
+        elif args.unsupervised:
+            prefix += "uns_"
         filename = prefix + str(ntpath.basename(path))
         if ".npz" in filename:
             filename = filename[:-4]
