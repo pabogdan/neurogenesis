@@ -492,11 +492,10 @@ for path in args.path:
         if phase == TRAINING_PHASE:
             current_training_file = filename
 
-        # TODO save testing and training results
-        # TODO save training and testing connectivity
+        # save testing and training results
+        # save training and testing connectivity
         # save actual training and testing classes
         # save whether the file is training or testing
-        # TODO save original files inside these archives
         np.savez_compressed(
             filename,
             # Spiking information
@@ -519,4 +518,5 @@ for path in args.path:
             phase_name=PHASES_NAMES[phase],
             actual_classes=actual_classes,
             chunk=chunk,  # ms
+            label_time_offset=label_time_offset,
         )
