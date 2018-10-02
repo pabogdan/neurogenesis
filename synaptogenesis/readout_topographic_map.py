@@ -491,12 +491,12 @@ for path in args.path:
             filename = "error_" + filename
             current_error = e
 
-        if phase == TRAINING_PHASE:
-            current_training_file = filename
-
         if args.suffix:
             filename += "_" + args.suffix
 
+        # This has to be set after all the filename adjustments
+        if phase == TRAINING_PHASE:
+            current_training_file = filename
         # save testing and training results
         # save training and testing connectivity
         # save actual training and testing classes
