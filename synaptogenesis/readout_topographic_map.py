@@ -221,7 +221,7 @@ for path in args.path:
                     # the spikes times
                     repeated_bases = np.repeat(base_offsets,
                                                label_time_offset.size)
-                    repeated_time_offsets = np.repeat(label_time_offset,
+                    repeated_time_offsets = np.tile(label_time_offset,
                                                       base_offsets.size)
                     spike_times_for_current_class = repeated_bases + \
                                                     repeated_time_offsets
