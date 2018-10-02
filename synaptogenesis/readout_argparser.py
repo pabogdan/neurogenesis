@@ -23,7 +23,7 @@ DEFAULT_A_MINUS = (DEFAULT_A_PLUS * DEFAULT_TAU_PLUS * DEFAULT_B) \
 # Default flags
 DEFAULT_REWIRING_FLAG = False
 DEFAULT_MNIST_FLAG = False
-DEFAULT_LATERAL_INHIBITION = True
+DEFAULT_LATERAL_INHIBITION = False
 
 # Argument parser
 parser = argparse.ArgumentParser(
