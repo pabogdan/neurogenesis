@@ -303,4 +303,12 @@ parser.add_argument('--common_rewiring_seed',
                          "seed means post neurons are selected in tandem",
                     action="store_true")
 
+# flag to force simulation re-run
+parser.add_argument('--no-cache',
+                    help="force simulation re-run without "
+                         "using cached "
+                         "information"
+                        " -- [default {}]".format(False),
+                    action="store_true", dest="no_cache")
+
 args = parser.parse_args()

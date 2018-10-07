@@ -70,13 +70,33 @@ fsi_cell_params = {'cm': 10.0,  # nF
                    'e_rev_I': -80.
                    }
 
+# Check for cached versions
+
+filename = None
+adjusted_name = None
+if args.filename:
+    filename = args.filename
+elif args.testing:
+    filename = "testing_" + args.testing
+
+if filename:
+    if ".npz" in filename:
+        adjusted_name = filename
+    else:
+        adjusted_name = filename + ".npz"
+if adjusted_name and os.path.isfile(adjusted_name) and not args.no_cache:
+    print("Analysis has been run before & Cached version of results "
+          "exists!")
+    os._exit(1)
+
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
 # +-------------------------------------------------------------------+
 if args.testing:
     no_iterations = args.testing_iterations
 else:
-    no_iterations = args.no_iterations  # 300000 # 3000000 # 3,000,000 iterations
+    no_iterations = args.no_iterations
+
 simtime = no_iterations
 # Wiring
 n = args.n

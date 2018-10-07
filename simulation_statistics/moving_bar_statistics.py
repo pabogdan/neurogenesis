@@ -55,6 +55,9 @@ if sensitivity_analysis:
     print()
     print("BATCH ANALYSIS!")
     print()
+    # TODO spawn a separate process for each file
+    # TODO the main process maps and reduces
+    # TODO generate batch plots in the batch directory (suffix)
 
 for file in paths:
     try:
@@ -144,7 +147,7 @@ for file in paths:
         # ff_init = data['init_ff_connections']
         # lat_init = data['init_lat_connections']
 
-        if not cached:
+        if not cached or args.no_cache:
             target_neuron_mean_spike_rate = \
                 post_spikes.shape[0] / (simtime * N_layer)
             # instaneous_rates = np.empty(int(simtime / chunk))
@@ -307,7 +310,7 @@ for file in paths:
                     final_lat_conn_network[int(source), int(target)] += weight
                 lat_num_network[int(source), int(target)] += 1
 
-            # NB: for these purposes I count afferent inhibition as a lateral
+            # NB: for these purposes I concurrently_active_processes afferent inhibition as a lateral
             # signal
             for source, target, weight, delay in inh_connections:
                 if np.isnan(final_lat_conn_network[int(source), int(target)]):
@@ -587,5 +590,5 @@ end_time = plt.datetime.datetime.now()
 total_time = end_time - start_time
 print("Results in", filename)
 print("Total time elapsed -- " + str(total_time))
-if cached:
+if cached and not args.no_cache:
     print("Used cached data!")
