@@ -4,6 +4,7 @@ import numpy as np
 import sys
 import hashlib
 import pylab as plt
+from batch_argparser import *
 
 # Current defaults for [App: Motion detection]
 # as of 26.09.2018
@@ -11,11 +12,14 @@ import pylab as plt
 currrent_time = plt.datetime.datetime.now()
 string_time = currrent_time.strftime("%H%M%S_%d%m%Y")
 
-suffix = hashlib.md5(string_time).hexdigest()
+if args.suffix:
+    suffix = args.suffix
+else:
+    suffix = hashlib.md5(string_time).hexdigest()
 
 # Some constants
-NO_CPUS = 32
-MAX_CONCURRENT_PROCESSES = 24
+NO_CPUS = args.no_cpus
+MAX_CONCURRENT_PROCESSES = args.max_processes
 
 TRAINING_PHASE = 0
 TESTING_PHASE = 1
@@ -28,7 +32,7 @@ G_MAX = 0.1
 
 concurrently_active_processes = 0
 
-iterations = 19200000  # trying to optimise fastest run
+iterations = args.no_iterations  # trying to optimise fastest run
 
 sigma_form_ffs = np.arange(2, 10.5, .5)
 sigma_form_lats = np.copy(sigma_form_ffs)
