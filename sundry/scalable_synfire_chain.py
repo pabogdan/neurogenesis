@@ -93,13 +93,13 @@ all_projections.append(
                    label='proj_{}'.format(str(no_populations - 1)))
 )
 # run so that each population has spiked args.no_loops times
-run_time = 2 * (injection_pop_skip + n) * args.no_loops
+run_time = 2 * (injection_pop_skip + 1) * args.no_loops
 sim.run(run_time=run_time)
 
 for pop_id in xrange(no_populations):
     spikes_current_pop = np.asarray(all_populations[pop_id].getSpikes(
         compatible_output=True))
-    spikes_current_pop[:, 0] += (pop_id * n + (n - 1))
+    spikes_current_pop[:, 0] += (pop_id * n)
     if all_spikes.size == 0:
         all_spikes = spikes_current_pop
     else:
@@ -128,6 +128,8 @@ np.savez_compressed(
     n=n,
     no_populations=no_populations,
     no_injection_sites=no_injection_sites,
+    no_loops=args.no_loops,
+    total_time=total_time
 )
 
 
@@ -140,11 +142,11 @@ def plot_spikes(spikes, title, run_time, filename):
         f, ax1 = plt.subplots(1, 1, figsize=(15, 6), dpi=600)
         ax1.set_xlim((0, run_time))
         ax1.eventplot(recast_spikes, linelengths=.8)
-        ax1.set_xlabel('Time/ms')
+        ax1.set_xlabel('Time(ms)')
         ax1.set_ylabel('Neuron ID')
         ax1.set_title(title)
         plt.savefig(filename, bbox_inches='tight')
-        plt.show()
+        # plt.show()
 
 
 plot_spikes(all_spikes,
@@ -155,5 +157,32 @@ plot_spikes(all_spikes,
 # assert that each neuron in each population has spiked exactly
 # args.no_loops times and at the correct time!
 
-
+# This should work for loops = 1
+test_outcome = ["FAILED", "PASSED"]
+uniques = np.unique(all_spikes[:, 0].ravel()).astype(int)
+ids = all_spikes[:, 0].ravel().astype(int)
+int_diff = np.diff(all_spikes[:, 1].ravel().reshape(no_populations, n),
+                   axis=0).astype(int)
+print("{:60}".format("TESTS BEGIN"))
+print("{:60}:{:20}".format(
+    "DO ALL NEURONS FIRE?",
+    test_outcome[
+        np.all(uniques == np.arange(n * no_populations))]))
+print("{:60}:{:20}".format(
+    "DO ALL NEURONS FIRE THE CORRECT # OF TIMES?",
+    test_outcome[
+        np.all(ids == np.repeat(np.arange(n * no_populations),
+                                args.no_loops))]))
+print ("{:60}:{:20}".format(
+    "ARE NEURONS WITHIN POPULATION SYNCHRONOUS?",
+    test_outcome[
+        np.all(np.diff(
+            all_spikes[:, 1].ravel().reshape(no_populations, n)).ravel()) == 0]
+))
+print("{:60}:{:20}".format(
+    "IS NEURON INTER SPIKE INTERVAL CORRECT?",
+    test_outcome[
+        np.all(int_diff[int_diff >= 0].ravel() == 2)]
+))
+print("Results in archive -- ", filename)
 print("Total time elapsed -- " + str(total_time))
