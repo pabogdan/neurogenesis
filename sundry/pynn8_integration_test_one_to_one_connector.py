@@ -5,15 +5,15 @@ Q:Does having both a 1:1 connector + an ALL:ALL connector between the same
 pair of populations affect the behaviour of one of them? Particularly,
 do edges relevant for the ALL to ALL connector get pruned?
 """
-import spynnaker7.pyNN as p
+import spynnaker8 as p
 import matplotlib.pyplot as plt
 import numpy as np
 
 runtime = 100
 p.setup(timestep=1.0, min_delay=1.0, max_delay=14)
 nNeurons = 2  # number of neurons in each population
-p.set_number_of_neurons_per_core("IF_curr_exp", 1)
-p.set_number_of_neurons_per_core("SpikeSourceArray", 1)
+p.set_number_of_neurons_per_core(p.IF_curr_exp, 1)
+p.set_number_of_neurons_per_core(p.SpikeSourceArray, 1)
 
 cell_params_lif = {'cm': 0.25,
                    'i_offset': 0.0,
@@ -33,27 +33,29 @@ delay = 1
 
 spikeArray = {'spike_times': [[0], []]}
 
-input_pop = p.Population(nNeurons, p.SpikeSourceArray, spikeArray,
+input_pop = p.Population(nNeurons, p.SpikeSourceArray(**spikeArray),
                      label='inputSpikes_1')
 
-target_pop = p.Population(nNeurons, model, cell_params_lif,
+target_pop = p.Population(nNeurons, model(**cell_params_lif),
                       label='pop_1')
 
 
-# one_to_one_conn = p.Projection(
-#     input_pop, target_pop, p.OneToOneConnector(weights=weight_to_spike,
-#                                                  delays=delay))
-all_to_all_conn = p.Projection(
-    input_pop, target_pop, p.AllToAllConnector(weights=all_weight_to_spike,
-                                                 delays=delay))
+one_to_one_conn = p.Projection(
+    input_pop, target_pop, p.OneToOneConnector(),
+    p.StaticSynapse(weight=weight_to_spike, delay=delay))
 
-target_pop.record(['v', 'spikes'])
+all_to_all_conn = p.Projection(
+    input_pop, target_pop, p.AllToAllConnector(),
+    p.StaticSynapse(weight=all_weight_to_spike, delay=delay))
+
+target_pop.record(['spikes'])
 
 p.run(runtime)
-spikes = target_pop.getSpikes(
-        compatible_output=True)
+spikes = target_pop.spinnaker_get_data('spikes')
+
 
 print(spikes)
+
 def plot_spikes(spikes, title, run_time, filename):
     if spikes is not None:
         recast_spikes = []
@@ -69,7 +71,8 @@ def plot_spikes(spikes, title, run_time, filename):
         plt.show()
 
 plot_spikes(spikes,
-            "Synfire all spikes",
+            "Both post neurons should spike",
             runtime,
             "spikes_one_to_one_connector.png")
+
 p.end()
