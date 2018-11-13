@@ -187,8 +187,8 @@ parser.add_argument('--t_minus', type=int,
                     help='time constant for depression'
                          ' -- [default {}]'.format(DEFAULT_T_MINUS))
 
-parser.add_argument('--delay_distribution', type=int,
-                    default=DEFAULT_DELAY, dest='delay_distribution',
+parser.add_argument('--delay', type=int,
+                    default=DEFAULT_DELAY,
                     help='delay_distribution (in ms) applied to '
                          'spikes in the network')
 

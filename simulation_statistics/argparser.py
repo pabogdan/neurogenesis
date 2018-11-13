@@ -1,5 +1,8 @@
-
 import argparse
+
+DEFAULT_FIGURE_FOLDER = "figures/"
+DEFAULT_PREPROCESSING_FOLDER = "preproc/"
+DEFAULT_RESULTS_FOLDER = "results_for_motion_detection/"
 
 parser = argparse.ArgumentParser(
     description='Module to analyse the quality of the topographic maps '
@@ -9,6 +12,16 @@ parser.add_argument('path', help='path of .npz archive', nargs='*')
 parser.add_argument('-o', '--output', type=str,
                     help="name of the numpy archive storing simulation results",
                     dest='filename')
+parser.add_argument('--fig_folder', type=str,
+                    help="directory for figures",
+                    dest='fig_folder', default=DEFAULT_FIGURE_FOLDER)
+parser.add_argument('--results_folder', type=str,
+                    help="directory for reading in results",
+                    dest='results_folder', default=DEFAULT_RESULTS_FOLDER)
+parser.add_argument('--preproc_folder', type=str,
+                    help="directory for reading in results",
+                    dest='preproc_folder',
+                    default=DEFAULT_PREPROCESSING_FOLDER)
 flags.add_argument('--plot', help="display plots",
                     action="store_true")
 
