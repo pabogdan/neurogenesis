@@ -57,7 +57,7 @@ def generate_suffix(training_angles):
     return suffix_test
 
 
-def analyse_one(archive, out_filename=None, show_plots=True):
+def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
     # in the default case, we are only looking at understanding a number of
     # behaviours of a single simulation
     cached_data = np.load(root_stats + archive + ".npz")
@@ -144,6 +144,8 @@ def analyse_one(archive, out_filename=None, show_plots=True):
     s_max = training_sim_params['s_max']
 
     suffix_test = generate_suffix(training_sim_params['training_angles'])
+    if extra_suffix:
+        suffix_test += "_" + extra_suffix
 
     cached_data.close()
     # Begin the plotting
@@ -215,6 +217,9 @@ def analyse_one(archive, out_filename=None, show_plots=True):
     plt.savefig(
         fig_folder + "rate_means_min_max_mean{}.pdf".format(suffix_test),
         bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "rate_means_min_max_mean{}.svg".format(suffix_test),
+        bbox_inches='tight')
     if show_plots:
         plt.show()
     plt.close(f)
@@ -233,6 +238,8 @@ def analyse_one(archive, out_filename=None, show_plots=True):
     plt.title("Distribution of rates")
     plt.xlabel("Instantaneous rate (Hz)")
     plt.savefig(fig_folder + "rate_distribution{}.pdf".format(suffix_test),
+                bbox_inches='tight')
+    plt.savefig(fig_folder + "rate_distribution{}.svg".format(suffix_test),
                 bbox_inches='tight')
     if show_plots:
         plt.show()
@@ -560,8 +567,12 @@ def analyse_one(archive, out_filename=None, show_plots=True):
     plt.savefig(
         fig_folder + "weight_histograms{}.pdf".format(suffix_test),
         bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "weight_histograms{}.svg".format(suffix_test),
+        bbox_inches='tight')
     if show_plots:
         plt.show()
+    plt.close(fig)
 
     # print
     pre_neurons = grid[0] * grid[1]
@@ -701,6 +712,7 @@ def comparison(archive_random, archive_constant, out_filename=None,
 
     if show_plots:
         plt.show()
+    plt.close(f)
 
     # Min Max Mean comparison
     f, (ax, ax2) = plt.subplots(1, 2, figsize=(15, 8),
@@ -745,7 +757,6 @@ def comparison(archive_random, archive_constant, out_filename=None,
             suffix_test), bbox_inches='tight')
     if show_plots:
         plt.show()
-
     plt.close(f)
     # Histogram comparison
 
@@ -810,14 +821,13 @@ def comparison(archive_random, archive_constant, out_filename=None,
     plt.xlabel("Independent t-test")
     plt.savefig(
         fig_folder + "ttest_with_angle{}.pdf".format(suffix_test),
-                bbox_inches='tight')
+        bbox_inches='tight')
     plt.savefig(
         fig_folder + "ttest_with_angle{}.svg".format(suffix_test),
-                bbox_inches='tight')
+        bbox_inches='tight')
     if show_plots:
         plt.show()
     plt.close(fig)
-
 
     # First fname kde
     fig = plt.figure(figsize=(7.5, 8), dpi=800)
@@ -843,10 +853,10 @@ def comparison(archive_random, archive_constant, out_filename=None,
     plt.ylabel("PDF")
     plt.savefig(
         fig_folder + "firing_rate_pdf_random{}.pdf".format(suffix_test),
-                bbox_inches='tight')
+        bbox_inches='tight')
     plt.savefig(
         fig_folder + "firing_rate_pdf_random{}.svg".format(suffix_test),
-                bbox_inches='tight')
+        bbox_inches='tight')
     if show_plots:
         plt.show()
     plt.close(fig)
@@ -874,10 +884,10 @@ def comparison(archive_random, archive_constant, out_filename=None,
     plt.ylabel("PDF")
     plt.savefig(
         fig_folder + "firing_rate_pdf_constant{}.pdf".format(suffix_test),
-                bbox_inches='tight')
+        bbox_inches='tight')
     plt.savefig(
         fig_folder + "firing_rate_pdf_constant{}.svg".format(suffix_test),
-                bbox_inches='tight')
+        bbox_inches='tight')
     if show_plots:
         plt.show()
     plt.close(fig)
@@ -923,13 +933,13 @@ def comparison(archive_random, archive_constant, out_filename=None,
     for i in range(N_layer):
         constant_max_average_responses_with_angle[i] = np.argmax(
             constant_all_average_responses_with_angle[i, :, 0]) * 5
-        sem_responses_with_angle[i] = constant_all_average_responses_with_angle[
+        sem_responses_with_angle[i] = \
+        constant_all_average_responses_with_angle[
             i, int(constant_max_average_responses_with_angle[i] // 5), 1]
 
-    # f, (ax, ax2) = plt.subplots(1, 2, figsize=(20, 16), dpi=800)
-    # with sns.color_palette("husl", 355):
+
     fig = plt.figure(figsize=(15, 8), dpi=800)
-    img_grid = ImageGrid(fig, 111,  # as in plt.subplot(111)
+    img_grid = ImageGrid(fig, 111,
                          nrows_ncols=(1, 2),
                          axes_pad=0.15,
                          share_all=True,
@@ -944,13 +954,13 @@ def comparison(archive_random, archive_constant, out_filename=None,
 
     dxs = [np.cos(
         random_max_average_responses_with_angle.reshape(grid[0], grid[1])),
-           np.cos(constant_max_average_responses_with_angle.reshape(grid[0],
-                                                                    grid[1]))]
+        np.cos(constant_max_average_responses_with_angle.reshape(grid[0],
+                                                                 grid[1]))]
 
     dys = [np.sin(
         random_max_average_responses_with_angle.reshape(grid[0], grid[1])),
-           np.sin(constant_max_average_responses_with_angle.reshape(grid[0],
-                                                                    grid[1]))]
+        np.sin(constant_max_average_responses_with_angle.reshape(grid[0],
+                                                                 grid[1]))]
     # Add data to image grid
 
     index = 0
@@ -970,10 +980,10 @@ def comparison(archive_random, archive_constant, out_filename=None,
 
     plt.savefig(
         fig_folder + "comparison_per_angle_response{}.pdf".format(suffix_test),
-                bbox_inches='tight', dpi=800)
+        bbox_inches='tight', dpi=800)
     plt.savefig(
         fig_folder + "comparison_per_angle_response{}.svg".format(suffix_test),
-                bbox_inches='tight', dpi=800)
+        bbox_inches='tight', dpi=800)
     if show_plots:
         plt.show()
     plt.close(fig)
@@ -1005,7 +1015,7 @@ def comparison(archive_random, archive_constant, out_filename=None,
     plt.tight_layout(pad=10)
     plt.savefig(
         fig_folder + "comparison_number_of_sensitised_neurons_with_angle{" \
-                   "}.pdf".format(
+                     "}.pdf".format(
             suffix_test), bbox_inches='tight')
     plt.savefig(
         fig_folder + "comparison_number_of_sensitised_neurons_with_angle{" \
@@ -1013,11 +1023,67 @@ def comparison(archive_random, archive_constant, out_filename=None,
             suffix_test), bbox_inches='tight')
     if show_plots:
         plt.show()
+    plt.close(f)
 
 
+def evolution(filenames, times, suffix, show_plots=False):
+    # https://gist.github.com/MatthewJA/5a0a6d75748bf5cb5962cb9d5572a6ce
+    viridis_cmap = colors.LinearSegmentedColormap.from_list(
+        'cyclic_viridis',
+        [(0, cm_mlib.viridis.colors[0]),
+         (0.25, cm_mlib.viridis.colors[256 // 3]),
+         (0.5, cm_mlib.viridis.colors[2 * 256 // 3]),
+         (0.75, cm_mlib.viridis.colors[-1]),
+         (1.0, cm_mlib.viridis.colors[0])])
+    # root_stats = "D:\Work\Neurogenesis-PhD\simulation_statistics\\"
+    root_stats = "C:\Work\phd\simulation_statistics\\preproc\\"
+    # root_syn = "D:\Work\Neurogenesis-PhD\synaptogenesis\\"
+    root_syn = "C:\Work\phd\synaptogenesis\\"
+    no_files = len(filenames)
+    assert len(filenames) == len(times)
+    all_rate_means = []
+    all_rate_sems = []
+    all_radians = []
+    for fn in filenames:
+        cached_data = np.load(root_stats + fn + ".npz")
+        testing_data = np.load(
+            root_syn + "spiking_moving_bar_input\spiking_moving_bar_motif_bank_simtime_1200s.npz")
+        rate_means = cached_data['rate_means']
+        rate_stds = cached_data['rate_stds']
+        rate_sem = cached_data['rate_sem']
+        all_rates = cached_data['all_rates']
+        radians = cached_data['radians']
 
-def evolution(filenames, times, out_filename):
-    pass
+        all_rate_means.append(rate_means)
+        all_rate_sems.append(rate_sem)
+        all_radians = radians
+    fig = plt.figure(figsize=(10, 10), dpi=800)
+    ax = plt.subplot(111, projection='polar')
+
+    for i in range(no_files):
+        c = plt.fill(radians, all_rate_means[i],
+                     c=viridis_cmap(float(i) / (no_files - 1)),
+                     label="{} minutes".format(times[i] / (60 * second)),
+                     alpha=0.7, fill=False, lw=4)
+
+    art = []
+    plt.ylim([0, 1.1 * np.max(all_rate_means)])
+    lgd = plt.legend(bbox_to_anchor=(1.1, .7), loc=2, borderaxespad=0.)
+    art.append(lgd)
+    plt.savefig(
+        fig_folder + "firing_rate_evolution_{}.pdf".format(suffix),
+        dpi=800,
+        additional_artists=art,
+        bbox_inches="tight")
+    plt.savefig(
+        fig_folder + "firing_rate_evolution_{}.svg".format(suffix),
+        dpi=800,
+        additional_artists=art,
+        bbox_inches="tight")
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
 
 
 def batch_analyser(archive_batch, out_folder):
@@ -1025,34 +1091,131 @@ def batch_analyser(archive_batch, out_folder):
 
 
 if __name__ == "__main__":
-    # depending on the input?
-    # fname += "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7" \
-    #          ".5_3_angle_0_evo"
+    # Single experiment analysis
+    # 1 angle
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+    analyse_one(fname, show_plots=False)
 
-    fname = args.preproc_folder + \
-        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7" \
-             ".5_3_angle_0_90_evo"
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
+    analyse_one(fname, extra_suffix="constant", show_plots=False)
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo"
+    analyse_one(fname, show_plots=False)
+
+    # 2 angles
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
     analyse_one(fname, show_plots=False)
 
     fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90"
+    analyse_one(fname, extra_suffix="constant", show_plots=False)
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_evo"
     analyse_one(fname, show_plots=False)
 
-    fname1 = args.preproc_folder
-    fname1 += "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7" \
-              ".5_3_angle_0_90_evo"
+    # 4 angles
 
-    fname2 = args.preproc_folder
-    fname2 += \
-        "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90"
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
+    analyse_one(fname, show_plots=False)
+
+    # all angles
+
+
+    # Comparison between 2 experiments
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
+
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90"
+
+    comparison(fname1, fname2, show_plots=False)
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
 
     comparison(fname1, fname2, show_plots=False)
 
-    fname1 = args.preproc_folder
-    fname1 += "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+    # Generating evolution plots
+    # 1 angle, random delays
+    filenames = [
+        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0",
+        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"]
 
-    fname2 = args.preproc_folder
-    fname2 += \
-        "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7" \
-        ".5_3_angle_0_evo"
+    times = [2400 * second, 4800 * second, 9600 * second, 19200 * second,
+             38400 * second, 76800 * second]
 
-    comparison(fname1, fname2, show_plots=False)
+    evolution(filenames, times, suffix="1_angles_0")
+
+    # 1 angle, constant delays
+    filenames = [
+        "results_for_testing_constant_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_evo",
+        "results_for_testing_constant_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_evo",
+        "results_for_testing_constant_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_evo",
+        "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo",
+        "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
+        "results_for_testing_constant_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"]
+
+    evolution(filenames, times, suffix="constant_1_angles_0")
+
+    # 2 angles, random delays, 0 + 90
+    filenames = [
+        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_90_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_90_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_90_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_90_evo"
+    ]
+    evolution(filenames, times, suffix="2_angles_0_90")
+
+
+    # 45 degrees
+    filenames = [
+        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_45_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_45_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_45_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_evo"
+        # TODO extra time
+    ]
+    times = [2400 * second, 4800 * second, 9600 * second, 19200 * second,
+             38400 * second
+             ]
+    evolution(filenames, times, suffix="_1_angles_45")
+
+    # 2 angles, random delays, 45 and 135
+    filenames = [
+        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_45_135_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_45_135_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_45_135_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_evo",
+        # TODO extra times
+    ]
+    times = [2400 * second, 4800 * second, 9600 * second, 19200 * second,
+             ]
+    evolution(filenames, times, suffix="_2_angles_45_135")
+
+    # 4 angles, random delays, 0 + 90 + 180 + 270
+    filenames = [
+        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_NESW_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_NESW_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_NESW_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_evo",
+        # TODO
+        #     "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_45_diff_shared_seeds"
+    ]
+
+    times = [2400 * second, 4800 * second, 9600 * second, 19200 * second,
+             38400 * second,
+             #          76800*second
+             ]
+    evolution(filenames, times, suffix="_4_angles_0_90_180_270")
+
+    # all angles
+    # TODO
+
+
