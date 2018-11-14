@@ -158,6 +158,7 @@ def analyse_one(archive, out_filename=None, show_plots=True):
     plt.ylabel("Hz")
     plt.savefig(fig_folder + "firing_rate_with_angle_hist{}.pdf".format(
         suffix_test))
+    plt.close(fig)
     fig = plt.figure(figsize=(16, 8), dpi=600)
     y, binEdges = np.histogram(angles, bins=angles.size)
     bincenters = 0.5 * (binEdges[1:] + binEdges[:-1])
@@ -172,6 +173,7 @@ def analyse_one(archive, out_filename=None, show_plots=True):
             suffix_test))
     if show_plots:
         plt.show()
+    plt.close(fig)
     # mean excitatory population response in Hz
     fig = plt.figure(figsize=(10, 10), dpi=600)
     ax = plt.subplot(111, projection='polar')
@@ -191,6 +193,7 @@ def analyse_one(archive, out_filename=None, show_plots=True):
         bbox_inches='tight')
     if show_plots:
         plt.show()
+    plt.close(fig)
     # min mean max population responses in Hz
     f, ax = plt.subplots(1, 1, figsize=(15, 8),
                          subplot_kw=dict(projection='polar'), dpi=800)
@@ -214,9 +217,10 @@ def analyse_one(archive, out_filename=None, show_plots=True):
         bbox_inches='tight')
     if show_plots:
         plt.show()
+    plt.close(f)
 
     # distributions of rates (excitatory and inhibitory)
-    plt.figure(figsize=(14, 8), dpi=600)
+    fig = plt.figure(figsize=(14, 8), dpi=600)
     n, bins, patches = plt.hist(instaneous_rates, bins=40, normed=True,
                                 alpha=.75)
     if inh_instaneous_rates.size > 0:
@@ -232,9 +236,10 @@ def analyse_one(archive, out_filename=None, show_plots=True):
                 bbox_inches='tight')
     if show_plots:
         plt.show()
+    plt.close(fig)
 
     # distribution of delays present in the network after training
-    plt.figure(figsize=(14, 8), dpi=600)
+    fig = plt.figure(figsize=(14, 8), dpi=600)
 
     all_delays = np.concatenate((ff_last[:, -1], off_last[:, -1],
                                  noise_last[:, -1], lat_last[:, -1],
@@ -253,9 +258,10 @@ def analyse_one(archive, out_filename=None, show_plots=True):
                 bbox_inches='tight')
     if show_plots:
         plt.show()
+    plt.close(fig)
     # evolution of rates during testing (mostly to check everything is fine
     # all of the time)
-    plt.figure(figsize=(14, 8), dpi=600)
+    fig = plt.figure(figsize=(14, 8), dpi=600)
     plt.plot(instaneous_rates, alpha=.75)
     if inh_instaneous_rates.size > 0:
         plt.plot(inh_instaneous_rates, alpha=.75)
@@ -265,6 +271,7 @@ def analyse_one(archive, out_filename=None, show_plots=True):
                 bbox_inches='tight')
     if show_plots:
         plt.show()
+    plt.close(fig)
 
     # KDE of firing rates
     fig = plt.figure(figsize=(7.5, 8), dpi=600)
@@ -291,6 +298,7 @@ def analyse_one(archive, out_filename=None, show_plots=True):
         bbox_inches='tight')
     if show_plots:
         plt.show()
+    plt.close(fig)
 
     # some computation for determining preferred direction and generating a
     # quiver plot
@@ -331,6 +339,7 @@ def analyse_one(archive, out_filename=None, show_plots=True):
                 bbox_inches='tight')
     if show_plots:
         plt.show()
+    plt.close(f)
 
     # histogram with number of neurons preferring each direction
     fig = plt.figure(figsize=(16, 8), dpi=600)
@@ -345,6 +354,7 @@ def analyse_one(archive, out_filename=None, show_plots=True):
     plt.savefig(
         fig_folder + "no_sensitised_neurons_with_angle_hist{}.pdf".format(
             suffix_test))
+    plt.close(fig)
     fig = plt.figure(figsize=(16, 8), dpi=600)
     y, binEdges = np.histogram(max_average_responses_with_angle,
                                bins=angles.size)
@@ -360,6 +370,7 @@ def analyse_one(archive, out_filename=None, show_plots=True):
             suffix_test))
     if show_plots:
         plt.show()
+    plt.close(fig)
     fig = plt.figure(figsize=(10, 10), dpi=600)
     ax = plt.subplot(111, projection='polar')
     c = plt.fill(radians, y,
@@ -375,6 +386,7 @@ def analyse_one(archive, out_filename=None, show_plots=True):
         bbox_inches='tight')
     if show_plots:
         plt.show()
+    plt.close(fig)
 
     # selective neuron responses
     selective_ids = []
@@ -682,6 +694,10 @@ def comparison(archive_random, archive_constant, out_filename=None,
         fig_folder + "comparison_firing_rate_with_angle{}.pdf".format(
             suffix_test),
         bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "comparison_firing_rate_with_angle{}.svg".format(
+            suffix_test),
+        bbox_inches='tight')
 
     if show_plots:
         plt.show()
@@ -690,10 +706,7 @@ def comparison(archive_random, archive_constant, out_filename=None,
     f, (ax, ax2) = plt.subplots(1, 2, figsize=(15, 8),
                                 subplot_kw=dict(projection='polar'), dpi=800)
 
-    # '#440357'  '#228b8d', '#b2dd2c'
-
     maximus = np.max((random_rate_means, constant_rate_means))
-    # minimus = np.min((random_rate_means, constant_rate_means))
     minimus = 0
 
     c = ax.fill(radians, random_rate_means, fill=False, edgecolor='#228b8d',
@@ -705,10 +718,7 @@ def comparison(archive_random, archive_constant, out_filename=None,
     ax.fill(radians, maxs, fill=False, edgecolor='#b2dd2c', lw=2, alpha=1,
             label="Max response")
     maximus = np.max(maxs)
-    # c.set_alpha(0.8)
     rand_max = np.max(maximus)
-    # plt.ylabel("Hz")
-    # ax2 = plt.subplot(222, projection='polar')
     c2 = ax2.fill(radians, constant_rate_means, fill=False,
                   edgecolor='#228b8d', lw=2, alpha=.8, label="Mean response")
     mins = [np.min(r) for r in constant_all_rates]
@@ -717,13 +727,10 @@ def comparison(archive_random, archive_constant, out_filename=None,
     maxs = [np.max(r) for r in constant_all_rates]
     ax2.fill(radians, maxs, fill=False, edgecolor='#b2dd2c', lw=2, alpha=1,
              label="Max response")
-    # c2.set_alpha(0.8)
     const_max = np.max(maxs)
     rand_max, const_max, np.max([rand_max, const_max])
     ax.set_ylim([minimus, 1.1 * np.max([rand_max, const_max])])
     ax2.set_ylim([minimus, 1.1 * np.max([rand_max, const_max])])
-    # ax.set_xlabel("Angle")
-    # ax2.set_xlabel("Angle")
     ax.set_xlabel("Random delays")
     ax2.set_xlabel("Constant delays")
 
@@ -732,9 +739,14 @@ def comparison(archive_random, archive_constant, out_filename=None,
     plt.savefig(
         fig_folder + "comparison_firing_rate_with_angle_min_max_mean{}.pdf".format(
             suffix_test), bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "comparison_firing_rate_with_angle_min_max_mean{"
+                     "}.svg".format(
+            suffix_test), bbox_inches='tight')
     if show_plots:
         plt.show()
 
+    plt.close(f)
     # Histogram comparison
 
     fig = plt.figure(figsize=(15, 8), dpi=800)
@@ -756,8 +768,13 @@ def comparison(archive_random, archive_constant, out_filename=None,
         fig_folder + "comparison_firing_rate_with_angle_hist_centred{" \
                      "}.pdf".format(
             suffix_test))
+    plt.savefig(
+        fig_folder + "comparison_firing_rate_with_angle_hist_centred{" \
+                     "}.svg".format(
+            suffix_test))
     if show_plots:
         plt.show()
+    plt.close(fig)
 
     # Compute paired independent t-test
     ttests = []
@@ -794,8 +811,12 @@ def comparison(archive_random, archive_constant, out_filename=None,
     plt.savefig(
         fig_folder + "ttest_with_angle{}.pdf".format(suffix_test),
                 bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "ttest_with_angle{}.svg".format(suffix_test),
+                bbox_inches='tight')
     if show_plots:
         plt.show()
+    plt.close(fig)
 
 
     # First fname kde
@@ -823,8 +844,12 @@ def comparison(archive_random, archive_constant, out_filename=None,
     plt.savefig(
         fig_folder + "firing_rate_pdf_random{}.pdf".format(suffix_test),
                 bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "firing_rate_pdf_random{}.svg".format(suffix_test),
+                bbox_inches='tight')
     if show_plots:
         plt.show()
+    plt.close(fig)
 
     # Fname2 KDE
     fig = plt.figure(figsize=(7.5, 8), dpi=800)
@@ -850,8 +875,12 @@ def comparison(archive_random, archive_constant, out_filename=None,
     plt.savefig(
         fig_folder + "firing_rate_pdf_constant{}.pdf".format(suffix_test),
                 bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "firing_rate_pdf_constant{}.svg".format(suffix_test),
+                bbox_inches='tight')
     if show_plots:
         plt.show()
+    plt.close(fig)
 
     # Max preference per neuron comparison
     random_all_average_responses_with_angle = np.empty(
@@ -942,8 +971,12 @@ def comparison(archive_random, archive_constant, out_filename=None,
     plt.savefig(
         fig_folder + "comparison_per_angle_response{}.pdf".format(suffix_test),
                 bbox_inches='tight', dpi=800)
+    plt.savefig(
+        fig_folder + "comparison_per_angle_response{}.svg".format(suffix_test),
+                bbox_inches='tight', dpi=800)
     if show_plots:
         plt.show()
+    plt.close(fig)
 
     rand_y, binEdges = np.histogram(
         random_max_average_responses_with_angle, bins=angles.size)
@@ -974,6 +1007,10 @@ def comparison(archive_random, archive_constant, out_filename=None,
         fig_folder + "comparison_number_of_sensitised_neurons_with_angle{" \
                    "}.pdf".format(
             suffix_test), bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "comparison_number_of_sensitised_neurons_with_angle{" \
+                     "}.svg".format(
+            suffix_test), bbox_inches='tight')
     if show_plots:
         plt.show()
 
@@ -989,13 +1026,16 @@ def batch_analyser(archive_batch, out_folder):
 
 if __name__ == "__main__":
     # depending on the input?
-    fname = args.preproc_folder
     # fname += "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7" \
     #          ".5_3_angle_0_evo"
 
-    fname += "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7" \
+    fname = args.preproc_folder + \
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7" \
              ".5_3_angle_0_90_evo"
-    # analyse_one(fname, show_plots=False)
+    analyse_one(fname, show_plots=False)
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90"
+    analyse_one(fname, show_plots=False)
 
     fname1 = args.preproc_folder
     fname1 += "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7" \
@@ -1004,5 +1044,15 @@ if __name__ == "__main__":
     fname2 = args.preproc_folder
     fname2 += \
         "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90"
+
+    comparison(fname1, fname2, show_plots=False)
+
+    fname1 = args.preproc_folder
+    fname1 += "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+
+    fname2 = args.preproc_folder
+    fname2 += \
+        "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7" \
+        ".5_3_angle_0_evo"
 
     comparison(fname1, fname2, show_plots=False)
