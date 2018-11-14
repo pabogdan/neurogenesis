@@ -149,7 +149,7 @@ parser.add_argument('--t_record', type=int,
 parser.add_argument('--lat_inh', action="store_true",
                     dest='lateral_inhibition',
                     help='enable lateral inhibition'
-                         ' -- [default {}]'.format(str(False)))
+                         ' -- [default {}]'.format(DEFAULT_LAT_INH))
 
 parser.add_argument('--t_stim', type=int,
                     default=DEFAULT_T_STIM, dest='t_stim',

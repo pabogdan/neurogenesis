@@ -14,7 +14,6 @@ import pylab as plt
 
 import spynnaker7.pyNN as sim
 
-
 case = args.case
 print("Case", case, "selected!")
 
@@ -25,7 +24,7 @@ sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
 sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
 sim.set_number_of_neurons_per_core("IF_cond_exp", 256 // 10)
 sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 13)
-sim.set_number_of_neurons_per_core("SpikeSourcePoissonVariable", 256 // 13)
+sim.set_number_of_neurons_per_core("SpikeSourcePoissonVariable", 256 // 16)
 
 # +-------------------------------------------------------------------+
 # | General Parameters                                                |
@@ -143,6 +142,11 @@ elif args.input_type == SQUARE_INPUT:
 # +-------------------------------------------------------------------+
 # Need to setup the moving input
 
+number_of_slots = int(simtime / t_stim)
+range_of_slots = np.arange(number_of_slots)
+slots_starts = np.ones((N_layer, number_of_slots)) * (range_of_slots * t_stim)
+durations = np.ones((N_layer, number_of_slots)) * t_stim
+
 if case == CASE_REW_NO_CORR:
     rates = np.ones(grid) * f_mean
     source_pop = sim.Population(N_layer,
@@ -153,24 +157,21 @@ if case == CASE_REW_NO_CORR:
                                  }, label="Poisson spike source")
 elif case == CASE_CORR_AND_REW or case == CASE_CORR_NO_REW:
 
-    rates = np.empty((simtime // t_stim, grid[0], grid[1]))
-    for rate_id in range(simtime // t_stim):
+    rates = np.empty((grid[0], grid[1], number_of_slots))
+    for rate_id in range(number_of_slots):
         r = gen_rate(np.random.randint(0, n, size=2),
                      f_base=f_base,
                      grid=grid,
                      f_peak=args.f_peak,
                      sigma_stim=sigma_stim)
-        # assert np.isclose(np.average(r), f_mean, 0.1, 0.1), np.average(r)
-
-        rates[rate_id, :, :] = r
-    rates = rates.reshape(simtime // t_stim, N_layer)
+        rates[:, :, rate_id] = r
+    rates = rates.reshape(N_layer, number_of_slots)
 
     source_pop = sim.Population(N_layer,
                                 sim.SpikeSourcePoissonVariable,
-                                {'rate': rates,
-                                 'start': 100,
-                                 'duration': simtime,
-                                 'rate_interval_duration': t_stim
+                                {'rates': rates,
+                                 'starts': slots_starts,
+                                 'durations': durations
                                  }, label="Variable-rate Poisson spike source")
 
 ff_s = np.zeros(N_layer, dtype=np.uint)
@@ -180,13 +181,11 @@ init_ff_connections = []
 init_lat_connections = []
 
 if args.initial_connectivity_file is None:
-    generate_initial_connectivity(
-        ff_s, init_ff_connections,
+    init_ff_connections = generate_initial_connectivity(
         sigma_form_forward, p_form_forward,
         "\nGenerating initial feedforward connectivity...",
         N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=args.delay)
-    generate_initial_connectivity(
-        lat_s, init_lat_connections,
+    init_lat_connections = generate_initial_connectivity(
         sigma_form_lateral, p_form_lateral,
         "\nGenerating initial lateral connectivity...",
         N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=args.delay)
@@ -398,7 +397,6 @@ try:
         print("run", current_run + 1, "of", no_runs)
         sim.run(run_duration)
 
-
         if (current_run + 1) * run_duration % t_record == 0:
             pre_weights.append(
                 np.array([
@@ -441,21 +439,22 @@ else:
 total_target_neuron_mean_spike_rate = \
     post_spikes.shape[0] / float(simtime) * 1000. / N_layer
 
-np.savez(filename, pre_spikes=pre_spikes,
-         post_spikes=post_spikes,
-         init_ff_connections=init_ff_connections,
-         init_lat_connections=init_lat_connections,
-         ff_connections=pre_weights,
-         lat_connections=post_weights,
-         final_pre_weights=pre_weights[-1],
-         final_post_weights=post_weights[-1],
-         simtime=simtime,
-         sim_params=sim_params,
-         total_time=total_time,
-         mean_firing_rate=total_target_neuron_mean_spike_rate,
-         exception=e,
-         insult=args.lesion,
-         input_type=args.input_type)
+np.savez_compressed(
+    filename, pre_spikes=pre_spikes,
+    post_spikes=post_spikes,
+    init_ff_connections=init_ff_connections,
+    init_lat_connections=init_lat_connections,
+    ff_connections=pre_weights,
+    lat_connections=post_weights,
+    final_pre_weights=pre_weights[-1],
+    final_post_weights=post_weights[-1],
+    simtime=simtime,
+    sim_params=sim_params,
+    total_time=total_time,
+    mean_firing_rate=total_target_neuron_mean_spike_rate,
+    exception=e,
+    insult=args.lesion,
+    input_type=args.input_type)
 
 # Plotting
 if args.plot and e is None:
