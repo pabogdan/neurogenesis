@@ -197,8 +197,8 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
         plt.show()
     plt.close(fig)
     # min mean max population responses in Hz
-    f, ax = plt.subplots(1, 1, figsize=(15, 8),
-                         subplot_kw=dict(projection='polar'), dpi=800)
+    fig, ax = plt.subplots(1, 1, figsize=(15, 8),
+                         subplot_kw=dict(projection='polar'), dpi=600)
 
     # '#440357'  '#228b8d', '#b2dd2c'
     minimus = 0
@@ -222,10 +222,10 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
         bbox_inches='tight')
     if show_plots:
         plt.show()
-    plt.close(f)
+    plt.close(fig)
 
     # distributions of rates (excitatory and inhibitory)
-    fig = plt.figure(figsize=(14, 8), dpi=600)
+    fig = plt.figure(figsize=(14, 8))
     n, bins, patches = plt.hist(instaneous_rates, bins=40, normed=True,
                                 alpha=.75)
     if inh_instaneous_rates.size > 0:
@@ -246,7 +246,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
     plt.close(fig)
 
     # distribution of delays present in the network after training
-    fig = plt.figure(figsize=(14, 8), dpi=600)
+    fig = plt.figure(figsize=(14, 8))
 
     all_delays = np.concatenate((ff_last[:, -1], off_last[:, -1],
                                  noise_last[:, -1], lat_last[:, -1],
@@ -268,7 +268,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
     plt.close(fig)
     # evolution of rates during testing (mostly to check everything is fine
     # all of the time)
-    fig = plt.figure(figsize=(14, 8), dpi=600)
+    fig = plt.figure(figsize=(14, 8))
     plt.plot(instaneous_rates, alpha=.75)
     if inh_instaneous_rates.size > 0:
         plt.plot(inh_instaneous_rates, alpha=.75)
@@ -327,7 +327,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
         sem_responses_with_angle[i] = all_average_responses_with_angle[
             i, int(max_average_responses_with_angle[i] // 5), 1]
     # quiver plot
-    f, (ax) = plt.subplots(1, 1, figsize=(12, 10), dpi=800)
+    fig, (ax) = plt.subplots(1, 1, figsize=(12, 10), dpi=600)
     i = ax.imshow(max_average_responses_with_angle.reshape(grid[0], grid[1]),
                   vmin=0, vmax=355, cmap=cyclic_viridis)
 
@@ -346,10 +346,10 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
                 bbox_inches='tight')
     if show_plots:
         plt.show()
-    plt.close(f)
+    plt.close(fig)
 
     # histogram with number of neurons preferring each direction
-    fig = plt.figure(figsize=(16, 8), dpi=600)
+    fig = plt.figure(figsize=(16, 8))
     y, binEdges = np.histogram(max_average_responses_with_angle,
                                bins=angles.size)
     bincenters = 0.5 * (binEdges[1:] + binEdges[:-1])
@@ -362,7 +362,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
         fig_folder + "no_sensitised_neurons_with_angle_hist{}.pdf".format(
             suffix_test))
     plt.close(fig)
-    fig = plt.figure(figsize=(16, 8), dpi=600)
+    fig = plt.figure(figsize=(16, 8))
     y, binEdges = np.histogram(max_average_responses_with_angle,
                                bins=angles.size)
     bincenters = 0.5 * (binEdges[1:] + binEdges[:-1])
@@ -372,9 +372,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
     plt.xlabel("Degree")
     plt.ylabel("# of sensitised neurons")
     plt.savefig(
-        fig_folder + "no_sensitised_neurons_with_angle_hist_centred{" \
-                     "}.pdf".format(
-            suffix_test))
+        fig_folder + "no_sensitised_neurons_with_angle_hist_centred{}.pdf".format(suffix_test))
     if show_plots:
         plt.show()
     plt.close(fig)
@@ -425,8 +423,8 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
                 current_response)
     # max responsive
     viridis_cmap = mlib.cm.get_cmap('viridis')
-    f, axes = plt.subplots(2, 2, figsize=(12, 12),
-                           subplot_kw=dict(projection='polar'), dpi=800)
+    fig, axes = plt.subplots(2, 2, figsize=(12, 12),
+                           subplot_kw=dict(projection='polar'))
 
     minimus = np.min(super_selective_tuning_curves)
     maximus = np.max(super_selective_tuning_curves)
@@ -448,6 +446,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
         bbox_inches='tight')
     if show_plots:
         plt.show()
+    plt.close(fig)
 
     # best searched response
     selective_ids = []
@@ -503,8 +502,8 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
                 current_response)
 
     viridis_cmap = mlib.cm.get_cmap('viridis')
-    f, axes = plt.subplots(2, 2, figsize=(12, 12),
-                           subplot_kw=dict(projection='polar'), dpi=800)
+    fig, axes = plt.subplots(2, 2, figsize=(12, 12),
+                           subplot_kw=dict(projection='polar'), dpi=600)
 
     minimus = np.min(super_selective_tuning_curves)
     maximus = np.max(super_selective_tuning_curves)
@@ -524,8 +523,11 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
         fig_folder + "individual_custom_filter_sensitive_tuning_curves{"
                      "}.pdf".format(
             suffix_test), bbox_inches='tight')
+    plt.savefig(fig_folder + "individual_custom_filter_sensitive_tuning_curves{}.svg".format(suffix_test),
+                bbox_inches='tight')
     if show_plots:
         plt.show()
+    plt.close(fig)
 
     # connectivity plots and info
 
@@ -535,7 +537,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
             ff_num_network[:, index[0]]) + np.nansum(
             lat_num_network[:, index[0]])
 
-    f, (ax) = plt.subplots(1, 1, figsize=(12, 10), dpi=800)
+    fig, (ax) = plt.subplots(1, 1, figsize=(12, 10))
     i = ax.imshow(number_of_afferents.reshape(grid[0], grid[1]), vmin=0)
 
     divider = make_axes_locatable(plt.gca())
@@ -547,8 +549,10 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
         bbox_inches='tight')
     if show_plots:
         plt.show()
+    plt.close(fig)
+
     # weight histograms
-    f, axes = plt.subplots(1, 5, figsize=(15, 7), dpi=800, sharey=True)
+    fig, axes = plt.subplots(1, 5, figsize=(15, 7), sharey=True)
 
     conns = (ff_last, off_last, noise_last, lat_last, inh_to_exh_last)
     conns_names = ["$ff_{on}$", "$ff_{off}$", "$ff_{noise}$", "$lat_{exc}$",
@@ -574,7 +578,6 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
         plt.show()
     plt.close(fig)
 
-    # print
     pre_neurons = grid[0] * grid[1]
     percentage_conn = []
     all_conns = np.concatenate(conns)
@@ -678,7 +681,7 @@ def comparison(archive_random, archive_constant, out_filename=None,
     suffix_test = generate_suffix(sim_params['training_angles'])
 
     # Mean firing rate comparison
-    f, (ax, ax2) = plt.subplots(1, 2, figsize=(15, 8),
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(15, 8),
                                 subplot_kw=dict(projection='polar'), dpi=800)
 
     maximus = np.max((random_rate_means, constant_rate_means))
@@ -699,7 +702,7 @@ def comparison(archive_random, archive_constant, out_filename=None,
     ax2.set_xlabel("Constant delays")
     ax2.set_ylim([minimus, 1.1 * maximus])
 
-    f.suptitle("Mean firing rate for specific input angle", va='bottom')
+    fig.suptitle("Mean firing rate for specific input angle", va='bottom')
     plt.tight_layout(pad=10)
     plt.savefig(
         fig_folder + "comparison_firing_rate_with_angle{}.pdf".format(
@@ -712,10 +715,10 @@ def comparison(archive_random, archive_constant, out_filename=None,
 
     if show_plots:
         plt.show()
-    plt.close(f)
+    plt.close(fig)
 
     # Min Max Mean comparison
-    f, (ax, ax2) = plt.subplots(1, 2, figsize=(15, 8),
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(15, 8),
                                 subplot_kw=dict(projection='polar'), dpi=800)
 
     maximus = np.max((random_rate_means, constant_rate_means))
@@ -757,7 +760,7 @@ def comparison(archive_random, archive_constant, out_filename=None,
             suffix_test), bbox_inches='tight')
     if show_plots:
         plt.show()
-    plt.close(f)
+    plt.close(fig)
     # Histogram comparison
 
     fig = plt.figure(figsize=(15, 8), dpi=800)
@@ -993,7 +996,7 @@ def comparison(archive_random, archive_constant, out_filename=None,
     const_y, binEdges = np.histogram(
         constant_max_average_responses_with_angle, bins=angles.size)
 
-    f, (ax, ax2) = plt.subplots(1, 2, figsize=(15, 8),
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(15, 8),
                                 subplot_kw=dict(projection='polar'), dpi=800)
 
     maximus = np.max((rand_y, const_y))
@@ -1023,18 +1026,12 @@ def comparison(archive_random, archive_constant, out_filename=None,
             suffix_test), bbox_inches='tight')
     if show_plots:
         plt.show()
-    plt.close(f)
+    plt.close(fig)
 
 
 def evolution(filenames, times, suffix, show_plots=False):
     # https://gist.github.com/MatthewJA/5a0a6d75748bf5cb5962cb9d5572a6ce
-    viridis_cmap = colors.LinearSegmentedColormap.from_list(
-        'cyclic_viridis',
-        [(0, cm_mlib.viridis.colors[0]),
-         (0.25, cm_mlib.viridis.colors[256 // 3]),
-         (0.5, cm_mlib.viridis.colors[2 * 256 // 3]),
-         (0.75, cm_mlib.viridis.colors[-1]),
-         (1.0, cm_mlib.viridis.colors[0])])
+    viridis_cmap = mlib.cm.get_cmap('viridis')
     # root_stats = "D:\Work\Neurogenesis-PhD\simulation_statistics\\"
     root_stats = "C:\Work\phd\simulation_statistics\\preproc\\"
     # root_syn = "D:\Work\Neurogenesis-PhD\synaptogenesis\\"
