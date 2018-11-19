@@ -6,26 +6,27 @@ def pol2cart(theta, rho):
     y = rho * np.sin(theta)
     return x, y
 
+
 def cart2pol(x, y):
-    rho = np.sqrt(x**2 + y**2)
+    rho = np.sqrt(x ** 2 + y ** 2)
     phi = np.arctan2(y, x)
-    return(rho, phi)
+    return (rho, phi)
 
 
 def index_to_dist(i1, i2, grid):
-    return distance((i1//grid[0], i1%grid[1]),(i2//grid[0], i2%grid[1]), grid=grid, type='euclidian')
+    return distance((i1 // grid[0], i1 % grid[1]), (i2 // grid[0], i2 % grid[1]), grid=grid, type='euclidian')
+
 
 def polar_connectivity(conn_list, grid):
     polar_conn = []
     for source, target, weight, delay in conn_list:
-        s_x = np.asarray((source//grid[0], source%grid[1]))
-        t_y = np.asarray((target//grid[0], target%grid[1]))
-        dif = s_x-t_y
+        s_x = np.asarray((source // grid[0], source % grid[1]))
+        t_y = np.asarray((target // grid[0], target % grid[1]))
+        dif = s_x - t_y
         s_p, t_p = cart2pol(dif[0], dif[1])
         polar_conn.append((s_p, t_p, weight, delay,
                            distance(s_x, t_y, grid=grid, type='euclidian')))
     return polar_conn
-
 
 
 def radial_sample(in_matrix, samplenum):
@@ -49,27 +50,27 @@ def radial_sample(in_matrix, samplenum):
                 else:
                     sample = in_matrix[yceil + centre, xfloor + centre] * \
                              np.mod(tempx, 1) + in_matrix[
-                                                    yceil + centre, xceil + centre] * \
-                                                (1 - np.mod(tempx, 1))
+                                 yceil + centre, xceil + centre] * \
+                             (1 - np.mod(tempx, 1))
             else:
                 if xceil == xfloor:
                     sample = in_matrix[yfloor + centre, xceil + centre] * \
                              np.mod(tempy, 1) + in_matrix[
-                                                    yceil + centre, xceil + centre] * \
-                                                (1 - np.mod(tempy, 1))
+                                 yceil + centre, xceil + centre] * \
+                             (1 - np.mod(tempy, 1))
                 else:
                     yfloorsample = in_matrix[
                                        yfloor + centre, xfloor + centre] * \
                                    np.mod(tempx, 1) + in_matrix[
-                                                          yfloor + centre, xceil + centre] * \
-                                                      (1 - np.mod(tempx, 1))
+                                       yfloor + centre, xceil + centre] * \
+                                   (1 - np.mod(tempx, 1))
                     yceilsample = in_matrix[
                                       yceil + centre, xfloor + centre] * np.mod(
                         tempx, 1) + in_matrix[
-                                        yceil + centre, xceil + centre] * (
-                                        1 - np.mod(tempx, 1))
+                                      yceil + centre, xceil + centre] * (
+                                          1 - np.mod(tempx, 1))
                     sample = yfloorsample * np.mod(tempy, 1) + yceilsample * (
-                        1 - np.mod(tempy, 1))
+                            1 - np.mod(tempy, 1))
             out[int(dist)] = out[int(dist)] + sample
     return out / float(samplenum)
 
@@ -154,8 +155,6 @@ def centre_weights(in_star_all, n1d):
                 #                 print pos_x, pos_y
                 #                 print std_dev_x, std_dev_y
 
-
-
                 # reconstruct the coarsely centred receptive field
                 centred_coarse = np.copy(in_star_extended[
                                          n1d + pos_y - half_range:n1d + pos_y + half_range + 1,
@@ -178,13 +177,13 @@ def centre_weights(in_star_all, n1d):
                                                 n1d + pos_x - half_range:n1d + pos_x + half_range + 1])
                     # correct the edges of centred
                     temp_centred_fine[0, :] = temp_centred_fine[0, :] * (
-                        .5 - pos_fine)
+                            .5 - pos_fine)
                     temp_centred_fine[n1d, :] = temp_centred_fine[n1d, :] * (
-                        .5 + pos_fine)
+                            .5 + pos_fine)
                     temp_centred_fine[:, 0] = temp_centred_fine[:, 0] * (
-                        .5 - pos_fine)
+                            .5 - pos_fine)
                     temp_centred_fine[:, n1d] = temp_centred_fine[:, n1d] * (
-                        .5 + pos_fine)
+                            .5 + pos_fine)
 
                     # calculate the StdDev
                     centred_x = np.sum(temp_centred_fine, axis=0)
@@ -266,7 +265,7 @@ def centre_weights(in_star_all, n1d):
                                (n1d + 1 - X) * np.remainder(Y - 1, 2) - 1,
                 :] = [X + mean_x, Y + mean_y]
                 means_for_plot[(X - 1) * n1d + Y * np.remainder(X - 1, 2) + (
-                                                                            n1d + 1 - Y) * np.remainder(
+                        n1d + 1 - Y) * np.remainder(
                     X, 2) + n1d ** 2 - 1 - 1, :] = [X + mean_x, Y + mean_y]
                 #     return (mean_projection/(n1d**2), std_dev)
     mean_projection = mean_projection / (n1d ** 2.)
@@ -327,6 +326,10 @@ def weight_shuffle(conn, weights, area):
     return weights_copy
 
 
+def correct_smax_list_to_post_pre(ff_list, lat_list, s_max, N_layer):
+    return list_to_post_pre(ff_list, lat_list, int(s_max / 2), N_layer)
+
+
 def list_to_post_pre(ff_list, lat_list, s_max, N_layer):
     conn = np.ones((s_max * 2, N_layer)) * -1
     weight = np.zeros((s_max * 2, N_layer))
@@ -360,7 +363,7 @@ def odc(fan_in_mat, mode=None):
     for post_y in range(n1d):
         for post_x in range(n1d):
             fan_in_temp = fan_in_mat[post_y * n1d:(post_y + 1) * n1d,
-                        post_x * n1d:(post_x + 1) * n1d]
+                          post_x * n1d:(post_x + 1) * n1d]
             if mode and 'NORMALISE' in mode.upper():
                 temp = np.sum(np.sum(fan_in_temp * odc_mask)) / np.sum(
                     np.sum(np.logical(fan_in_temp * odc_mask))) / np.sum(
