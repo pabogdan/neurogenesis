@@ -13,6 +13,7 @@ from pprint import pprint as pp
 from mpl_toolkits.axes_grid1 import make_axes_locatable, ImageGrid
 import traceback, os
 from argparser import *
+from gari_analysis_functions import *
 
 # ensure we use viridis as the default cmap
 plt.viridis()
@@ -42,17 +43,30 @@ testing_data = np.load(
 if not os.path.isdir(fig_folder) and not os.path.exists(fig_folder):
     os.mkdir(fig_folder)
 
+# TODO make this useful and use it!
+def save_figure(fig, filename, suffix, fig_folder=fig_folder, extensions=["pdf", "svg"]):
+    # TODO check that extensions is iterable
+    for ext in extensions:
+        full_filename = filename + suffix + "." + ext
+        plt.savefig(
+            fig_folder + full_filename,
+            bbox_inches='tight')
+
 
 def generate_suffix(training_angles):
     unique_tas = np.unique(training_angles)
     no_training_angles = unique_tas.size
-    suffix_test = "_" + str(no_training_angles)
+    if unique_tas.size != 72:
+        suffix_test = "_" + str(no_training_angles)
+    else:
+        suffix_test = "_all"
     if no_training_angles == 1:
         suffix_test += "_angle"
     else:
         suffix_test += "_angles"
-    for ta in unique_tas:
-        suffix_test += "_" + str(ta)
+    if unique_tas.size <= 4:
+        for ta in unique_tas:
+            suffix_test += "_" + str(ta)
     print("The suffix for this set of figures is ", suffix_test)
     return suffix_test
 
@@ -147,7 +161,6 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
     if extra_suffix:
         suffix_test += "_" + extra_suffix
 
-    cached_data.close()
     # Begin the plotting
     # response histograms
     fig = plt.figure(figsize=(16, 8), dpi=600)
@@ -198,7 +211,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
     plt.close(fig)
     # min mean max population responses in Hz
     fig, ax = plt.subplots(1, 1, figsize=(15, 8),
-                         subplot_kw=dict(projection='polar'), dpi=600)
+                           subplot_kw=dict(projection='polar'), dpi=600)
 
     # '#440357'  '#228b8d', '#b2dd2c'
     minimus = 0
@@ -424,7 +437,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
     # max responsive
     viridis_cmap = mlib.cm.get_cmap('viridis')
     fig, axes = plt.subplots(2, 2, figsize=(12, 12),
-                           subplot_kw=dict(projection='polar'))
+                             subplot_kw=dict(projection='polar'))
 
     minimus = np.min(super_selective_tuning_curves)
     maximus = np.max(super_selective_tuning_curves)
@@ -503,7 +516,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
 
     viridis_cmap = mlib.cm.get_cmap('viridis')
     fig, axes = plt.subplots(2, 2, figsize=(12, 12),
-                           subplot_kw=dict(projection='polar'), dpi=600)
+                             subplot_kw=dict(projection='polar'), dpi=600)
 
     minimus = np.min(super_selective_tuning_curves)
     maximus = np.max(super_selective_tuning_curves)
@@ -595,6 +608,69 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
     # selectivity to the training angles and / or in 45 deg increments
 
     # TODO print stats along the way
+
+    # Gari's plots here --------------------------------------------------------
+    # Get covariances for input connectivity
+    keys = ['ff_last', 'off_last', 'lat_last']
+    dict_of_arrays = {
+        'ff_last': ff_last,
+        'off_last': off_last,
+        'lat_last': lat_last
+    }
+    fig = plt.figure(figsize=(len(keys) * 10, 10))
+
+    for nk, k in enumerate(keys):
+        widths, heights, centres, angs = [], [], [], []
+        # put appropriate neuron IDs here!
+        for post_id in range(32 * 32):
+            centre, shape, angle = get_variance_ellipse(
+                conns4post(dict_of_arrays[k], post_id), 32, 32)
+            widths.append(shape[0])
+            heights.append(shape[1])
+            centres.append(centre)
+            angs.append(angle)
+
+        horiz = [i for i in range(len(widths)) if widths[i] > heights[i]]
+        vert = [i for i in range(len(widths)) if widths[i] < heights[i]]
+
+        ax = plt.subplot(1, len(keys), nk + 1, aspect='equal')
+        ax.set_title(k)
+        for i in range(len(angs)):
+            width = widths[i]
+            height = heights[i]
+            angle = angs[i]
+            ell = Ellipse(xy=(0, 0), width=width, height=height, angle=angle,
+                          facecolor='none', edgecolor='#414C82', alpha=0.2)
+            ax.add_artist(ell)
+
+        wavg = np.mean(widths)
+        havg = np.mean(heights)
+        aavg = np.mean(angs)
+        ell = Ellipse(xy=(0, 0), width=wavg, height=havg, angle=aavg,
+                      facecolor='none', edgecolor='#b2dd2c', linewidth=3.0)
+        ax.add_artist(ell)
+
+        xlim = np.max(widths) / 2.0
+        ylim = np.max(heights) / 2.0
+        maxlim = max(xlim, ylim)
+        ax.set_xlim(-maxlim, maxlim)
+        ax.set_ylim(-maxlim, maxlim)
+
+        ax.set_xlabel('Pixels')
+        ax.set_ylabel('Pixels')
+
+    plt.savefig(
+        fig_folder + "covariance_ff_exc{}.pdf".format(suffix_test),
+        bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "covariance_ff_exc{}.svg".format(suffix_test),
+        bbox_inches='tight')
+
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    cached_data.close()
     return suffix_test
 
 
@@ -682,7 +758,7 @@ def comparison(archive_random, archive_constant, out_filename=None,
 
     # Mean firing rate comparison
     fig, (ax, ax2) = plt.subplots(1, 2, figsize=(15, 8),
-                                subplot_kw=dict(projection='polar'), dpi=800)
+                                  subplot_kw=dict(projection='polar'), dpi=800)
 
     maximus = np.max((random_rate_means, constant_rate_means))
     # minimus = np.min((random_rate_means, constant_rate_means))
@@ -719,7 +795,7 @@ def comparison(archive_random, archive_constant, out_filename=None,
 
     # Min Max Mean comparison
     fig, (ax, ax2) = plt.subplots(1, 2, figsize=(15, 8),
-                                subplot_kw=dict(projection='polar'), dpi=800)
+                                  subplot_kw=dict(projection='polar'), dpi=800)
 
     maximus = np.max((random_rate_means, constant_rate_means))
     minimus = 0
@@ -937,9 +1013,8 @@ def comparison(archive_random, archive_constant, out_filename=None,
         constant_max_average_responses_with_angle[i] = np.argmax(
             constant_all_average_responses_with_angle[i, :, 0]) * 5
         sem_responses_with_angle[i] = \
-        constant_all_average_responses_with_angle[
-            i, int(constant_max_average_responses_with_angle[i] // 5), 1]
-
+            constant_all_average_responses_with_angle[
+                i, int(constant_max_average_responses_with_angle[i] // 5), 1]
 
     fig = plt.figure(figsize=(15, 8), dpi=800)
     img_grid = ImageGrid(fig, 111,
@@ -997,7 +1072,7 @@ def comparison(archive_random, archive_constant, out_filename=None,
         constant_max_average_responses_with_angle, bins=angles.size)
 
     fig, (ax, ax2) = plt.subplots(1, 2, figsize=(15, 8),
-                                subplot_kw=dict(projection='polar'), dpi=800)
+                                  subplot_kw=dict(projection='polar'), dpi=800)
 
     maximus = np.max((rand_y, const_y))
     # minimus = np.min((random_rate_means, constant_rate_means))
@@ -1082,7 +1157,6 @@ def evolution(filenames, times, suffix, show_plots=False):
     plt.close(fig)
 
 
-
 def batch_analyser(archive_batch, out_folder):
     pass
 
@@ -1110,25 +1184,46 @@ if __name__ == "__main__":
     analyse_one(fname, show_plots=False)
 
     # 4 angles
-
-
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
     analyse_one(fname, show_plots=False)
 
-    # all angles
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW"
+    analyse_one(fname, extra_suffix="constant", show_plots=False)
 
+    # all angles
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_all_angles"
+    analyse_one(fname, show_plots=False)
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_all_angles"
+    analyse_one(fname, extra_suffix="constant", show_plots=False)
 
     # Comparison between 2 experiments
+    # 1 angle
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
+
+    comparison(fname1, fname2, show_plots=False)
+
+    # 2 angles
+
     fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
 
     fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90"
 
     comparison(fname1, fname2, show_plots=False)
 
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+    # 4 angles
 
-    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW"
+    comparison(fname1, fname2, show_plots=False)
 
+    # all angles
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_all_angles"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_all_angles"
     comparison(fname1, fname2, show_plots=False)
 
     # Generating evolution plots
@@ -1167,7 +1262,6 @@ if __name__ == "__main__":
         "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_90_evo"
     ]
     evolution(filenames, times, suffix="2_angles_0_90")
-
 
     # 45 degrees
     filenames = [
@@ -1214,5 +1308,3 @@ if __name__ == "__main__":
 
     # all angles
     # TODO
-
-
