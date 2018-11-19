@@ -173,7 +173,9 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
         g_max = .1
     s_max = training_sim_params['s_max']
 
+    training_angles = training_sim_params['training_angles']
     suffix_test = generate_suffix(training_sim_params['training_angles'])
+    cached_data.close()
     if extra_suffix:
         suffix_test += "_" + extra_suffix
 
@@ -686,7 +688,159 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
         plt.show()
     plt.close(fig)
 
-    cached_data.close()
+    # Direction Selectivty Index (DSI)
+    # Setup some parameters
+    angle_diff = 5
+    sigma = 2.0
+    kernel_width = 7
+
+    in_angle = training_angles
+
+    models = [conv_model(all_average_responses_with_angle[neuron_id, :, 0],
+                         kernel_width, sigma) for neuron_id in range(N_layer)]
+    max_ang = 360
+    delta_ang = 50
+    delta_resp = 5.
+    min_diff = 10.
+    min_dsi = 0.5
+    min_osi = 0.5
+    selective = []
+
+    # Begin computation
+    for nid in range(N_layer):
+        curr_ang = i2a(np.argmax(models[nid]), angle_diff)
+        opp_ang = get_opp_ang(curr_ang)
+        #     opp_idx = a2i(opp_ang, angle_diff)
+        opp_idx = get_local_max_idx(opp_ang, delta_ang, models[nid], angle_diff)
+        opp_ang = i2a(opp_idx, angle_diff)
+
+        ang_steps = np.arange(curr_ang - delta_ang, max_ang + delta_ang, delta_ang * 2)
+        ang_steps = np.append(
+            np.arange(max(0, curr_ang - 3 * delta_ang), 0, -delta_ang * 2)[::-1], ang_steps)
+        # ang_steps[:] = np.clip(ang_steps, 0, max_ang)
+
+        mean_resp = np.mean(models[nid])
+        max_resp = np.max(models[nid])
+        opp_resp = models[nid][opp_idx]
+        min_resp = np.min(models[nid])
+        dsi = get_wdsi(models[nid], curr_ang, angle_diff)
+        osi = get_wosi(models[nid], curr_ang, angle_diff)
+        other_max = has_other_max(curr_ang, delta_ang, max_resp,
+                                  delta_resp, models[nid], angle_diff)
+        if (max_resp - mean_resp) <= min_diff:
+            continue
+
+        if dsi <= min_dsi:
+            continue
+
+        if osi <= min_osi:
+            continue
+
+        if other_max:
+            continue
+
+        selective.append(nid)
+    colors = cyclic_viridis(np.linspace(0, 1, len(angles)))
+    polar = bool(1)
+    min_zero = 30
+    min_var = 30
+    min_dsi = 0.5
+    ang_delta = 1
+
+    fig = plt.figure(figsize=(10, 10))
+    ax = plt.subplot(1, 1, 1, projection='polar')
+    angs = np.deg2rad(angles)
+    angs = np.append(angs, angs[0])
+
+    sums = {ang: np.zeros_like(models[0]) for ang in in_angle}
+    counts = {ang: 0.0 for ang in in_angle}
+    # for i in horiz:
+    # for i in range(N_layer):
+    max_dsi = {ang: (-1, 0) for ang in in_angle}
+    max_act = {ang: (-1, 0) for ang in in_angle}
+
+    for i in selective:
+        vals = models[i]
+        #     vals = all_average_responses_with_angle[i, :, 0]
+
+        idx = np.argmax(vals)
+        ang = i2a(idx, angle_diff)
+        dsi = get_wdsi(vals, ang, angle_diff)
+        dsiv = np.max(dsi)
+        maxv = vals[idx]
+        rang = -1
+        for aang in in_angle:
+            if aang == 0 and \
+                    (ang < ang_delta or ang > 360 - ang_delta):
+                rang = aang
+                break
+            elif ang > (aang - ang_delta) and ang < (aang + ang_delta):
+                rang = aang
+                break
+
+        if rang == -1:
+            continue
+
+        sums[rang] += vals
+        counts[rang] += 1
+        max_dsi[rang] = (dsiv, i) if max_dsi[rang][0] < dsiv else max_dsi[rang]
+        max_act[rang] = (maxv, i) if max_act[rang][0] < maxv else max_act[rang]
+
+        if polar:
+            vals = np.append(vals, vals[0])
+
+        plt.plot(angs, vals, alpha=0.1, color=colors[idx])
+
+    for aang in in_angle:
+        # ------------------------------------------
+        idx = a2i(aang, angle_diff)
+        vals = sums[aang] / counts[aang]
+        if polar:
+            vals = np.append(vals, vals[0])
+            ang_val = np.deg2rad(aang)
+        else:
+            ang_val = aang
+
+        plt.plot(angs, vals, label='mean act %d' % aang,
+                 color=colors[idx])
+
+        # ------------------------------------------
+        iii = max_dsi[aang][1]
+        vals = models[iii]
+        if polar:
+            vals = np.append(vals, vals[0])
+            ang_val = np.deg2rad(aang)
+        else:
+            ang_val = aang
+
+        plt.plot(angs, vals, label='max dsi %d' % aang,
+                 color=colors[idx], linestyle=':')
+
+        # ------------------------------------------
+        iii = max_act[aang][1]
+        vals = models[iii]
+        if polar:
+            vals = np.append(vals, vals[0])
+            ang_val = np.deg2rad(aang)
+        else:
+            ang_val = aang
+
+        plt.plot(angs, vals, label='max act %d' % aang,
+                 color=colors[idx], linestyle='-.')
+
+        plt.axvline(ang_val, color=colors[idx], linestyle='--')
+
+    plt.legend()
+    plt.savefig(
+        fig_folder + "dsi_responses{}.pdf".format(suffix_test),
+        bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "dsi_responses{}.svg".format(suffix_test),
+        bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
     return suffix_test
 
 
