@@ -52,9 +52,7 @@ if sensitivity_analysis:
     # don't forget about sim_params
     batch_params = []  # append into this sim params in order
     batch_files = []
-    print()
-    print("BATCH ANALYSIS!")
-    print()
+    print("\nBATCH ANALYSIS!\n")
     # TODO spawn a separate process for each file
     # TODO the main process maps and reduces
     # TODO generate batch plots in the batch directory (suffix)
@@ -470,6 +468,7 @@ for file in paths:
             print("Not re-saving the npz archive...")
         if sensitivity_analysis:
             batch_matrix_results.append((
+                file,
                 target_neuron_mean_spike_rate,
                 np.copy(instaneous_rates),
                 np.copy(per_neuron_instaneous_rates),

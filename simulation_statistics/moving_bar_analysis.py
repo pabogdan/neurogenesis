@@ -16,6 +16,7 @@ from argparser import *
 from gari_analysis_functions import *
 from analysis_functions_definitions import *
 from synaptogenesis.function_definitions import generate_equivalent_connectivity
+from gari_analysis_functions import get_filtered_dsi_per_neuron
 
 # ensure we use viridis as the default cmap
 plt.viridis()
@@ -830,7 +831,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
 
         plt.axvline(ang_val, color=colors[idx], linestyle='--')
 
-    plt.legend()
+    # plt.legend()
     plt.savefig(
         fig_folder + "dsi_responses{}.pdf".format(suffix_test),
         bbox_inches='tight')
@@ -1480,9 +1481,12 @@ def sigma_and_ad_analyser(archive, out_filename=None, extra_suffix=None, show_pl
 
 if __name__ == "__main__":
     # Single experiment analysis
+    # Runs for 192k ms or ~5 hours ---------------------------
     # 1 angle
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
     analyse_one(fname, show_plots=False)
+    import sys
+    sys.exit()
 
     fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
     analyse_one(fname, extra_suffix="constant", show_plots=False)
@@ -1514,7 +1518,47 @@ if __name__ == "__main__":
     fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_all_angles"
     analyse_one(fname, extra_suffix="constant", show_plots=False)
 
+    # Runs for 384k ms or ~10 hours ---------------------------
+    # 1 angle
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo"
+    analyse_one(fname, extra_suffix="384k", show_plots=False)
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo"
+    analyse_one(fname, extra_suffix="constant_384k", show_plots=False)
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_evo"
+    analyse_one(fname, extra_suffix="384k", show_plots=False)
+
+    # 2 angles
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_evo"
+    analyse_one(fname, extra_suffix="384k", show_plots=False)
+
+    # TODO
+    # fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90"
+    # analyse_one(fname, extra_suffix="constant", show_plots=False)
+
+    # TODO
+    # fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_135_evo"
+    # analyse_one(fname, extra_suffix="384k", show_plots=False)
+
+    # 4 angles
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_evo"
+    analyse_one(fname, extra_suffix="384k", show_plots=False)
+
+    # TODO
+    # fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW"
+    # analyse_one(fname, extra_suffix="constant", show_plots=False)
+
+    # all angles
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_all_evo"
+    analyse_one(fname, extra_suffix="384k", show_plots=False)
+
+    # TODO
+    # fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_all_angles"
+    # analyse_one(fname, extra_suffix="constant_384k", show_plots=False)
+
     # Comparison between 2 experiments
+    # Runs for 192k ms or ~5 hours ---------------------------
     # 1 angle
 
     fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
@@ -1613,15 +1657,26 @@ if __name__ == "__main__":
         "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_NESW_evo",
         "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo",
         "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_evo",
-        # TODO
-        #     "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_45_diff_shared_seeds"
+        "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_evo"
+    ]
+
+    times = [2400 * second, 4800 * second, 9600 * second, 19200 * second,
+             38400 * second, 76800*second]
+    evolution(filenames, times, suffix="_4_angles_0_90_180_270")
+
+    # all angles
+    filenames = [
+        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_all_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_all_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_all_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_all_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_all_evo",
+        # "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_all_evo"
     ]
 
     times = [2400 * second, 4800 * second, 9600 * second, 19200 * second,
              38400 * second,
-             #          76800*second
+             # 76800 * second
              ]
-    evolution(filenames, times, suffix="_4_angles_0_90_180_270")
+    evolution(filenames, times, suffix="_all_angles")
 
-    # all angles
-    # TODO

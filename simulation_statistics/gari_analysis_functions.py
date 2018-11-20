@@ -354,3 +354,75 @@ def has_other_max(angle, angle_delta, max_rate, rate_delta, responses, angle_ste
     whr = np.where(responses[indices] > min_rate)[0]
     return len(whr) > 0
 
+# Peter: for my convenience
+
+def get_filtered_dsi_per_neuron(all_average_responses_with_angle, N_layer):
+    '''
+    I assume this bit of code does the following:
+    based on individual neuron activations it computes a Direction Selectivty Index (DSI) or
+    a ratio of how responsive a neuron is in a direction vs. the opposite of the considered direction.
+
+    What we want: neurons which have a response at least twice as good in the considered direction than
+    the opposite one (this is the thresold level). We are looking to maximise this index => that is the direction
+    in which the neuron is most sensitive / selective.
+    :param all_average_responses_with_angle:
+    :type all_average_responses_with_angle:
+    :param N_layer:
+    :type N_layer:
+    :return:
+    :rtype:
+    '''
+    angle_diff = 5
+    sigma = 2.0
+    kernel_width = 7
+
+    models = [conv_model(all_average_responses_with_angle[neuron_id, :, 0],
+                         kernel_width, sigma) for neuron_id in range(N_layer)]
+    max_ang = 360
+    delta_ang = 50
+    delta_resp = 5.
+    min_diff = 10.
+    min_dsi = 0.5
+    min_osi = 0.5
+    selective = []
+    not_selective = []
+
+    # Begin computation
+    for nid in range(N_layer):
+        curr_ang = i2a(np.argmax(models[nid]), angle_diff)
+        opp_ang = get_opp_ang(curr_ang)
+        #     opp_idx = a2i(opp_ang, angle_diff)
+        opp_idx = get_local_max_idx(opp_ang, delta_ang, models[nid], angle_diff)
+        opp_ang = i2a(opp_idx, angle_diff)
+
+        ang_steps = np.arange(curr_ang - delta_ang, max_ang + delta_ang, delta_ang * 2)
+        ang_steps = np.append(
+            np.arange(max(0, curr_ang - 3 * delta_ang), 0, -delta_ang * 2)[::-1], ang_steps)
+        # ang_steps[:] = np.clip(ang_steps, 0, max_ang)
+
+        mean_resp = np.mean(models[nid])
+        max_resp = np.max(models[nid])
+        opp_resp = models[nid][opp_idx]
+        min_resp = np.min(models[nid])
+        dsi = get_wdsi(models[nid], curr_ang, angle_diff)
+        osi = get_wosi(models[nid], curr_ang, angle_diff)
+        other_max = has_other_max(curr_ang, delta_ang, max_resp,
+                                  delta_resp, models[nid], angle_diff)
+        if (max_resp - mean_resp) <= min_diff:
+            not_selective.append((nid, dsi))
+            continue
+
+        if dsi <= min_dsi:
+            not_selective.append((nid, dsi))
+            continue
+
+        if osi <= min_osi:
+            not_selective.append((nid, dsi))
+            continue
+
+        if other_max:
+            not_selective.append((nid, dsi))
+            continue
+
+        selective.append((nid, curr_ang, dsi))
+    return selective, not_selective
