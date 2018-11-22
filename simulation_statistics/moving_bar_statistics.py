@@ -18,10 +18,10 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from brian2.units import *
 import os
 import ntpath
-
+from gari_analysis_functions import get_filtered_dsi_per_neuron
 import matplotlib as mlib
-
 from spinn_utilities.progress_bar import ProgressBar
+import copy
 
 mlib.rcParams.update({'font.size': 24})
 mlib.rcParams.update({'errorbar.capsize': 5})
@@ -347,6 +347,12 @@ for file in paths:
             inh_lat_last = connection_data['inh_inh_connections']
             exh_to_inh_last = connection_data['exh_connections']
 
+            all_average_responses_with_angle, _, _ = compute_all_average_responses_with_angle(per_neuron_all_rates,
+                                                                                              angles, N_layer)
+            dsi_selective, dsi_not_selective = get_filtered_dsi_per_neuron(all_average_responses_with_angle, N_layer)
+            dsi_selective = np.asarray(dsi_selective)
+            dsi_not_selective = np.asarray(dsi_not_selective)
+
         else:
             print("Using cached data.")
             cached_data = np.load(filename + ".npz")
@@ -398,6 +404,13 @@ for file in paths:
             inh_ff_last = cached_data['inh_ff_last']
             inh_off_last = cached_data['inh_off_last']
             inh_noise_last = cached_data['inh_noise_last']
+
+            # Backwards compatibility
+            all_average_responses_with_angle, _, _ = compute_all_average_responses_with_angle(per_neuron_all_rates,
+                                                                                              angles, N_layer)
+            dsi_selective, dsi_not_selective = get_filtered_dsi_per_neuron(all_average_responses_with_angle, N_layer)
+            dsi_selective = np.asarray(dsi_selective)
+            dsi_not_selective = np.asarray(dsi_not_selective)
 
         print()
         pp(sim_params)
@@ -460,6 +473,8 @@ for file in paths:
                 lat_num_network=lat_num_network,
                 ff_num_network=ff_num_network,
 
+                dsi_selective=dsi_selective, dsi_not_selective=dsi_not_selective,
+
                 # Simulation parameters
                 testing_sim_params=sim_params,
                 training_sim_params=training_sim_params,
@@ -467,27 +482,40 @@ for file in paths:
         else:
             print("Not re-saving the npz archive...")
         if sensitivity_analysis:
-            batch_matrix_results.append((
-                file,
-                target_neuron_mean_spike_rate,
-                np.copy(instaneous_rates),
-                np.copy(per_neuron_instaneous_rates),
-                np.copy(rate_means),
-                np.copy(rate_stds),
-                np.copy(rate_sem),
-                np.copy(all_rates),
-                np.copy(actual_angles),
-                np.copy(angles),
-                np.copy(radians),
-                np.copy(ff_connections),
-                np.copy(ff_off_connections),
-                np.copy(lat_connections),
-                np.copy(noise_connections),
-                np.copy(ff_last),
-                np.copy(off_last),
-                np.copy(noise_last),
-                np.copy(lat_last),
-            ))
+            batch_matrix_results.append({
+                "file": copy.deepcopy(file),
+                "npz_filename": copy.deepcopy(filename),
+                "target_neuron_mean_spike_rate": target_neuron_mean_spike_rate,
+                "instaneous_rates": np.copy(instaneous_rates),
+                "per_neuron_instaneous_rates": np.copy(per_neuron_instaneous_rates),
+                "per_neuron_all_rates": np.copy(per_neuron_all_rates),
+                "inh_per_neuron_instaneous_rates": np.copy(inh_per_neuron_instaneous_rates),
+                "inh_per_neuron_all_rates": np.copy(inh_per_neuron_all_rates),
+                "rate_means": np.copy(rate_means),
+                "rate_stds": np.copy(rate_stds),
+                "rate_sem": np.copy(rate_sem),
+                "all_rates": np.copy(all_rates),
+                "actual_angles": np.copy(actual_angles),
+                "angles": np.copy(angles),
+                "radians": np.copy(radians),
+                "ff_connections": np.copy(ff_connections),
+                "ff_off_connections": np.copy(ff_off_connections),
+                "lat_connections": np.copy(lat_connections),
+                "noise_connections": np.copy(noise_connections),
+                "ff_last": np.copy(ff_last),
+                "off_last": np.copy(off_last),
+                "noise_last": np.copy(noise_last),
+                "lat_last": np.copy(lat_last),
+                "dsi_selective": np.copy(dsi_selective),
+                "dsi_not_selective": np.copy(dsi_not_selective),
+                "inh_to_exh_last": np.copy(inh_to_exh_last),
+                "exh_to_inh_last": np.copy(exh_to_inh_last),
+                "inh_ff_last": np.copy(inh_ff_last),
+                "inh_off_last": np.copy(inh_off_last),
+                "inh_noise_last": np.copy(inh_noise_last),
+                "testing_sim_params": copy.deepcopy(sim_params),
+                "training_sim_params": copy.deepcopy(training_sim_params),
+            })
             batch_files.append(file)
         if args.plot and not sensitivity_analysis:
             fig = plt.figure(figsize=(16, 8), dpi=600)

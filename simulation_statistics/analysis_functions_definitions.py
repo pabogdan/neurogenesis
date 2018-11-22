@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import stats
 
 
 def pol2cart(theta, rho):
@@ -377,3 +378,23 @@ def odc(fan_in_mat, mode=None):
 
     output[np.where(np.isnan(output))] = .5
     return output
+
+def compute_all_average_responses_with_angle(per_neuron_all_rates, angles, N_layer):
+    all_average_responses_with_angle = np.empty((N_layer, angles.size, 2))
+    for angle in angles:
+        current_angle_responses = per_neuron_all_rates[angle // 5].reshape(
+            N_layer, per_neuron_all_rates[angle // 5].shape[0] // N_layer)
+        for i in range(N_layer):
+            current_response = current_angle_responses[i, :]
+            all_average_responses_with_angle[i, angle // 5, 0] = np.mean(
+                current_response)
+            all_average_responses_with_angle[i, angle // 5, 1] = stats.sem(
+                current_response)
+    max_average_responses_with_angle = np.empty((N_layer))
+    sem_responses_with_angle = np.empty((N_layer))
+    for i in range(N_layer):
+        max_average_responses_with_angle[i] = np.argmax(
+            all_average_responses_with_angle[i, :, 0]) * 5
+        sem_responses_with_angle[i] = all_average_responses_with_angle[
+            i, int(max_average_responses_with_angle[i] // 5), 1]
+    return all_average_responses_with_angle, max_average_responses_with_angle, sem_responses_with_angle
