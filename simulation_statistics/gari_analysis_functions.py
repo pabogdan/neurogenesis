@@ -356,7 +356,7 @@ def has_other_max(angle, angle_delta, max_rate, rate_delta, responses, angle_ste
 
 # Peter: for my convenience
 
-def get_filtered_dsi_per_neuron(all_average_responses_with_angle, N_layer):
+def get_filtered_dsi_per_neuron(all_average_responses_with_angle, N_layer, dsi_thresh=0.5):
     '''
     I assume this bit of code does the following:
     based on individual neuron activations it computes a Direction Selectivty Index (DSI) or
@@ -382,8 +382,8 @@ def get_filtered_dsi_per_neuron(all_average_responses_with_angle, N_layer):
     delta_ang = 50
     delta_resp = 5.
     min_diff = 10.
-    min_dsi = 0.5
-    min_osi = 0.5
+    min_dsi = dsi_thresh
+    min_osi = dsi_thresh
     selective = []
     not_selective = []
 

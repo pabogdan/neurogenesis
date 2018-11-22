@@ -842,6 +842,33 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
         plt.show()
     plt.close(fig)
 
+    # Back to analysis by PAB
+    dsi_thresh = .5
+    dsi_selective, dsi_not_selective = get_filtered_dsi_per_neuron(all_average_responses_with_angle, N_layer,
+                                                                   dsi_thresh=dsi_thresh)
+    dsi_selective = np.asarray(dsi_selective)
+    dsi_not_selective = np.asarray(dsi_not_selective)
+    all_dsi = np.concatenate((dsi_selective[:, -1], dsi_not_selective[:, -1]))
+
+    # Histogram plot showing number of neurons at each level of DSI with the threshold displayed as axvline
+
+    fig = plt.figure(figsize=(16, 8))
+    plt.hist(all_dsi, bins=np.linspace(0, 1, 21), color='#414C82',
+            edgecolor='k')
+    plt.axvline(dsi_thresh, color='#b2dd2c', ls=":")
+    plt.xticks(np.linspace(0, 1, 11))
+    plt.xlabel("DSI")
+    plt.ylabel("# of neurons")
+    plt.savefig(
+        fig_folder + "dsi_histogram{}.pdf".format(
+            suffix_test))
+    plt.savefig(
+        fig_folder + "dsi_histogram{}.svg".format(
+            suffix_test))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
     return suffix_test
 
 
@@ -1485,8 +1512,9 @@ if __name__ == "__main__":
     # 1 angle
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
     analyse_one(fname, show_plots=False)
-    import sys
-    sys.exit()
+    # import sys
+    #
+    # sys.exit()
 
     fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
     analyse_one(fname, extra_suffix="constant", show_plots=False)
@@ -1661,7 +1689,7 @@ if __name__ == "__main__":
     ]
 
     times = [2400 * second, 4800 * second, 9600 * second, 19200 * second,
-             38400 * second, 76800*second]
+             38400 * second, 76800 * second]
     evolution(filenames, times, suffix="_4_angles_0_90_180_270")
 
     # all angles
@@ -1679,4 +1707,3 @@ if __name__ == "__main__":
              # 76800 * second
              ]
     evolution(filenames, times, suffix="_all_angles")
-
