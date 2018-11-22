@@ -851,15 +851,15 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
     dsi_not_selective = np.asarray(dsi_not_selective)
     if dsi_selective.size > 0 and dsi_not_selective.size > 0:
         all_dsi = np.concatenate((dsi_selective[:, -1], dsi_not_selective[:, -1]))
-        print(suffix_test, "sees ", dsi_selective.size, "selective neurons and", dsi_not_selective.size,
+        print(suffix_test, "sees ", dsi_selective.shape[0], "selective neurons and", dsi_not_selective.shape[0],
               "ones that are not selective to any angle\n\n")
     elif dsi_selective.size == 0:
         all_dsi = dsi_not_selective[:, -1]
-        print(suffix_test, "sees NO, zero, 0 selective neurons and", dsi_not_selective.size,
+        print(suffix_test, "sees NO, zero, 0 selective neurons and", dsi_not_selective.shape[0],
               "ones that are not selective to any angle\n\n")
     else:
         all_dsi = dsi_selective[:, -1]
-        print(suffix_test, "sees ", dsi_selective.size,
+        print(suffix_test, "sees ", dsi_selective.shape[0],
               "selective neurons and none that are not selective to any angle. PERFECT!\n\n")
 
     # Histogram plot showing number of neurons at each level of DSI with the threshold displayed as axvline
