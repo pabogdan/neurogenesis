@@ -180,6 +180,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
     if extra_suffix:
         suffix_test += "_" + extra_suffix
 
+    print("analysing one run:", archive, "with suffix", suffix_test)
     # Begin the plotting
     # response histograms
     fig = plt.figure(figsize=(16, 8), dpi=600)
@@ -848,17 +849,22 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
                                                                    dsi_thresh=dsi_thresh)
     dsi_selective = np.asarray(dsi_selective)
     dsi_not_selective = np.asarray(dsi_not_selective)
-    all_dsi = np.concatenate((dsi_selective[:, -1], dsi_not_selective[:, -1]))
+    if dsi_selective.size > 0 and dsi_not_selective.size > 0:
+        all_dsi = np.concatenate((dsi_selective[:, -1], dsi_not_selective[:, -1]))
+    elif dsi_selective.size == 0:
+        all_dsi = dsi_not_selective[:, -1]
+    else:
+        all_dsi = dsi_selective[:, -1]
 
     # Histogram plot showing number of neurons at each level of DSI with the threshold displayed as axvline
-
+    hist_weights = np.ones_like(all_dsi) / float(N_layer)
     fig = plt.figure(figsize=(16, 8))
     plt.hist(all_dsi, bins=np.linspace(0, 1, 21), color='#414C82',
-            edgecolor='k')
+             edgecolor='k', weights=hist_weights)
     plt.axvline(dsi_thresh, color='#b2dd2c', ls=":")
     plt.xticks(np.linspace(0, 1, 11))
     plt.xlabel("DSI")
-    plt.ylabel("# of neurons")
+    plt.ylabel("% of neurons")
     plt.savefig(
         fig_folder + "dsi_histogram{}.pdf".format(
             suffix_test))
@@ -868,6 +874,9 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
     if show_plots:
         plt.show()
     plt.close(fig)
+
+    print(suffix_test, "sees ", dsi_selective.size, "selective neurons and", dsi_not_selective.size,
+          "ones that are not selective to any angle\n\n")
 
     return suffix_test
 
