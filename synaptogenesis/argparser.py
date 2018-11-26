@@ -98,7 +98,7 @@ parser.add_argument('--p_elim_dep', type=float,
                          ' -- [default {}]'.format(DEFAULT_P_ELIM_DEP))
 
 parser.add_argument('--chunk', type=int,
-                    default=DEFAULT_CHUNK_SIZE, dest='chunk_size',
+                    default=None, dest='chunk_size',
                     help='length of presentation of a pattern (in ms)'
                          ' -- [default {}]'.format(DEFAULT_CHUNK_SIZE))
 

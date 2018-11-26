@@ -166,6 +166,17 @@ elif args.training_angles == [0] and args.all_angles:
 else:
     raise AttributeError("Can't have both a selection of angles and all "
                          "angles at the same time!")
+
+if not args.chunk_size:
+    if n == 32:
+        chunk = 200
+    elif n == 64:
+        chunk = 400
+    else:
+        raise AttributeError("What do I do for the specified grid size?")
+else:
+    chunk = args.chunk_size
+
 # Reporting
 
 sim_params = {'g_max': g_max,
@@ -187,7 +198,7 @@ sim_params = {'g_max': g_max,
               'p_elim_pot': p_elim_pot,
               'f_rew': f_rew,
               'lateral_inhibition': args.lateral_inhibition,
-              'delay': args.delay_distribution,
+              'delay': args.delay,
               'b': b,
               't_minus': tau_minus,
               't_plus': tau_plus,
@@ -201,7 +212,8 @@ sim_params = {'g_max': g_max,
               'topology': args.topology,
               'constant_delay': args.constant_delay,
               'training_angles': training_angles,
-              'argparser': vars(args)
+              'argparser': vars(args),
+              'chunk': chunk
               }
 
 if args.input_type == GAUSSIAN_INPUT:
@@ -220,13 +232,6 @@ actual_angles = []
 
 if not args.testing:
     # TRAINING REGIME!
-    if n == 32:
-        chunk = 200
-    elif n == 64:
-        chunk = 400
-    else:
-        raise AttributeError("What do I do for the specified grid size?")
-
     aa, final_on_gratings, final_off_gratings = \
         generate_bar_input(no_iterations, chunk, N_layer,
                            angles=training_angles)
@@ -736,41 +741,41 @@ if e:
 #     post_spikes.shape[0] / float(simtime) * 1000. / N_layer
 
 np.savez_compressed(filename, pre_spikes=pre_spikes,
-         post_spikes=post_spikes,
-         inh_post_spikes=inh_post_spikes,
+                    post_spikes=post_spikes,
+                    inh_post_spikes=inh_post_spikes,
 
-         init_ff_connections=init_ff_connections,
-         init_lat_connections=init_lat_connections,
+                    init_ff_connections=init_ff_connections,
+                    init_lat_connections=init_lat_connections,
 
-         ff_connections=pre_weights,
-         lat_connections=post_weights,
-         ff_off_connections=pre_off_weights,
-         noise_connections=noise_weights,
+                    ff_connections=pre_weights,
+                    lat_connections=post_weights,
+                    ff_off_connections=pre_off_weights,
+                    noise_connections=noise_weights,
 
-         on_inh_connections=on_inh_weights,
-         off_inh_connections=off_inh_weights,
-         noise_inh_connections=noise_inh_weights,
+                    on_inh_connections=on_inh_weights,
+                    off_inh_connections=off_inh_weights,
+                    noise_inh_connections=noise_inh_weights,
 
-         inh_connections=inh_weights,
-         inh_inh_connections=inh_inh_weights,
-         exh_connections=exh_weights,
+                    inh_connections=inh_weights,
+                    inh_inh_connections=inh_inh_weights,
+                    exh_connections=exh_weights,
 
-         simtime=simtime,
-         sim_params=sim_params,
-         total_time=total_time,
-         mean_firing_rate=None,
-         exception=str(e),
-         insult=args.lesion,
-         input_type=args.input_type,
-         testing=args.testing,
-         # final_on_gratings=final_on_gratings,
-         # final_off_gratings=final_off_gratings,
-         input_grating_fname=input_grating_fname,
-         actual_angles=actual_angles,
+                    simtime=simtime,
+                    sim_params=sim_params,
+                    total_time=total_time,
+                    mean_firing_rate=None,
+                    exception=str(e),
+                    insult=args.lesion,
+                    input_type=args.input_type,
+                    testing=args.testing,
+                    # final_on_gratings=final_on_gratings,
+                    # final_off_gratings=final_off_gratings,
+                    input_grating_fname=input_grating_fname,
+                    actual_angles=actual_angles,
 
-         topology=args.topology,
-         training_angles=training_angles
-         )
+                    topology=args.topology,
+                    training_angles=training_angles
+                    )
 
 print("Results in", filename)
 print("Total time elapsed -- " + str(total_time))
