@@ -355,7 +355,10 @@ for file in paths:
 
         else:
             print("Using cached data.")
-            cached_data = np.load(filename + ".npz")
+            if ".npz" in filename:
+                cached_data = np.load(filename)
+            else:
+                cached_data = np.load(filename + ".npz")
             rate_means = cached_data['rate_means']
             rate_stds = cached_data['rate_stds']
             rate_sem = cached_data['rate_sem']
