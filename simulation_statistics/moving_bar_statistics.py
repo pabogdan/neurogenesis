@@ -46,7 +46,7 @@ if len(paths) > 1:
 cached = False
 if sensitivity_analysis:
     # set up final matrix
-    batch_matrix_results = []
+    batch_results = {}
     # also set up final snapshots
     batch_snapshots = []
     # don't forget about sim_params
@@ -482,15 +482,9 @@ for file in paths:
         else:
             print("Not re-saving the npz archive...")
         if sensitivity_analysis:
-            batch_matrix_results.append({
-                "file": copy.deepcopy(file),
+            batch_results[file] = {
                 "npz_filename": copy.deepcopy(filename),
                 "target_neuron_mean_spike_rate": target_neuron_mean_spike_rate,
-                "instaneous_rates": np.copy(instaneous_rates),
-                "per_neuron_instaneous_rates": np.copy(per_neuron_instaneous_rates),
-                "per_neuron_all_rates": np.copy(per_neuron_all_rates),
-                "inh_per_neuron_instaneous_rates": np.copy(inh_per_neuron_instaneous_rates),
-                "inh_per_neuron_all_rates": np.copy(inh_per_neuron_all_rates),
                 "rate_means": np.copy(rate_means),
                 "rate_stds": np.copy(rate_stds),
                 "rate_sem": np.copy(rate_sem),
@@ -498,10 +492,6 @@ for file in paths:
                 "actual_angles": np.copy(actual_angles),
                 "angles": np.copy(angles),
                 "radians": np.copy(radians),
-                "ff_connections": np.copy(ff_connections),
-                "ff_off_connections": np.copy(ff_off_connections),
-                "lat_connections": np.copy(lat_connections),
-                "noise_connections": np.copy(noise_connections),
                 "ff_last": np.copy(ff_last),
                 "off_last": np.copy(off_last),
                 "noise_last": np.copy(noise_last),
@@ -515,7 +505,7 @@ for file in paths:
                 "inh_noise_last": np.copy(inh_noise_last),
                 "testing_sim_params": copy.deepcopy(sim_params),
                 "training_sim_params": copy.deepcopy(training_sim_params),
-            })
+            }
             batch_files.append(file)
         if args.plot and not sensitivity_analysis:
             fig = plt.figure(figsize=(16, 8), dpi=600)
@@ -606,12 +596,11 @@ for file in paths:
 if sensitivity_analysis:
     curr_time = plt.datetime.datetime.now()
     suffix_total = curr_time.strftime("_%H%M%S_%d%m%Y")
-    np.savez_compressed("batch_analysis" + suffix_total,
+    np.savez_compressed("motion_batch_analysis" + suffix_total,
                         recording_archive_name=file,
-                        snapshots=batch_snapshots,
                         params=batch_params,
-                        results=batch_matrix_results,
-                        files=batch_files
+                        files=batch_files,
+                        **batch_results
                         )
 end_time = plt.datetime.datetime.now()
 total_time = end_time - start_time
