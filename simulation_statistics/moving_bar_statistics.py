@@ -79,7 +79,7 @@ for file in paths:
         # Do we already have a cached version of the results?
         filename = "results_for_" + str(ntpath.basename(file))
 
-        if os.path.isfile(filename + ".npz"):
+        if os.path.isfile(filename + ".npz") or os.path.isfile(filename):
             print("Analysis has been run before & Cached version of results "
                   "exists!")
             cached = True
