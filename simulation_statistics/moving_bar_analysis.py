@@ -17,6 +17,7 @@ from gari_analysis_functions import *
 from analysis_functions_definitions import *
 from synaptogenesis.function_definitions import generate_equivalent_connectivity
 from gari_analysis_functions import get_filtered_dsi_per_neuron
+import copy
 
 # ensure we use viridis as the default cmap
 plt.viridis()
@@ -1370,11 +1371,14 @@ def evolution(filenames, times, suffix, show_plots=False):
 def batch_analyser(batch_data_file, batch_info_file, extra_suffix="", show_plots=True):
     # Read the archives
     batch_data = np.load(root_stats + batch_data_file + ".npz", mmap_mode='r')
-    batch_info = np.load(root_stats + batch_info_file + ".npz")
+    batch_info = np.load(root_stats + batch_info_file + ".npz", mmap_mode='r')
     # Read files from archives
     batch_parameters = batch_info['parameters_of_interest'].ravel()[0]
     result_keys = batch_data['files']
     batch_argparser_data = batch_data['params']
+    N_layer = batch_argparser_data[0][0]['argparser']['n']**2
+    angles = batch_data[result_keys[0]].ravel()[0]['angles']
+    radians = batch_data[result_keys[0]].ravel()[0]['radians']
     files_to_ignore = []
     for k in batch_data.files:
         if k not in result_keys:
@@ -1419,13 +1423,23 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix="", show_plots
     print("</File matrix>", "-"*50)
 
 
-    dsi_comparison = np.ones(file_shape)*np.nan
+    dsi_comparison = np.ones(file_shape) * np.nan
+
+    exp_shape_layer = copy.deepcopy(file_shape)
+    exp_shape_layer.append(N_layer)
+
+    all_dsis = np.ones(exp_shape_layer) * np.nan
+
+    exp_shape_angle = copy.deepcopy(file_shape)
+    exp_shape_angle.append(angles.size)
+    all_mean_rates = np.ones(exp_shape_angle) * np.nan
     for file_index, file_key in np.ndenumerate(file_matrix):
-        if file_key == '':
+        if file_key == '' or ".npz" not in file_key:
             continue  # I don't particularly want this, but otherwise I indent everything too much
         current_results = batch_data[file_key].ravel()[0]
         dsi_selective = current_results['dsi_selective']
         dsi_not_selective = current_results['dsi_not_selective']
+        rate_means = current_results['rate_means']
         dsi_selective = np.asarray(dsi_selective)
         dsi_not_selective = np.asarray(dsi_not_selective)
         if dsi_selective.size > 0 and dsi_not_selective.size > 0:
@@ -1436,7 +1450,11 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix="", show_plots
             all_dsi = dsi_selective[:, -1]
         average_dsi = np.mean(all_dsi)
         dsi_comparison[file_index] = average_dsi
+        all_dsis[file_index] = all_dsi
+        all_mean_rates[file_index] = rate_means
 
+
+    # Mean DSI comparison
     fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8), dpi=800)
     i = ax1.matshow(dsi_comparison)
     ax1.set_ylabel(batch_parameters.keys()[0])
@@ -1459,6 +1477,71 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix="", show_plots
     if show_plots:
         plt.show()
     plt.close(fig)
+
+    # Plot DSI histograms
+    dsi_thresh=0.5
+    size_scale = 8
+    fig, axes = plt.subplots(value_list[0].size, value_list[1].size, figsize=(value_list[0].size * size_scale,
+                                                                              value_list[1].size * size_scale))
+
+    for y_axis in np.arange(all_dsis.shape[0]):
+        for x_axis in np.arange(all_dsis.shape[0]):
+    # for all_dsi_index, curent_all_dsi in np.ndenumerate(all_dsis):
+            curent_all_dsi = all_dsis[y_axis, x_axis]
+            hist_weights = np.ones_like(curent_all_dsi) / float(N_layer)
+            curr_ax = axes[y_axis, x_axis]
+            curr_ax.hist(curent_all_dsi, bins=np.linspace(0, 1, 21), color='#414C82',
+                     edgecolor='k', weights=hist_weights)
+            curr_ax.axvline(dsi_thresh, color='#b2dd2c', ls=":")
+            curr_ax.set_xticks(np.linspace(0, 1, 11))
+    # plt.xlabel("DSI")
+    # plt.ylabel("% of neurons")
+    plt.savefig(
+        fig_folder + "dsi_histograms_comparison{}.pdf".format(
+            suffix_test))
+    plt.savefig(
+        fig_folder + "dsi_histograms_comparison{}.svg".format(
+            suffix_test))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    # Plot firing rate profiles
+    fig, axes = plt.subplots(value_list[0].size, value_list[1].size,
+                             figsize=(value_list[0].size * size_scale, value_list[1].size * size_scale),
+                             subplot_kw=dict(projection='polar'))
+
+    for y_axis in np.arange(all_mean_rates.shape[0]):
+        for x_axis in np.arange(all_mean_rates.shape[0]):
+            curent_mean_rate = all_mean_rates[y_axis, x_axis]
+            curr_ax = axes[y_axis, x_axis]
+            curr_ax.fill(radians, curent_mean_rate, fill=False, edgecolor='#228b8d',
+                        lw=2, alpha=.8, label="Mean response")
+    # minimus = 0
+    # c = ax.fill(radians, rate_means, fill=False, edgecolor='#228b8d',
+    #             lw=2, alpha=.8, label="Mean response")
+    # mins = [np.min(r) for r in all_rates]
+    # ax.fill(radians, mins, fill=False, edgecolor='#440357', lw=2,
+    #         alpha=.8, label="Min response")
+    # maxs = [np.max(r) for r in all_rates]
+    # ax.fill(radians, maxs, fill=False, edgecolor='#b2dd2c', lw=2,
+    #         alpha=1, label="Max response")
+    # maximus = np.max(maxs)
+    # ax.set_ylim([.8 * minimus, 1.1 * maximus])
+    # ax.set_xlabel("Random delays")
+    plt.savefig(
+        fig_folder + "rate_means_comparison{}.pdf".format(suffix_test),
+        bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "rate_means_comparison{}.svg".format(suffix_test),
+        bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    batch_data.close()
+    batch_info.close()
+
 
 
 

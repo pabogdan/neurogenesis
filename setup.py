@@ -8,7 +8,7 @@ setup(
     license="GNU GPLv3.0",
     author='Petrut Antoniu Bogdan',
     author_email='petrut.bogdan@manchester.ac.uk',
-    description='Simulating neurogenesis on SpiNNaker',
+    description='Simulating Structural plasticity on SpiNNaker',
     # Requirements
     dependency_links=[],
 
@@ -16,7 +16,7 @@ setup(
                       "scipy",
                       "brian2",
                       "pynn==0.7.5",
-                      "spynnaker>= 3.0.0, < 4.0.0"],
+                      "spynnaker>= 4.0.0, < 6.0.0"],
     classifiers=[
         "Operating System :: POSIX :: Linux",
         "Operating System :: Microsoft :: Windows",
