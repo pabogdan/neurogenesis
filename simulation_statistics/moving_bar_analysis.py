@@ -1367,8 +1367,99 @@ def evolution(filenames, times, suffix, show_plots=False):
     plt.close(fig)
 
 
-def batch_analyser(archive_batch, out_folder):
-    pass
+def batch_analyser(batch_data_file, batch_info_file, extra_suffix="", show_plots=True):
+    # Read the archives
+    batch_data = np.load(root_stats + batch_data_file + ".npz", mmap_mode='r')
+    batch_info = np.load(root_stats + batch_info_file + ".npz")
+    # Read files from archives
+    batch_parameters = batch_info['parameters_of_interest'].ravel()[0]
+    result_keys = batch_data['files']
+    batch_argparser_data = batch_data['params']
+    files_to_ignore = []
+    for k in batch_data.files:
+        if k not in result_keys:
+            files_to_ignore.append(k)
+    file_shape = []
+    value_list = []
+    suffix_test = "batch"
+    for poi in batch_parameters.keys():
+        file_shape.append(batch_parameters[poi].size)
+        # set up parameters to generate all combinations of these
+        value_list.append(batch_parameters[poi])
+        suffix_test += "_" + poi
+    suffix_test += extra_suffix
+    value_list = np.asarray(value_list)
+    file_matrix = np.empty(file_shape, dtype="S200")
+    # for index, value in np.ndenumerate(file_matrix):
+    #     print(index, value)
+    for row in batch_argparser_data:
+        argparser_info = row[0]['argparser']
+        file_info = row[1]
+        position_to_fill = []
+        keys = batch_parameters.keys()
+        for index, poi in np.ndenumerate(keys):
+            i, = np.where(np.isclose(value_list[index[0]], argparser_info[poi]))
+            position_to_fill.append(i)
+        file_matrix[position_to_fill] = file_info
+
+    # Print some information
+    print("{:45}".format("Batch Data Archive"), ":", batch_data_file)
+    print("{:45}".format("Batch Info Archive"), ":", batch_info_file)
+    print("{:45}".format("Batch Data meta information in"), ":", files_to_ignore)
+    print("{:45}".format("recording_archive_name in batch_data.files"), ":", "recording_archive_name" in
+          batch_data.files)
+    print("{:45}".format("params in batch_data.files"), ":", "params" in batch_data.files)
+    print("{:45}".format("files in batch_data.files"), ":", "files" in batch_data.files)
+    print("{:45}".format("Batch completed in"), ":", batch_info['total_time'])
+    print("{:45}".format("Batch focused on the following params"), ":", batch_parameters.keys())
+    print("{:45}".format("Shape of result matrices"), ":", file_shape)
+    print("{:45}".format("Suffix for generated figures"), ":", suffix_test)
+    print("<File matrix>", "-"*50)
+    print(file_matrix)
+    print("</File matrix>", "-"*50)
+
+
+    dsi_comparison = np.ones(file_shape)*np.nan
+    for file_index, file_key in np.ndenumerate(file_matrix):
+        if file_key == '':
+            continue  # I don't particularly want this, but otherwise I indent everything too much
+        current_results = batch_data[file_key].ravel()[0]
+        dsi_selective = current_results['dsi_selective']
+        dsi_not_selective = current_results['dsi_not_selective']
+        dsi_selective = np.asarray(dsi_selective)
+        dsi_not_selective = np.asarray(dsi_not_selective)
+        if dsi_selective.size > 0 and dsi_not_selective.size > 0:
+            all_dsi = np.concatenate((dsi_selective[:, -1], dsi_not_selective[:, -1]))
+        elif dsi_selective.size == 0:
+            all_dsi = dsi_not_selective[:, -1]
+        else:
+            all_dsi = dsi_selective[:, -1]
+        average_dsi = np.mean(all_dsi)
+        dsi_comparison[file_index] = average_dsi
+
+    fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8), dpi=800)
+    i = ax1.matshow(dsi_comparison)
+    ax1.set_ylabel(batch_parameters.keys()[0])
+    ax1.set_yticks(np.arange(value_list[0].size))
+    ax1.set_yticklabels(value_list[0])
+    ax1.set_xlabel(batch_parameters.keys()[1])
+    ax1.set_xticks(np.arange(value_list[1].size))
+    ax1.set_xticklabels(value_list[1], rotation='vertical')
+    ax1.grid(visible=False)
+    divider = make_axes_locatable(plt.gca())
+    cax = divider.append_axes("right", "5%", pad="3%")
+    cbar = plt.colorbar(i, cax=cax)
+    cbar.set_label("DSI")
+    plt.savefig(
+        fig_folder + "dsi_comparison{}.pdf".format(
+            suffix_test))
+    plt.savefig(
+        fig_folder + "dsi_comparison{}.svg".format(
+            suffix_test))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
 
 
 def sigma_and_ad_analyser(archive, out_filename=None, extra_suffix=None, show_plots=True):
@@ -1517,16 +1608,31 @@ def sigma_and_ad_analyser(archive, out_filename=None, extra_suffix=None, show_pl
     print("%-60s" % "Mean AD fin weight", fin_mean_AD_weight)
     print("%-60s" % "p(WSR AD fin weight vs AD fin weight shuffle)", wsr_AD_fin_weight_fin_weight_shuffle.pvalue)
 
+def elephant_analysis():
+    # TODO
+
+    # TODO package neo object
+    # spinnaker / sPyNNaker8 / spynnaker8 / models / recorder.pySent
+    # you may have to reverse the code in
+    # spinnaker / sPyNNaker / spynnaker / pyNN / models / recording_common.py
+    # methond
+    # pynn7_format
+
+    pass
 
 if __name__ == "__main__":
+    import sys
+
+    fname = args.preproc_folder + "motion_batch_analysis_182314_03122018"
+    info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
+    batch_analyser(fname, info_fname, show_plots=False)
+
+    sys.exit()
     # Single experiment analysis
     # Runs for 192k ms or ~5 hours ---------------------------
     # 1 angle
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
     analyse_one(fname, show_plots=False)
-    # import sys
-    #
-    # sys.exit()
 
     fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
     analyse_one(fname, extra_suffix="constant", show_plots=False)
@@ -1578,8 +1684,8 @@ if __name__ == "__main__":
     # analyse_one(fname, extra_suffix="constant", show_plots=False)
 
     # TODO
-    # fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_135_evo"
-    # analyse_one(fname, extra_suffix="384k", show_plots=False)
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_135_evo"
+    analyse_one(fname, extra_suffix="384k", show_plots=False)
 
     # 4 angles
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_evo"
@@ -1684,9 +1790,10 @@ if __name__ == "__main__":
         "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_45_135_evo",
         "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_45_135_evo",
         "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_135_evo",
         # TODO extra times
     ]
-    times = [2400 * second, 4800 * second, 9600 * second, 19200 * second,
+    times = [2400 * second, 4800 * second, 9600 * second, 19200 * second, 38400 * second,
              ]
     evolution(filenames, times, suffix="_2_angles_45_135")
 
