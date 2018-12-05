@@ -6,7 +6,7 @@ from matplotlib import cm as cm_mlib
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import scipy
 from matplotlib import animation, rc, colors
-from brian2.units import *
+# from brian2.units import *
 import matplotlib as mlib
 from scipy import stats
 from pprint import pprint as pp
@@ -18,7 +18,11 @@ from analysis_functions_definitions import *
 from synaptogenesis.function_definitions import generate_equivalent_connectivity
 from gari_analysis_functions import get_filtered_dsi_per_neuron
 import copy
+# imports related to Elephant analysis
 from elephant import statistics, spade
+import neo
+from datetime import datetime
+from quantities import s, ms
 
 # ensure we use viridis as the default cmap
 plt.viridis()
@@ -90,7 +94,7 @@ def generate_suffix(training_angles):
     return suffix_test
 
 
-def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
+def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False):
     # in the default case, we are only looking at understanding a number of
     # behaviours of a single simulation
     cached_data = np.load(root_stats + archive + ".npz")
@@ -887,7 +891,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=True):
 
 
 def comparison(archive_random, archive_constant, out_filename=None,
-               show_plots=True):
+               show_plots=False):
     # in the default use case, the 2 archives would relate to two networks
     # differing only in the way that structural plasticity chooses delays
     if ".npz" in archive_random:
@@ -1304,13 +1308,11 @@ def comparison(archive_random, archive_constant, out_filename=None,
     # f.suptitle("Mean firing rate for specific input angle", va='bottom')
     plt.tight_layout(pad=10)
     plt.savefig(
-        fig_folder + "comparison_number_of_sensitised_neurons_with_angle{" \
-                     "}.pdf".format(
-            suffix_test), bbox_inches='tight')
+        fig_folder + "comparison_number_of_sensitised_neurons_with_angle{}.pdf".format(suffix_test),
+        bbox_inches='tight')
     plt.savefig(
-        fig_folder + "comparison_number_of_sensitised_neurons_with_angle{" \
-                     "}.svg".format(
-            suffix_test), bbox_inches='tight')
+        fig_folder + "comparison_number_of_sensitised_neurons_with_angle{}.svg".format(suffix_test),
+        bbox_inches='tight')
     if show_plots:
         plt.show()
     plt.close(fig)
@@ -1369,7 +1371,7 @@ def evolution(filenames, times, suffix, show_plots=False):
     plt.close(fig)
 
 
-def batch_analyser(batch_data_file, batch_info_file, extra_suffix="", show_plots=True):
+def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plots=False):
     # Read the archives
     batch_data = np.load(root_stats + batch_data_file + ".npz", mmap_mode='r')
     batch_info = np.load(root_stats + batch_info_file + ".npz", mmap_mode='r')
@@ -1392,7 +1394,8 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix="", show_plots
         # set up parameters to generate all combinations of these
         value_list.append(batch_parameters[poi])
         suffix_test += "_" + poi
-    suffix_test += extra_suffix
+    if extra_suffix:
+        suffix_test += extra_suffix
     value_list = np.asarray(value_list)
     file_matrix = np.empty(file_shape, dtype="S200")
     # for index, value in np.ndenumerate(file_matrix):
@@ -1422,7 +1425,6 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix="", show_plots
     print("<File matrix>", "-"*50)
     print(file_matrix)
     print("</File matrix>", "-"*50)
-
 
     dsi_comparison = np.ones(file_shape) * np.nan
 
@@ -1546,7 +1548,7 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix="", show_plots
 
 
 
-def sigma_and_ad_analyser(archive, out_filename=None, extra_suffix=None, show_plots=True):
+def sigma_and_ad_analyser(archive, out_filename=None, extra_suffix=None, show_plots=False):
     # This is useless and probably broken for s_max > 32
     import warnings
     warnings.warn("These results are probably completely wrong for values of s_max > 32! Don't trust them!")
@@ -1692,103 +1694,171 @@ def sigma_and_ad_analyser(archive, out_filename=None, extra_suffix=None, show_pl
     print("%-60s" % "Mean AD fin weight", fin_mean_AD_weight)
     print("%-60s" % "p(WSR AD fin weight vs AD fin weight shuffle)", wsr_AD_fin_weight_fin_weight_shuffle.pvalue)
 
-def elephant_analysis():
-    # TODO
-
+def elephant_analysis(archive, extra_suffix=None, show_plots=False):
+    # Pass in a testing file name. This file needs to have spikes in the raw format
+    data = np.load(root_syn + archive + ".npz")
+    sim_params = np.array(data['sim_params']).ravel()[0]
+    simtime = int(data['simtime']) * ms
+    exc_spikes = data['post_spikes']
+    inh_spikes = data['inh_post_spikes']
+    grid = sim_params['grid']
+    N_layer = grid[0] * grid[1]
+    n = grid[0]
+    g_max = sim_params['g_max']
+    s_max = sim_params['s_max']
+    training_angles = sim_params['training_angles']
+    suffix_test = generate_suffix(training_angles)
+    data.close()
+    if extra_suffix:
+        suffix_test += "_" + extra_suffix
+    print("{:45}".format("Beginning Elephant analysis"))
+    print("{:45}".format("Suffix for generated figures"), ":", suffix_test)
+    print("{:45}".format("Simtime"), ":", simtime)
     # TODO package neo object
-    # spinnaker / sPyNNaker8 / spynnaker8 / models / recorder.pySent
+    # sPyNNaker8 / spynnaker8 / models / recorder.py
     # you may have to reverse the code in
-    # spinnaker / sPyNNaker / spynnaker / pyNN / models / recording_common.py
+    # sPyNNaker / spynnaker / pyNN / models / recording_common.py
     # methond
     # pynn7_format
 
-    pass
+
+    # Could also use NeoIO and save this stuff to a file so I don't have to re-assemble the Block
+    # over and over again
+    block = neo.Block()
+
+    # build segment for the current data to be gathered in
+    segment = neo.Segment(
+        name="segment{}".format(0),
+        description="manufactured segment",
+        rec_datetime=datetime.now())
+
+
+    for neuron_id in xrange(N_layer):
+        spiketrain = neo.SpikeTrain(
+            times=exc_spikes[exc_spikes[:, 0] == neuron_id][:, 1],
+            t_start=0,
+            t_stop=simtime,
+            units='ms',
+            sampling_rate=1,
+            source_population="Excitatory target")
+        # get times per atom
+        segment.spiketrains.append(spiketrain)
+
+    block.segments.append(segment)
+    block.name = "Excitatory Population"  # population.label
+    block.description = archive  # self._population.describe() -- all info inside archive
+    block.rec_datetime = block.segments[0].rec_datetime
+    # block.annotate(**self._metadata())
+
+    # Begin the analysis
+    # analysis using https://elephant.readthedocs.io/en/latest/reference/statistics.html
+    isi = statistics.isi(block.segments[0].spiketrains[0])
+    mean_firing_rate = statistics.mean_firing_rate(block.segments[0].spiketrains[0])
+    instantaneous_rate = statistics.instantaneous_rate(block.segments[0].spiketrains[0],
+                                                                     sampling_period=1*ms)
+    print("{:45}".format("ISI for neuron 0"), ":", isi)
+    print("{:45}".format("mean_firing_rate for neuron 0"), ":", mean_firing_rate)
+    print("{:45}".format("instantaneous_rate for neuron 0"), ":", instantaneous_rate)
+
+    # analysis using SPADE https://elephant.readthedocs.io/en/latest/reference/spade.html
+
+    # analysis using CAD https://elephant.readthedocs.io/en/latest/reference/cell_assembly_detection.html
+
+    # analysis using spike_train_dissimilarity
+    # https://elephant.readthedocs.io/en/latest/reference/spike_train_dissimilarity.html
+
+
 
 if __name__ == "__main__":
     import sys
 
+    # Elephant analysis of single experiments
+    fname = "testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+    elephant_analysis(fname)
 
+
+    sys.exit()
 
     # Experiment batch analysis -- usually, these are sensitivity analysis
     fname = args.preproc_folder + "motion_batch_analysis_182314_03122018"
     info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
-    batch_analyser(fname, info_fname, show_plots=False)
+    batch_analyser(fname, info_fname)
 
 
     # Single experiment analysis
     # Runs for 192k ms or ~5 hours ---------------------------
     # 1 angle
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
-    analyse_one(fname, show_plots=False)
+    analyse_one(fname)
 
     fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
-    analyse_one(fname, extra_suffix="constant", show_plots=False)
+    analyse_one(fname, extra_suffix="constant")
 
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo"
-    analyse_one(fname, show_plots=False)
+    analyse_one(fname)
 
     # 2 angles
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
-    analyse_one(fname, show_plots=False)
+    analyse_one(fname)
 
     fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90"
-    analyse_one(fname, extra_suffix="constant", show_plots=False)
+    analyse_one(fname, extra_suffix="constant")
 
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_evo"
-    analyse_one(fname, show_plots=False)
+    analyse_one(fname)
 
     # 4 angles
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
-    analyse_one(fname, show_plots=False)
+    analyse_one(fname)
 
     fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW"
-    analyse_one(fname, extra_suffix="constant", show_plots=False)
+    analyse_one(fname, extra_suffix="constant")
 
     # all angles
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_all_angles"
-    analyse_one(fname, show_plots=False)
+    analyse_one(fname)
 
     fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_all_angles"
-    analyse_one(fname, extra_suffix="constant", show_plots=False)
+    analyse_one(fname, extra_suffix="constant")
 
     # Runs for 384k ms or ~10 hours ---------------------------
     # 1 angle
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo"
-    analyse_one(fname, extra_suffix="384k", show_plots=False)
+    analyse_one(fname, extra_suffix="384k")
 
     fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo"
-    analyse_one(fname, extra_suffix="constant_384k", show_plots=False)
+    analyse_one(fname, extra_suffix="constant_384k")
 
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_evo"
-    analyse_one(fname, extra_suffix="384k", show_plots=False)
+    analyse_one(fname, extra_suffix="384k")
 
     # 2 angles
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_evo"
-    analyse_one(fname, extra_suffix="384k", show_plots=False)
+    analyse_one(fname, extra_suffix="384k")
 
     # TODO
     # fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90"
-    # analyse_one(fname, extra_suffix="constant", show_plots=False)
+    # analyse_one(fname, extra_suffix="constant")
 
     # TODO
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_135_evo"
-    analyse_one(fname, extra_suffix="384k", show_plots=False)
+    analyse_one(fname, extra_suffix="384k")
 
     # 4 angles
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_evo"
-    analyse_one(fname, extra_suffix="384k", show_plots=False)
+    analyse_one(fname, extra_suffix="384k")
 
     # TODO
     # fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW"
-    # analyse_one(fname, extra_suffix="constant", show_plots=False)
+    # analyse_one(fname, extra_suffix="constant")
 
     # all angles
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_all_evo"
-    analyse_one(fname, extra_suffix="384k", show_plots=False)
+    analyse_one(fname, extra_suffix="384k")
 
     # TODO
     # fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_all_angles"
-    # analyse_one(fname, extra_suffix="constant_384k", show_plots=False)
+    # analyse_one(fname, extra_suffix="constant_384k")
 
     # Comparison between 2 experiments
     # Runs for 192k ms or ~5 hours ---------------------------
@@ -1798,7 +1868,7 @@ if __name__ == "__main__":
 
     fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
 
-    comparison(fname1, fname2, show_plots=False)
+    comparison(fname1, fname2)
 
     # 2 angles
 
@@ -1806,19 +1876,19 @@ if __name__ == "__main__":
 
     fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90"
 
-    comparison(fname1, fname2, show_plots=False)
+    comparison(fname1, fname2)
 
     # 4 angles
 
     fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
     fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW"
-    comparison(fname1, fname2, show_plots=False)
+    comparison(fname1, fname2)
 
     # all angles
 
     fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_all_angles"
     fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_all_angles"
-    comparison(fname1, fname2, show_plots=False)
+    comparison(fname1, fname2)
 
     # Generating evolution plots
     # 1 angle, random delays
