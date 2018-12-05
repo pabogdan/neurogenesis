@@ -18,6 +18,7 @@ from analysis_functions_definitions import *
 from synaptogenesis.function_definitions import generate_equivalent_connectivity
 from gari_analysis_functions import get_filtered_dsi_per_neuron
 import copy
+from elephant import statistics, spade
 
 # ensure we use viridis as the default cmap
 plt.viridis()
@@ -1706,11 +1707,14 @@ def elephant_analysis():
 if __name__ == "__main__":
     import sys
 
+
+
+    # Experiment batch analysis -- usually, these are sensitivity analysis
     fname = args.preproc_folder + "motion_batch_analysis_182314_03122018"
     info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
     batch_analyser(fname, info_fname, show_plots=False)
 
-    sys.exit()
+
     # Single experiment analysis
     # Runs for 192k ms or ~5 hours ---------------------------
     # 1 angle
