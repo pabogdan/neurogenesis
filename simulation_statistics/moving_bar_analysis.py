@@ -22,7 +22,7 @@ import copy
 from elephant import statistics, spade
 import neo
 from datetime import datetime
-from quantities import s, ms
+from quantities import s, ms, Hz
 
 # ensure we use viridis as the default cmap
 plt.viridis()
@@ -1694,6 +1694,38 @@ def sigma_and_ad_analyser(archive, out_filename=None, extra_suffix=None, show_pl
     print("%-60s" % "Mean AD fin weight", fin_mean_AD_weight)
     print("%-60s" % "p(WSR AD fin weight vs AD fin weight shuffle)", wsr_AD_fin_weight_fin_weight_shuffle.pvalue)
 
+
+def package_neo_block(spikes, label, N_layer, simtime, archive_name):
+    # Could also use NeoIO and save this stuff to a file so I don't have to re-assemble the Block
+    # over and over again
+    block = neo.Block()
+
+    # build segment for the current data to be gathered in
+    segment = neo.Segment(
+        name="segment0",
+        description="manufactured segment",
+        rec_datetime=datetime.now())
+
+    for neuron_id in xrange(N_layer):
+        spiketrain = neo.SpikeTrain(
+            times=spikes[spikes[:, 0] == neuron_id][:, 1],
+            t_start=0,
+            t_stop=simtime,
+            units='ms',
+            sampling_rate=1,
+            source_population=label)
+        # get times per atom
+        segment.spiketrains.append(spiketrain)
+
+    block.segments.append(segment)
+    block.name = label  # population.label
+    block.description = archive_name  # self._population.describe() -- all info inside archive
+    block.rec_datetime = block.segments[0].rec_datetime
+    # block.annotate(**self._metadata())
+
+    return block
+
+
 def elephant_analysis(archive, extra_suffix=None, show_plots=False):
     # Pass in a testing file name. This file needs to have spikes in the raw format
     data = np.load(root_syn + archive + ".npz")
@@ -1722,33 +1754,7 @@ def elephant_analysis(archive, extra_suffix=None, show_plots=False):
     # pynn7_format
 
 
-    # Could also use NeoIO and save this stuff to a file so I don't have to re-assemble the Block
-    # over and over again
-    block = neo.Block()
-
-    # build segment for the current data to be gathered in
-    segment = neo.Segment(
-        name="segment{}".format(0),
-        description="manufactured segment",
-        rec_datetime=datetime.now())
-
-
-    for neuron_id in xrange(N_layer):
-        spiketrain = neo.SpikeTrain(
-            times=exc_spikes[exc_spikes[:, 0] == neuron_id][:, 1],
-            t_start=0,
-            t_stop=simtime,
-            units='ms',
-            sampling_rate=1,
-            source_population="Excitatory target")
-        # get times per atom
-        segment.spiketrains.append(spiketrain)
-
-    block.segments.append(segment)
-    block.name = "Excitatory Population"  # population.label
-    block.description = archive  # self._population.describe() -- all info inside archive
-    block.rec_datetime = block.segments[0].rec_datetime
-    # block.annotate(**self._metadata())
+    block = package_neo_block(exc_spikes, "Excitatory population", N_layer, simtime, archive)
 
     # Begin the analysis
     # analysis using https://elephant.readthedocs.io/en/latest/reference/statistics.html
