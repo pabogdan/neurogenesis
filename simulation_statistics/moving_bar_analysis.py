@@ -19,7 +19,7 @@ from synaptogenesis.function_definitions import generate_equivalent_connectivity
 from gari_analysis_functions import get_filtered_dsi_per_neuron
 import copy
 # imports related to Elephant analysis
-from elephant import statistics, spade
+from elephant import statistics, spade, spike_train_correlation, spike_train_dissimilarity
 import neo
 from datetime import datetime
 from quantities import s, ms, Hz
@@ -97,7 +97,7 @@ def generate_suffix(training_angles):
 def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False):
     # in the default case, we are only looking at understanding a number of
     # behaviours of a single simulation
-    cached_data = np.load(root_stats + archive + ".npz")
+    cached_data = np.load(archive + ".npz")
 
     # load all the data
     rate_means = cached_data['rate_means']
@@ -887,7 +887,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
         plt.show()
     plt.close(fig)
 
-    return suffix_test
+    return suffix_test, dsi_selective, dsi_not_selective
 
 
 def comparison(archive_random, archive_constant, out_filename=None,
@@ -1706,12 +1706,12 @@ def package_neo_block(spikes, label, N_layer, simtime, archive_name):
         description="manufactured segment",
         rec_datetime=datetime.now())
 
-    for neuron_id in xrange(N_layer):
+    for neuron_id in range(N_layer):
         spiketrain = neo.SpikeTrain(
             times=spikes[spikes[:, 0] == neuron_id][:, 1],
-            t_start=0,
+            t_start=0 * ms,
             t_stop=simtime,
-            units='ms',
+            units=ms,
             sampling_rate=1,
             source_population=label)
         # get times per atom
@@ -1746,33 +1746,230 @@ def elephant_analysis(archive, extra_suffix=None, show_plots=False):
     print("{:45}".format("Beginning Elephant analysis"))
     print("{:45}".format("Suffix for generated figures"), ":", suffix_test)
     print("{:45}".format("Simtime"), ":", simtime)
-    # TODO package neo object
-    # sPyNNaker8 / spynnaker8 / models / recorder.py
-    # you may have to reverse the code in
-    # sPyNNaker / spynnaker / pyNN / models / recording_common.py
-    # methond
-    # pynn7_format
 
+    print("{:45}".format("Assembling neo blocks..."))
+    start_time = datetime.now()
+    exc_block = package_neo_block(exc_spikes, "Excitatory population", N_layer, simtime, archive)
+    inh_block = package_neo_block(inh_spikes, "Inhibitory population", N_layer, simtime, archive)
+    end_time = datetime.now()
+    total_time = end_time - start_time
+    print("{:45}".format("Neo blocks assembled. Process took {}".format(total_time)))
 
-    block = package_neo_block(exc_spikes, "Excitatory population", N_layer, simtime, archive)
+    exc_segment = exc_block.segments[0]
+    inh_segment = inh_block.segments[0]
+
+    exc_spike_trains = exc_segment.spiketrains
+    inh_spike_trains = inh_segment.spiketrains
 
     # Begin the analysis
     # analysis using https://elephant.readthedocs.io/en/latest/reference/statistics.html
-    isi = statistics.isi(block.segments[0].spiketrains[0])
-    mean_firing_rate = statistics.mean_firing_rate(block.segments[0].spiketrains[0])
-    instantaneous_rate = statistics.instantaneous_rate(block.segments[0].spiketrains[0],
-                                                                     sampling_period=1*ms)
-    print("{:45}".format("ISI for neuron 0"), ":", isi)
-    print("{:45}".format("mean_firing_rate for neuron 0"), ":", mean_firing_rate)
-    print("{:45}".format("instantaneous_rate for neuron 0"), ":", instantaneous_rate)
+
+    # The following is EXTREMELY EXPENSIVE! DON'T UNCOMMENT
+    # exc_ifrs = np.empty((N_layer, int(simtime/ms)))
+    # inh_ifrs = np.empty((N_layer, int(simtime/ms)))
+    # print("{:45}".format("Computing instantaneous firing rates... (ETA ~1 hour)"))
+    # start_time = datetime.now()
+    # exc_ifrs = statistics.instantaneous_rate(exc_segment.spiketrains[:], sampling_period=200 * ms)
+    # inh_ifrs = statistics.instantaneous_rate(inh_segment.spiketrains[:], sampling_period=200 * ms)
+    # end_time = datetime.now()
+    # total_time = end_time - start_time
+    # print("{:45}".format("Computing IFRs only took {}".format(total_time)))
+    #
+    #
+    # fig = plt.figure(figsize=(10, 7))
+    # plt.plot(exc_ifrs/Hz, color='C0', alpha=0.8)
+    # plt.plot(inh_ifrs/Hz, color='C1', alpha=0.8)
+    #
+    # plt.xlabel("Time (ms)")
+    # plt.ylabel("IFR (Hz)")
+    # plt.savefig(
+    #     fig_folder + "ifr_elephant{}.pdf".format(
+    #         suffix_test),
+    #     bbox_inches='tight')
+    # plt.savefig(
+    #     fig_folder + "ifr_elephant{}.svg".format(
+    #         suffix_test),
+    #     bbox_inches='tight')
+    # if show_plots:
+    #     plt.show()
+    # plt.close(fig)
+
+
+    # analysis using spike_train_dissimilarity
+    # https://elephant.readthedocs.io/en/latest/reference/spike_train_dissimilarity.html
+    # TODO Modify the following to see if closer neurons have similar activations
+    # also, incorporate knowledge about individual neuron preferences to see if they have similar activity and
+    # if they are different from other angles
+    numbers = np.random.choice(np.arange(N_layer), 100, replace=False)
+    # numbers = np.arange(N_layer)
+    numbers = np.sort(numbers)
+    print("{:45}".format("Computing van Rossum spike train dissimilarity between some EXC and INH neurons ("
+                         "independent)"))
+    print("{:45}".format("Neuron ids selected"), ":", numbers)
+
+    list_of_spiketrains = []
+    for no in numbers:
+        list_of_spiketrains.append(exc_spike_trains[no])
+    van_rossum_distance_exc = spike_train_dissimilarity.van_rossum_dist(
+        list_of_spiketrains)
+
+    list_of_spiketrains = []
+    for no in numbers:
+        list_of_spiketrains.append(inh_spike_trains[no])
+    van_rossum_distance_inh = spike_train_dissimilarity.van_rossum_dist(
+        list_of_spiketrains)
+
+    maximus = np.max([np.max(van_rossum_distance_exc.ravel()), np.max(van_rossum_distance_inh.ravel())])
+
+
+    fig = plt.figure(figsize=(15, 8), dpi=800)
+    img_grid = ImageGrid(fig, 111,
+                         nrows_ncols=(1, 2),
+                         axes_pad=0.15,
+                         share_all=True,
+                         cbar_location="right",
+                         cbar_mode="single",
+                         cbar_size="7%",
+                         cbar_pad=0.15,
+                         )
+    imgs = [van_rossum_distance_exc, van_rossum_distance_inh]
+
+    # Add data to image grid
+
+    index = 0
+    for ax in img_grid:
+        im = ax.matshow(imgs[index], vmin=0, vmax=maximus)
+        index += 1
+
+    # Colorbar
+    ax.cax.colorbar(im)
+    ax.cax.toggle_label(True)
+    # ax.cax.set_label("van Rossum distance")
+    plt.savefig(
+        fig_folder + "van_rossum_distance{}.pdf".format(
+            suffix_test), bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "van_rossum_distance{}.svg".format(
+            suffix_test), bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    numbers = np.random.choice(np.arange(N_layer), 10, replace=False)
+    numbers = np.sort(numbers)
+    print("{:45}".format("[EXPENSIVE] Computing Victor-Purpura spike train dissimilarity between some EXC and INH "
+                         "neurons ("
+                         "independent)"))
+    print("{:45}".format("Neuron ids selected"), ":", numbers)
+    list_of_spiketrains = []
+    for no in numbers:
+        list_of_spiketrains.append(exc_spike_trains[no])
+    vp_distance_exc = spike_train_dissimilarity.victor_purpura_dist(
+        list_of_spiketrains)
+
+    list_of_spiketrains = []
+    for no in numbers:
+        list_of_spiketrains.append(inh_spike_trains[no])
+    vp_distance_inh = spike_train_dissimilarity.victor_purpura_dist(
+        list_of_spiketrains)
+
+    maximus = np.max([np.max(vp_distance_exc.ravel()), np.max(vp_distance_inh.ravel())])
+
+    fig = plt.figure(figsize=(15, 8), dpi=800)
+    img_grid = ImageGrid(fig, 111,
+                         nrows_ncols=(1, 2),
+                         axes_pad=0.15,
+                         share_all=True,
+                         cbar_location="right",
+                         cbar_mode="single",
+                         cbar_size="7%",
+                         cbar_pad=0.15,
+                         )
+    imgs = [vp_distance_exc, vp_distance_inh]
+
+    # Add data to image grid
+
+    index = 0
+    for ax in img_grid:
+        im = ax.matshow(imgs[index], vmin=0, vmax=maximus)
+        index += 1
+
+    # Colorbar
+    ax.cax.colorbar(im)
+    ax.cax.toggle_label(True)
+    # ax.cax.set_label("van Rossum distance")
+    plt.savefig(
+        fig_folder + "vp_distance{}.pdf".format(
+            suffix_test), bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "vp_distance{}.svg".format(
+            suffix_test), bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
 
     # analysis using SPADE https://elephant.readthedocs.io/en/latest/reference/spade.html
 
     # analysis using CAD https://elephant.readthedocs.io/en/latest/reference/cell_assembly_detection.html
 
+
+    return exc_block, inh_block, van_rossum_distance_exc, van_rossum_distance_inh, vp_distance_exc, vp_distance_inh
+
+def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_plots=False):
+    # Pass in a testing file name. This file needs to have spikes in the raw format
+    data1 = np.load(root_syn + archive1 + ".npz")
+    data2 = np.load(root_syn + archive2 + ".npz")
+    
+    # Load data1 stuff
+    sim_params1 = np.array(data1['sim_params']).ravel()[0]
+    simtime1 = int(data1['simtime']) * ms
+    exc_spikes1 = data1['post_spikes']
+    inh_spikes1 = data1['inh_post_spikes']
+    grid1 = sim_params1['grid']
+    N_layer1 = grid1[0] * grid1[1]
+    training_angles1 = sim_params1['training_angles']
+    
+    # Load data2 stuff
+    sim_params2 = np.array(data2['sim_params']).ravel()[0]
+    simtime2 = int(data2['simtime']) * ms
+    exc_spikes2 = data2['post_spikes']
+    inh_spikes2 = data2['inh_post_spikes']
+    grid2 = sim_params2['grid']
+    N_layer2 = grid2[0] * grid2[1]
+    training_angles2 = sim_params2['training_angles']
+
+    # Assertions that need to be true
+    assert N_layer1 == N_layer2
+    assert np.all(grid1 == grid2)
+
+    # Continue
+    suffix_test = generate_suffix(training_angles1)
+    data1.close()
+    data2.close()
+    if extra_suffix:
+        suffix_test += "_" + extra_suffix
+    print("{:45}".format("Beginning Comparative analysis using Elephant"))
+    print("{:45}".format("Suffix for generated figures"), ":", suffix_test)
+    print("{:45}".format("Simtimes"), ":", simtime1, " and ", simtime2)
+    print("{:45}".format("Assembling neo blocks..."))
+    start_time = datetime.now()
+    exc_block1 = package_neo_block(exc_spikes1, "Excitatory population 1", N_layer1, simtime1, archive1)
+    inh_block1 = package_neo_block(inh_spikes1, "Inhibitory population 1", N_layer1, simtime1, archive1)
+    exc_block2 = package_neo_block(exc_spikes2, "Excitatory population 2", N_layer2, simtime2, archive2)
+    inh_block2 = package_neo_block(inh_spikes2, "Inhibitory population 2", N_layer2, simtime2, archive2)
+    end_time = datetime.now()
+    total_time = end_time - start_time
+    print("{:45}".format("Neo blocks assembled. Process took {}".format(total_time)))
+
+    exc_segment1 = exc_block1.segments[0]
+    inh_segment1 = inh_block1.segments[0]
+    exc_segment2 = exc_block2.segments[0]
+    inh_segment2 = inh_block2.segments[0]
+
     # analysis using spike_train_dissimilarity
     # https://elephant.readthedocs.io/en/latest/reference/spike_train_dissimilarity.html
-
+    # Could use that to see exactly how Random and Constant delay networks are different
+    return exc_block1, inh_block1, exc_block2, inh_block2
 
 
 if __name__ == "__main__":
