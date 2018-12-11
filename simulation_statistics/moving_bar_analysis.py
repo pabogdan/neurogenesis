@@ -888,6 +888,8 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
         plt.show()
     plt.close(fig)
 
+    # TODO plot a few of the best neurons based on DSI
+
     return suffix_test, dsi_selective, dsi_not_selective
 
 
@@ -1332,6 +1334,92 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
     plt.close(fig)
 
     # TODO dsi comparison
+    random_all_average_responses_with_angle, _, _ = compute_all_average_responses_with_angle(
+        random_per_neuron_all_rates, angles, N_layer)
+    random_dsi_selective, random_dsi_not_selective = get_filtered_dsi_per_neuron(
+        random_all_average_responses_with_angle, N_layer)
+    random_dsi_selective = np.asarray(random_dsi_selective)
+    random_dsi_not_selective = np.asarray(random_dsi_not_selective)
+
+    constant_all_average_responses_with_angle, _, _ = compute_all_average_responses_with_angle(
+        constant_per_neuron_all_rates, angles, N_layer)
+    constant_dsi_selective, constant_dsi_not_selective = get_filtered_dsi_per_neuron(
+        constant_all_average_responses_with_angle, N_layer)
+    constant_dsi_selective = np.asarray(constant_dsi_selective)
+    constant_dsi_not_selective = np.asarray(constant_dsi_not_selective)
+
+
+    random_max_dsi = np.empty((N_layer))
+    random_dsi_pref_angle = np.ones((N_layer)) * np.nan
+    constant_max_dsi = np.empty((N_layer))
+    constant_dsi_pref_angle = np.ones((N_layer)) * np.nan
+    for nid in range(N_layer):
+        temp_dsi = 0
+        if random_dsi_selective.size > 0 and nid in random_dsi_selective[:,0]:
+            temp_dsi = random_dsi_selective[random_dsi_selective[:,0]==nid].ravel()[-1]
+            random_dsi_pref_angle[nid] = random_dsi_selective[random_dsi_selective[:,0]==nid].ravel()[1]
+        elif random_dsi_not_selective.size > 0 and nid in random_dsi_not_selective[:,0]:
+            temp_dsi = random_dsi_not_selective[random_dsi_not_selective[:, 0]==nid].ravel()[-1]
+        random_max_dsi[nid] = temp_dsi
+        
+        temp_dsi = 0
+        if constant_dsi_selective.size > 0 and nid in constant_dsi_selective[:,0]:
+            temp_dsi = constant_dsi_selective[constant_dsi_selective[:,0]==nid].ravel()[-1]
+            constant_dsi_pref_angle[nid] = constant_dsi_selective[constant_dsi_selective[:,0]==nid].ravel()[1]
+        elif constant_dsi_not_selective.size > 0 and nid in constant_dsi_not_selective[:,0]:
+            temp_dsi = constant_dsi_not_selective[constant_dsi_not_selective[:, 0]==nid].ravel()[-1]
+        constant_max_dsi[nid] = temp_dsi
+
+
+    fig = plt.figure(figsize=(15, 8), dpi=800)
+    img_grid = ImageGrid(fig, 111,
+                         nrows_ncols=(1, 2),
+                         axes_pad=0.15,
+                         share_all=True,
+                         cbar_location="right",
+                         cbar_mode="single",
+                         cbar_size="7%",
+                         cbar_pad=0.15,
+                         )
+
+
+
+    imgs = [random_max_dsi.reshape(grid[0], grid[1]),
+            constant_max_dsi.reshape(grid[0], grid[1])]
+
+    dxs = [np.cos(random_dsi_pref_angle.reshape(grid[0], grid[1])),
+        np.cos(constant_dsi_pref_angle.reshape(grid[0], grid[1]))]
+
+    dys = [np.sin(
+        random_dsi_pref_angle.reshape(grid[0], grid[1])),
+        np.sin(constant_dsi_pref_angle.reshape(grid[0], grid[1]))]
+    # Add data to image grid
+
+    index = 0
+    for ax in img_grid:
+        im = ax.imshow(imgs[index], vmin=0, vmax=1)
+        ax.quiver(dxs[index], dys[index], color='w', angles=imgs[index],
+                  pivot='mid')
+        index += 1
+
+    # Colorbar
+    ax.cax.colorbar(im)
+    ax.cax.toggle_label(True)
+    # ax.cax.set_label("DSI")
+
+    img_grid[0].set_xlabel("Neuron ID")
+    img_grid[0].set_ylabel("Neuron ID")
+    img_grid[1].set_xlabel("Neuron ID")
+
+    plt.savefig(
+        fig_folder + "comparison_per_angle_dsi_response{}.pdf".format(suffix_test), dpi=800,
+        bbox_inches='tight')# pad_inches=1)
+    plt.savefig(
+        fig_folder + "comparison_per_angle_dsi_response{}.svg".format(suffix_test), dpi=800,
+        bbox_inches='tight')#, pad_inches=1)
+    if show_plots:
+        plt.show()
+    plt.close(fig)
     
 
 
@@ -1990,8 +2078,9 @@ if __name__ == "__main__":
     # Elephant analysis of single experiments
     # fname = "testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
     # elephant_analysis(fname)
-    # 
-    # 
+    # fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+    # fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
+    # comparison(fname1, fname2)
     # sys.exit()
 
     # Single experiment analysis
