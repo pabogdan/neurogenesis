@@ -398,3 +398,35 @@ def compute_all_average_responses_with_angle(per_neuron_all_rates, angles, N_lay
         sem_responses_with_angle[i] = all_average_responses_with_angle[
             i, int(max_average_responses_with_angle[i] // 5), 1]
     return all_average_responses_with_angle, max_average_responses_with_angle, sem_responses_with_angle
+
+def get_per_angle_responses(per_neuron_all_rates, angle, N_layer):
+    current_angle_responses = per_neuron_all_rates[angle // 5].reshape(
+        N_layer, per_neuron_all_rates[angle // 5].shape[0] // N_layer)
+    return current_angle_responses
+
+def get_omnidirectional_neural_response_for_neuron(neuron_id, per_neuron_all_rates, angles, N_layer):
+    neuron_id = int(neuron_id)
+    response_profile = np.empty(angles.size)
+    for angle in angles:
+        current_angle_responses = get_per_angle_responses(per_neuron_all_rates, angle, N_layer)
+        current_response = current_angle_responses[neuron_id, :]
+        response_profile[angle // 5] = np.mean(current_response)
+    return response_profile
+
+def get_concatenated_dsis(dsi_selective, dsi_not_selective):
+    if dsi_selective.size > 0 and dsi_not_selective.size > 0:
+        all_dsi = np.concatenate((dsi_selective[:, -1], dsi_not_selective[:, -1]))
+    elif dsi_selective.size == 0:
+        all_dsi = dsi_not_selective[:, -1]
+    else:
+        all_dsi = dsi_selective[:, -1]
+    return all_dsi
+
+def backward_compatibility_get_dsi(per_neuron_all_rates, angles, N_layer):
+    from gari_analysis_functions import get_filtered_dsi_per_neuron
+    all_average_responses_with_angle, _, _ = compute_all_average_responses_with_angle(per_neuron_all_rates,
+                                                                                      angles, N_layer)
+    dsi_selective, dsi_not_selective = get_filtered_dsi_per_neuron(all_average_responses_with_angle, N_layer)
+    dsi_selective = np.asarray(dsi_selective)
+    dsi_not_selective = np.asarray(dsi_not_selective)
+    return dsi_selective, dsi_not_selective

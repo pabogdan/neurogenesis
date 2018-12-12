@@ -24,6 +24,7 @@ from elephant import statistics, spade, spike_train_correlation, spike_train_dis
 import neo
 from datetime import datetime
 from quantities import s, ms, Hz
+import pandas as pd
 
 # ensure we use viridis as the default cmap
 plt.viridis()
@@ -471,7 +472,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     no_files = super_selective_tuning_curves.shape[0]
     for index, ax in np.ndenumerate(axes):
         i = index[0] * 2 + index[1]
-        ax.axvline((i * 90 / 180.) * np.pi, color="#aaaaaa", lw=4, zorder=1)
+        ax.axvline((i * 90 / 180.) * np.pi, color="#bbbbbb", lw=4, zorder=1)
         c = ax.fill(radians, super_selective_tuning_curves[i, :],
                     c=viridis_cmap(float(i) / (no_files - 1)),
                     alpha=0.9, fill=False, lw=4, zorder=2)
@@ -889,6 +890,49 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     plt.close(fig)
 
     # TODO plot a few of the best neurons based on DSI
+    if dsi_selective.size > 0:
+        unique_angles_of_interest = np.unique(dsi_selective[:, 1]).astype(int)  # unique_aoi s
+        dsi_selective_firing_curves = np.empty((unique_angles_of_interest.size, angles.size))
+        dsi_selective_neuron_ids = np.empty((unique_angles_of_interest.size)).astype(int)
+        dsi_selective_dsi_values = np.empty((unique_angles_of_interest.size))
+
+        for index, unique_aoi in np.ndenumerate(unique_angles_of_interest):
+            i = int(index[0])
+            current_angle_responses = get_per_angle_responses(per_neuron_all_rates, unique_aoi, N_layer)
+            max_dsi_index = np.argmax(dsi_selective[dsi_selective[:, 1] == unique_aoi][:, -1])
+            dsi_selective_neuron_ids[i] = int(dsi_selective[max_dsi_index, 0])
+            dsi_selective_dsi_values[i] = dsi_selective[max_dsi_index, -1]
+            dsi_selective_firing_curves[i, :] = get_omnidirectional_neural_response_for_neuron(
+                dsi_selective_neuron_ids[i], per_neuron_all_rates, angles, N_layer)
+
+        maximus = np.max(dsi_selective_firing_curves)
+        no_files = dsi_selective_firing_curves.shape[0]
+        size_scale = 8
+        fig, axes = plt.subplots(1, unique_angles_of_interest.size,
+                                 figsize=(unique_angles_of_interest.size * size_scale, 8),
+                                 subplot_kw=dict(projection='polar'))
+
+        viridis_cmap = mlib.cm.get_cmap('viridis')
+        for curr_ax_id, curr_ax in np.ndenumerate(axes):
+            i = int(curr_ax_id[0])
+            curr_ax.axvline(np.deg2rad(unique_angles_of_interest[i]), color="#bbbbbb", lw=4, zorder=1)
+            curr_ax.fill(radians, dsi_selective_firing_curves[i, :],
+                         c=viridis_cmap(float(i) / (no_files - 1)),
+                         alpha=0.9, fill=False, lw=4, zorder=2)
+            curr_ax.set_xlabel("${:3}^\circ$ - DSI {:.2} - id {:4}".format(unique_angles_of_interest[i],
+                                                                           dsi_selective_dsi_values[i],
+                                                                           dsi_selective_neuron_ids[i]))
+            curr_ax.set_ylim([0, 1.1 * maximus])
+
+        plt.savefig(
+            fig_folder + "dsi_individual_neurons{}.pdf".format(suffix_test),
+            bbox_inches='tight')
+        plt.savefig(
+            fig_folder + "dsi_individual_neurons{}.svg".format(suffix_test),
+            bbox_inches='tight')
+        if show_plots:
+            plt.show()
+        plt.close(fig)
 
     return suffix_test, dsi_selective, dsi_not_selective
 
@@ -1348,28 +1392,26 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
     constant_dsi_selective = np.asarray(constant_dsi_selective)
     constant_dsi_not_selective = np.asarray(constant_dsi_not_selective)
 
-
     random_max_dsi = np.empty((N_layer))
     random_dsi_pref_angle = np.ones((N_layer)) * np.nan
     constant_max_dsi = np.empty((N_layer))
     constant_dsi_pref_angle = np.ones((N_layer)) * np.nan
     for nid in range(N_layer):
         temp_dsi = 0
-        if random_dsi_selective.size > 0 and nid in random_dsi_selective[:,0]:
-            temp_dsi = random_dsi_selective[random_dsi_selective[:,0]==nid].ravel()[-1]
-            random_dsi_pref_angle[nid] = random_dsi_selective[random_dsi_selective[:,0]==nid].ravel()[1]
-        elif random_dsi_not_selective.size > 0 and nid in random_dsi_not_selective[:,0]:
-            temp_dsi = random_dsi_not_selective[random_dsi_not_selective[:, 0]==nid].ravel()[-1]
+        if random_dsi_selective.size > 0 and nid in random_dsi_selective[:, 0]:
+            temp_dsi = random_dsi_selective[random_dsi_selective[:, 0] == nid].ravel()[-1]
+            random_dsi_pref_angle[nid] = random_dsi_selective[random_dsi_selective[:, 0] == nid].ravel()[1]
+        elif random_dsi_not_selective.size > 0 and nid in random_dsi_not_selective[:, 0]:
+            temp_dsi = random_dsi_not_selective[random_dsi_not_selective[:, 0] == nid].ravel()[-1]
         random_max_dsi[nid] = temp_dsi
-        
-        temp_dsi = 0
-        if constant_dsi_selective.size > 0 and nid in constant_dsi_selective[:,0]:
-            temp_dsi = constant_dsi_selective[constant_dsi_selective[:,0]==nid].ravel()[-1]
-            constant_dsi_pref_angle[nid] = constant_dsi_selective[constant_dsi_selective[:,0]==nid].ravel()[1]
-        elif constant_dsi_not_selective.size > 0 and nid in constant_dsi_not_selective[:,0]:
-            temp_dsi = constant_dsi_not_selective[constant_dsi_not_selective[:, 0]==nid].ravel()[-1]
-        constant_max_dsi[nid] = temp_dsi
 
+        temp_dsi = 0
+        if constant_dsi_selective.size > 0 and nid in constant_dsi_selective[:, 0]:
+            temp_dsi = constant_dsi_selective[constant_dsi_selective[:, 0] == nid].ravel()[-1]
+            constant_dsi_pref_angle[nid] = constant_dsi_selective[constant_dsi_selective[:, 0] == nid].ravel()[1]
+        elif constant_dsi_not_selective.size > 0 and nid in constant_dsi_not_selective[:, 0]:
+            temp_dsi = constant_dsi_not_selective[constant_dsi_not_selective[:, 0] == nid].ravel()[-1]
+        constant_max_dsi[nid] = temp_dsi
 
     fig = plt.figure(figsize=(15, 8), dpi=800)
     img_grid = ImageGrid(fig, 111,
@@ -1382,13 +1424,11 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
                          cbar_pad=0.15,
                          )
 
-
-
     imgs = [random_max_dsi.reshape(grid[0], grid[1]),
             constant_max_dsi.reshape(grid[0], grid[1])]
 
     dxs = [np.cos(random_dsi_pref_angle.reshape(grid[0], grid[1])),
-        np.cos(constant_dsi_pref_angle.reshape(grid[0], grid[1]))]
+           np.cos(constant_dsi_pref_angle.reshape(grid[0], grid[1]))]
 
     dys = [np.sin(
         random_dsi_pref_angle.reshape(grid[0], grid[1])),
@@ -1413,14 +1453,13 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
 
     plt.savefig(
         fig_folder + "comparison_per_angle_dsi_response{}.pdf".format(suffix_test), dpi=800,
-        bbox_inches='tight')# pad_inches=1)
+        bbox_inches='tight')  # pad_inches=1)
     plt.savefig(
         fig_folder + "comparison_per_angle_dsi_response{}.svg".format(suffix_test), dpi=800,
-        bbox_inches='tight')#, pad_inches=1)
+        bbox_inches='tight')  # , pad_inches=1)
     if show_plots:
         plt.show()
     plt.close(fig)
-    
 
 
 def evolution(filenames, times, suffix, show_plots=False):
@@ -1435,27 +1474,55 @@ def evolution(filenames, times, suffix, show_plots=False):
     all_rate_means = []
     all_rate_sems = []
     all_radians = []
+    all_dsis = []
+    angles = []
+    N_layer = None
+    radians = None
+    times = np.asarray(times)
+    times_in_minutes = times / (60 * bunits.second)
+    times_in_minutes = times_in_minutes.astype(dtype=int)
     for fn in filenames:
         cached_data = np.load(root_stats + fn + ".npz")
         testing_data = np.load(
             root_syn + "spiking_moving_bar_input\spiking_moving_bar_motif_bank_simtime_1200s.npz")
+        sim_params = np.array(cached_data['testing_sim_params']).ravel()[0]
+        grid = sim_params['grid']
+        N_layer = grid[0] * grid[1]
         rate_means = cached_data['rate_means']
         rate_stds = cached_data['rate_stds']
         rate_sem = cached_data['rate_sem']
         all_rates = cached_data['all_rates']
         radians = cached_data['radians']
+        angles = cached_data['angles']
+        per_neuron_all_rates = cached_data['per_neuron_all_rates']
 
         all_rate_means.append(rate_means)
         all_rate_sems.append(rate_sem)
         all_radians = radians
+
+        if "dsi_selective" in cached_data.files and "dsi_not_selective" in cached_data.files:
+            dsi_selective = cached_data['dsi_selective']
+            dsi_not_selective = cached_data['dsi_not_selective']
+        else:
+            dsi_selective, dsi_not_selective = backward_compatibility_get_dsi(per_neuron_all_rates, angles, N_layer)
+        concatenated_dsis = get_concatenated_dsis(dsi_selective, dsi_not_selective)
+        all_dsis.append(concatenated_dsis)
+
+        assert concatenated_dsis.size == N_layer
+        # Close files
+        cached_data.close()
+        testing_data.close()
+
+    all_dsis = np.asarray(all_dsis)
+
     fig = plt.figure(figsize=(10, 10), dpi=800)
     ax = plt.subplot(111, projection='polar')
 
     for i in range(no_files):
-        c = plt.fill(radians, all_rate_means[i],
-                     c=viridis_cmap(float(i) / (no_files - 1)),
-                     label="{} minutes".format(times[i] / (60 * bunits.second)),
-                     alpha=0.7, fill=False, lw=4)
+        plt.fill(radians, all_rate_means[i],
+                 c=viridis_cmap(float(i) / (no_files - 1)),
+                 label="{} minutes".format(times_in_minutes[i]),
+                 alpha=0.7, fill=False, lw=4)
 
     art = []
     plt.ylim([0, 1.1 * np.max(all_rate_means)])
@@ -1471,6 +1538,19 @@ def evolution(filenames, times, suffix, show_plots=False):
         dpi=800,
         additional_artists=art,
         bbox_inches="tight")
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    # plot evolution of mean DSI when increasing training
+    fig = plt.figure(figsize=(16, 8), dpi=600)
+    plt.boxplot(all_dsis.T, notch=True)
+    plt.xticks(np.arange(times_in_minutes.shape[0]) + 1, times_in_minutes)
+    plt.xlabel("Time (minutes)")
+    plt.ylabel("DSI")
+    plt.grid(True, which='major', axis='y')
+    plt.savefig(fig_folder + "dsi_evolution_boxplot_{}.pdf".format(suffix))
+    plt.savefig(fig_folder + "dsi_evolution_boxplot_{}.svg".format(suffix))
     if show_plots:
         plt.show()
     plt.close(fig)
@@ -1550,12 +1630,7 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
         rate_means = current_results['rate_means']
         dsi_selective = np.asarray(dsi_selective)
         dsi_not_selective = np.asarray(dsi_not_selective)
-        if dsi_selective.size > 0 and dsi_not_selective.size > 0:
-            all_dsi = np.concatenate((dsi_selective[:, -1], dsi_not_selective[:, -1]))
-        elif dsi_selective.size == 0:
-            all_dsi = dsi_not_selective[:, -1]
-        else:
-            all_dsi = dsi_selective[:, -1]
+        all_dsi = get_concatenated_dsis(dsi_selective, dsi_not_selective)
         average_dsi = np.mean(all_dsi)
         dsi_comparison[file_index] = average_dsi
         all_dsis[file_index] = all_dsi
@@ -2081,6 +2156,21 @@ if __name__ == "__main__":
     # fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
     # fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
     # comparison(fname1, fname2)
+    # fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+    # analyse_one(fname)
+
+    # filenames = [
+    #     "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_evo",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_evo",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_evo",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"]
+    #
+    # times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+    #          38400 * bunits.second, 76800 * bunits.second]
+    #
+    # evolution(filenames, times, suffix="1_angles_0")
     # sys.exit()
 
     # Single experiment analysis
@@ -2153,7 +2243,6 @@ if __name__ == "__main__":
     # all angles
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_all_evo"
     analyse_one(fname, extra_suffix="384k")
-
     # TODO
     # fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_all_angles"
     # analyse_one(fname, extra_suffix="constant_384k")
@@ -2193,12 +2282,10 @@ if __name__ == "__main__":
 
     comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=diff_duration_custom_labels)
 
-
     fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo"
     fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"
 
     comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=["~10 hours", "~20 hours"])
-
 
     # 45 degrees
     fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo"
@@ -2290,7 +2377,8 @@ if __name__ == "__main__":
         "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_135_evo",
         # TODO extra times
     ]
-    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second, 38400 * bunits.second,
+    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+             38400 * bunits.second,
              ]
     evolution(filenames, times, suffix="_2_angles_45_135")
 
