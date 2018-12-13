@@ -1469,7 +1469,7 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
     plt.close(fig)
 
 
-def evolution(filenames, times, suffix, show_plots=False):
+def evolution(filenames, times, suffix, path=None, show_plots=False):
     # https://gist.github.com/MatthewJA/5a0a6d75748bf5cb5962cb9d5572a6ce
     viridis_cmap = mlib.cm.get_cmap('viridis')
     no_files = len(filenames)
@@ -1484,9 +1484,13 @@ def evolution(filenames, times, suffix, show_plots=False):
     times = np.asarray(times)
     times_in_minutes = times / (60 * bunits.second)
     times_in_minutes = times_in_minutes.astype(dtype=int)
+
+    if not path:
+        path = root_syn
+
     for fn in filenames:
         # cached_data = np.load(root_stats + fn + ".npz")
-        cached_data = np.load(os.path.join(root_syn, fn + ".npz"))
+        cached_data = np.load(os.path.join(path, fn + ".npz"))
         testing_data = np.load(
             os.path.join(root_syn, "spiking_moving_bar_input", "spiking_moving_bar_motif_bank_simtime_1200s.npz"))
         sim_params = np.array(cached_data['testing_sim_params']).ravel()[0]
@@ -1550,8 +1554,9 @@ def evolution(filenames, times, suffix, show_plots=False):
     fig = plt.figure(figsize=(16, 8), dpi=600)
 
     plt.axhline(.5, color='#b2dd2c', ls=":")
-    bp = plt.boxplot(all_dsis.T, notch=True, patch_artist=True)
-    bp.setp(bp['whiskers'], color='#414C82')
+    bp = plt.boxplot(all_dsis.T, notch=True)#, patch_artist=True)
+    # plt.setp(bp['medians'], color='#414C82')
+    # plt.setp(bp['boxes'], alpha=0)
 
     plt.xticks(np.arange(times_in_minutes.shape[0]) + 1, times_in_minutes)
     plt.xlabel("Time (minutes)")
@@ -2217,6 +2222,18 @@ def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_pl
 
 if __name__ == "__main__":
     import sys
+    # filenames = [
+    #     "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_evo",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_evo",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_evo",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"]
+    #
+    # times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+    #          38400 * bunits.second, 76800 * bunits.second]
+    #
+    # evolution(filenames, times, path=args.preproc_folder, suffix="1_angles_0")
     # sys.exit()
 
     # Single experiment analysis
@@ -2376,7 +2393,7 @@ if __name__ == "__main__":
     times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
              38400 * bunits.second, 76800 * bunits.second]
 
-    evolution(filenames, times, suffix="1_angles_0")
+    evolution(filenames, times, path=args.preproc_folder, suffix="1_angles_0")
 
     # 1 angle, constant delays
     filenames = [
@@ -2387,7 +2404,7 @@ if __name__ == "__main__":
         "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
         "results_for_testing_constant_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"]
 
-    evolution(filenames, times, suffix="constant_1_angles_0")
+    evolution(filenames, times, path=args.preproc_folder, suffix="constant_1_angles_0")
 
     # 2 angles, random delays, 0 + 90
     filenames = [
@@ -2398,7 +2415,7 @@ if __name__ == "__main__":
         "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_evo",
         "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_90_evo"
     ]
-    evolution(filenames, times, suffix="2_angles_0_90")
+    evolution(filenames, times, path=args.preproc_folder, suffix="2_angles_0_90")
 
     # 45 degrees
     filenames = [
@@ -2412,7 +2429,7 @@ if __name__ == "__main__":
     times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
              38400 * bunits.second
              ]
-    evolution(filenames, times, suffix="_1_angles_45")
+    evolution(filenames, times, path=args.preproc_folder, suffix="_1_angles_45")
 
     # 2 angles, random delays, 45 and 135
     filenames = [
@@ -2426,7 +2443,7 @@ if __name__ == "__main__":
     times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
              38400 * bunits.second,
              ]
-    evolution(filenames, times, suffix="_2_angles_45_135")
+    evolution(filenames, times, path=args.preproc_folder, suffix="_2_angles_45_135")
 
     # 4 angles, random delays, 0 + 90 + 180 + 270
     filenames = [
@@ -2440,7 +2457,7 @@ if __name__ == "__main__":
 
     times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
              38400 * bunits.second, 76800 * bunits.second]
-    evolution(filenames, times, suffix="_4_angles_0_90_180_270")
+    evolution(filenames, times, path=args.preproc_folder, suffix="_4_angles_0_90_180_270")
 
     # all angles
     filenames = [
@@ -2456,7 +2473,7 @@ if __name__ == "__main__":
              38400 * bunits.second,
              # 76800 * bunits.second
              ]
-    evolution(filenames, times, suffix="_all_angles")
+    evolution(filenames, times, path=args.preproc_folder, suffix="_all_angles")
 
     # Experiment batch analysis -- usually, these are sensitivity analysis
     fname = args.preproc_folder + "motion_batch_analysis_182314_03122018"
