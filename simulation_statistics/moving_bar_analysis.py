@@ -46,8 +46,10 @@ cyclic_viridis = colors.LinearSegmentedColormap.from_list(
      (1.0, cm_mlib.viridis.colors[0])])
 
 # some defaults
-root_stats = "C:\Work\phd\simulation_statistics\\"
-root_syn = "C:\Work\phd\synaptogenesis\\"
+# root_stats = "C:\Work\phd\simulation_statistics\\"
+# root_syn = "C:\Work\phd\synaptogenesis\\"
+root_stats = args.root_stats
+root_syn = args.root_syn
 fig_folder = args.fig_folder
 testing_data = np.load(
     root_syn + "spiking_moving_bar_input\spiking_moving_bar_motif_bank_simtime_1200s.npz")
