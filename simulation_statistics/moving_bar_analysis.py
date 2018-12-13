@@ -604,7 +604,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     for index, ax in np.ndenumerate(axes):
         i = index[0]
         ax.hist(conns[i][:, 2] / g_max, bins=20, color='#414C82',
-                edgecolor='k')
+                edgecolor='k', normed=True)
         ax.set_title(conns_names[i])
         ax.set_xlim([minimus, maximus])
         ax.set_xticklabels(["0", "0.5", "1"])
@@ -674,9 +674,9 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
         wavg = np.mean(widths)
         havg = np.mean(heights)
         aavg = np.mean(angs)
-        ell = Ellipse(xy=(0, 0), width=wavg, height=havg, angle=aavg,
-                      facecolor='none', edgecolor='#b2dd2c', linewidth=3.0)
-        ax.add_artist(ell)
+        # ell = Ellipse(xy=(0, 0), width=wavg, height=havg, angle=aavg,
+        #               facecolor='none', edgecolor='#b2dd2c', linewidth=3.0)
+        # ax.add_artist(ell)
 
         xlim = np.max(widths) / 2.0
         ylim = np.max(heights) / 2.0
@@ -1544,10 +1544,15 @@ def evolution(filenames, times, suffix, show_plots=False):
 
     # plot evolution of mean DSI when increasing training
     fig = plt.figure(figsize=(16, 8), dpi=600)
-    plt.boxplot(all_dsis.T, notch=True)
+
+    plt.axhline(.5, color='#b2dd2c', ls=":")
+    bp = plt.boxplot(all_dsis.T, notch=True, patch_artist=True)
+    bp.setp(bp['whiskers'], color='#414C82')
+
     plt.xticks(np.arange(times_in_minutes.shape[0]) + 1, times_in_minutes)
     plt.xlabel("Time (minutes)")
     plt.ylabel("DSI")
+    plt.ylim([-.05, 1.05])
     plt.grid(True, which='major', axis='y')
     plt.savefig(fig_folder + "dsi_evolution_boxplot_{}.pdf".format(suffix))
     plt.savefig(fig_folder + "dsi_evolution_boxplot_{}.svg".format(suffix))
