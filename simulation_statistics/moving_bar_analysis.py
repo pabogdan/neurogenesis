@@ -20,7 +20,8 @@ from synaptogenesis.function_definitions import generate_equivalent_connectivity
 from gari_analysis_functions import get_filtered_dsi_per_neuron
 import copy
 # imports related to Elephant analysis
-from elephant import statistics, spade, spike_train_correlation, spike_train_dissimilarity
+from elephant import statistics, spade, spike_train_correlation, spike_train_dissimilarity, conversion
+import elephant.cell_assembly_detection as cad
 import neo
 from datetime import datetime
 from quantities import s, ms, Hz
@@ -1908,7 +1909,7 @@ def package_neo_block(spikes, label, N_layer, simtime, archive_name):
     return block
 
 
-def elephant_analysis(archive, extra_suffix=None, show_plots=False):
+def elephant_analysis(archive, extra_suffix=None, show_plots=False, time_to_waste=False):
     # Pass in a testing file name. This file needs to have spikes in the raw format
     data = np.load(root_syn + archive + ".npz")
     sim_params = np.array(data['sim_params']).ravel()[0]
@@ -1936,12 +1937,17 @@ def elephant_analysis(archive, extra_suffix=None, show_plots=False):
     end_time = datetime.now()
     total_time = end_time - start_time
     print("{:45}".format("Neo blocks assembled. Process took {}".format(total_time)))
+    gathered_results = {}
 
     exc_segment = exc_block.segments[0]
     inh_segment = inh_block.segments[0]
 
     exc_spike_trains = exc_segment.spiketrains
     inh_spike_trains = inh_segment.spiketrains
+
+
+    gathered_results['exc_block'] = exc_block
+    gathered_results['inh_block'] = inh_block
 
     # Begin the analysis
     # analysis using https://elephant.readthedocs.io/en/latest/reference/statistics.html
@@ -1978,19 +1984,64 @@ def elephant_analysis(archive, extra_suffix=None, show_plots=False):
 
     # analysis using SPADE https://elephant.readthedocs.io/en/latest/reference/spade.html
 
+
+    if not time_to_waste:
+        print("{:45}".format("Seems we have no time to waste. Exiting this test ..."))
+        return gathered_results
+
     # analysis using CAD https://elephant.readthedocs.io/en/latest/reference/cell_assembly_detection.html
+    binsize = 20 * ms
+    print("{:45}".format("Binning excitatory spikes ..."))
+    start_time = datetime.now()
+    binned_spikes = conversion.BinnedSpikeTrain(exc_spike_trains, binsize=binsize, t_start=0 * ms, t_stop=simtime/10)
+    end_time = datetime.now()
+    total_time = end_time - start_time
+    print("{:45}".format("Excitatory spikes binned. Process took {}".format(total_time)))
+    print("{:45}".format("Running cell assembly detection ..."))
+    start_time = datetime.now()
+    patterns = cad.cell_assembly_detection(binned_spikes, maxlag=10)[0]
+    end_time = datetime.now()
+    total_time = end_time - start_time
+    print("{:45}".format("Completed cell assembly detection. Process took {}".format(total_time)))
+    fig = plt.figure(figsize=(15, 8), dpi=800)
+    for neu in patterns['neurons']:
+        if neu == 0:
+            plt.plot(patterns['times'] * binsize, [neu] * len(patterns['times']), 'ro', label='pattern')
+        else:
+            plt.plot(patterns['times'] * binsize, [neu] * len(patterns['times']), 'ro')
+         # Raster plot of the data
+    for st_idx, st in enumerate(exc_spike_trains):
+        if st_idx == 0:
+            plt.plot(st.rescale(ms), [st_idx] * len(st), 'k.', label = 'spikes')
+        else:
+            plt.plot(st.rescale(ms), [st_idx] * len(st), 'k.')
+    plt.ylim([-1, len(exc_spike_trains)])
+    plt.xlabel('time (ms)')
+    plt.ylabel('neurons ids')
+    plt.legend()
+    plt.savefig(
+        fig_folder + "cad{}.pdf".format(
+            suffix_test), bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "cad{}.svg".format(
+            suffix_test), bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
 
     # analysis using spike_train_dissimilarity
     # https://elephant.readthedocs.io/en/latest/reference/spike_train_dissimilarity.html
     # TODO Modify the following to see if closer neurons have similar activations
     # also, incorporate knowledge about individual neuron preferences to see if they have similar activity and
     # if they are different from other angles
+
+
     numbers = np.random.choice(np.arange(N_layer), 100, replace=False)
-    # numbers = np.arange(N_layer)
     numbers = np.sort(numbers)
     print("{:45}".format("Computing van Rossum spike train dissimilarity between some EXC and INH neurons ("
                          "independent)"))
     print("{:45}".format("Neuron ids selected"), ":", numbers)
+
 
     list_of_spiketrains = []
     for no in numbers:
@@ -2091,8 +2142,11 @@ def elephant_analysis(archive, extra_suffix=None, show_plots=False):
     if show_plots:
         plt.show()
     plt.close(fig)
-
-    return exc_block, inh_block, van_rossum_distance_exc, van_rossum_distance_inh, vp_distance_exc, vp_distance_inh
+    gathered_results['van_rossum_distance_exc'] = van_rossum_distance_exc
+    gathered_results['van_rossum_distance_inh'] = van_rossum_distance_inh
+    gathered_results['vp_distance_exc'] = vp_distance_exc
+    gathered_results['vp_distance_inh'] = vp_distance_inh
+    return gathered_results
 
 
 def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_plots=False):
@@ -2154,28 +2208,6 @@ def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_pl
 
 if __name__ == "__main__":
     import sys
-
-    # Elephant analysis of single experiments
-    # fname = "testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
-    # elephant_analysis(fname)
-    # fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
-    # fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
-    # comparison(fname1, fname2)
-    # fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
-    # analyse_one(fname)
-
-    # filenames = [
-    #     "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_evo",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_evo",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_evo",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"]
-    #
-    # times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
-    #          38400 * bunits.second, 76800 * bunits.second]
-    #
-    # evolution(filenames, times, suffix="1_angles_0")
     # sys.exit()
 
     # Single experiment analysis
@@ -2421,3 +2453,7 @@ if __name__ == "__main__":
     fname = args.preproc_folder + "motion_batch_analysis_182314_03122018"
     info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
     batch_analyser(fname, info_fname)
+
+    # Elephant analysis of single experiments
+    fname = "testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+    elephant_analysis(fname, time_to_waste=args.time_to_waste)

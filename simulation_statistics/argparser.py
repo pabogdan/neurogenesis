@@ -33,4 +33,7 @@ flags.add_argument('--no-cache', help="force simulation re-analysis without "
                                        "using cached information",
                     action="store_true", dest="no_cache")
 
+flags.add_argument('--time_to_waste', help="we have time to waste with Elephant",
+                    action="store_true", dest="time_to_waste")
+
 args = parser.parse_args()
