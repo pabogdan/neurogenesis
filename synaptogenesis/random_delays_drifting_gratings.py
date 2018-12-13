@@ -251,7 +251,7 @@ if not args.testing:
                                     {'spike_times': final_off_gratings
                                      }, label="Moving grating off population")
 
-    if f_base == 0:
+    if np.isclose(f_base, 0):
         print("No noise will be injected into the system.")
         noise_pop = sim.Population(N_layer,
                                    sim.SpikeSourceArray,
@@ -305,7 +305,7 @@ else:
                                     {'spike_times': final_off_gratings
                                      },
                                     label="Moving grating off population")
-    if f_base == 0:
+    if np.isclose(f_base, 0):
         print("No noise will be injected into the system.")
         noise_pop = sim.Population(N_layer,
                                    sim.SpikeSourceArray,
