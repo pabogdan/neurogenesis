@@ -13,13 +13,13 @@ parser.add_argument('-o', '--output', type=str,
                     help="name of the numpy archive storing simulation results",
                     dest='filename')
 parser.add_argument('--fig_folder', type=str,
-                    help="directory for figures",
+                    help="directory for figures -- [default {}]".format(DEFAULT_FIGURE_FOLDER),
                     dest='fig_folder', default=DEFAULT_FIGURE_FOLDER)
 parser.add_argument('--results_folder', type=str,
-                    help="directory for reading in results",
+                    help="directory for reading in results -- [default {}]".format(DEFAULT_RESULTS_FOLDER),
                     dest='results_folder', default=DEFAULT_RESULTS_FOLDER)
 parser.add_argument('--preproc_folder', type=str,
-                    help="directory for reading in results",
+                    help="directory for reading in results -- [default {}]".format(DEFAULT_PREPROCESSING_FOLDER),
                     dest='preproc_folder',
                     default=DEFAULT_PREPROCESSING_FOLDER)
 flags.add_argument('--plot', help="display plots",
