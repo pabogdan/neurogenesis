@@ -52,7 +52,7 @@ root_stats = args.root_stats
 root_syn = args.root_syn
 fig_folder = args.fig_folder
 testing_data = np.load(
-    root_syn + "spiking_moving_bar_input\spiking_moving_bar_motif_bank_simtime_1200s.npz")
+    os.path.join(root_syn, "spiking_moving_bar_input", "spiking_moving_bar_motif_bank_simtime_1200s.npz"))
 # check if the figures folder exist
 if not os.path.isdir(fig_folder) and not os.path.exists(fig_folder):
     os.mkdir(fig_folder)
@@ -945,14 +945,18 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
     # in the default use case, the 2 archives would relate to two networks
     # differing only in the way that structural plasticity chooses delays
     if ".npz" in archive_random:
-        random_delay_data = np.load(root_stats + archive_random)
+        # random_delay_data = np.load(root_stats + archive_random)
+        random_delay_data = np.load(os.path.join(root_stats, archive_random))
     else:
-        random_delay_data = np.load(root_stats + archive_random + ".npz")
+        # random_delay_data = np.load(root_stats + archive_random + ".npz")
+        random_delay_data = np.load(os.path.join(root_stats, archive_random + ".npz"))
 
     if ".npz" in archive_random:
-        constant_delay_data = np.load(root_stats + archive_constant)
+        # constant_delay_data = np.load(root_stats + archive_constant)
+        constant_delay_data = np.load(os.path.join(root_stats, archive_constant))
     else:
-        constant_delay_data = np.load(root_stats + archive_constant + ".npz")
+        # constant_delay_data = np.load(root_stats + archive_constant + ".npz")
+        constant_delay_data = np.load(os.path.join(root_stats, archive_constant + ".npz"))
 
     # LOAD DATA
     # RANDOM DELAYS
@@ -1468,10 +1472,6 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
 def evolution(filenames, times, suffix, show_plots=False):
     # https://gist.github.com/MatthewJA/5a0a6d75748bf5cb5962cb9d5572a6ce
     viridis_cmap = mlib.cm.get_cmap('viridis')
-    # root_stats = "D:\Work\Neurogenesis-PhD\simulation_statistics\\"
-    root_stats = "C:\Work\phd\simulation_statistics\\preproc\\"
-    # root_syn = "D:\Work\Neurogenesis-PhD\synaptogenesis\\"
-    root_syn = "C:\Work\phd\synaptogenesis\\"
     no_files = len(filenames)
     assert len(filenames) == len(times)
     all_rate_means = []
@@ -1485,9 +1485,10 @@ def evolution(filenames, times, suffix, show_plots=False):
     times_in_minutes = times / (60 * bunits.second)
     times_in_minutes = times_in_minutes.astype(dtype=int)
     for fn in filenames:
-        cached_data = np.load(root_stats + fn + ".npz")
+        # cached_data = np.load(root_stats + fn + ".npz")
+        cached_data = np.load(os.path.join(root_syn, fn + ".npz"))
         testing_data = np.load(
-            root_syn + "spiking_moving_bar_input\spiking_moving_bar_motif_bank_simtime_1200s.npz")
+            os.path.join(root_syn, "spiking_moving_bar_input", "spiking_moving_bar_motif_bank_simtime_1200s.npz"))
         sim_params = np.array(cached_data['testing_sim_params']).ravel()[0]
         grid = sim_params['grid']
         N_layer = grid[0] * grid[1]
@@ -1566,8 +1567,11 @@ def evolution(filenames, times, suffix, show_plots=False):
 
 def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plots=False):
     # Read the archives
-    batch_data = np.load(root_stats + batch_data_file + ".npz")
-    batch_info = np.load(root_stats + batch_info_file + ".npz")
+    # batch_data = np.load(root_stats + batch_data_file + ".npz")
+    # batch_info = np.load(root_stats + batch_info_file + ".npz")
+
+    batch_data = np.load(os.path.join(root_stats, batch_data_file + ".npz"))
+    batch_info = np.load(os.path.join(root_stats, batch_info_file + ".npz"))
     # Read files from archives
     batch_parameters = batch_info['parameters_of_interest'].ravel()[0]
     result_keys = batch_data['files']
@@ -1913,6 +1917,7 @@ def package_neo_block(spikes, label, N_layer, simtime, archive_name):
 
 def elephant_analysis(archive, extra_suffix=None, show_plots=False, time_to_waste=False):
     # Pass in a testing file name. This file needs to have spikes in the raw format
+    # data = np.load(root_syn + archive + ".npz")
     data = np.load(root_syn + archive + ".npz")
     sim_params = np.array(data['sim_params']).ravel()[0]
     simtime = int(data['simtime']) * ms
@@ -2153,8 +2158,10 @@ def elephant_analysis(archive, extra_suffix=None, show_plots=False, time_to_wast
 
 def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_plots=False):
     # Pass in a testing file name. This file needs to have spikes in the raw format
-    data1 = np.load(root_syn + archive1 + ".npz")
-    data2 = np.load(root_syn + archive2 + ".npz")
+    # data1 = np.load(root_syn + archive1 + ".npz")
+    # data2 = np.load(root_syn + archive2 + ".npz")
+    data1 = np.load(os.path.join(root_syn, archive1 + ".npz"))
+    data2 = np.load(os.path.join(root_syn, archive2 + ".npz"))
 
     # Load data1 stuff
     sim_params1 = np.array(data1['sim_params']).ravel()[0]
