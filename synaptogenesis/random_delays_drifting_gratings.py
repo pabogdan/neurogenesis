@@ -251,12 +251,19 @@ if not args.testing:
                                     {'spike_times': final_off_gratings
                                      }, label="Moving grating off population")
 
-    noise_pop = sim.Population(N_layer,
-                               sim.SpikeSourcePoisson,
-                               {'rate': f_base,
-                                'start': 0,
-                                'duration': simtime},
-                               label="Noise population")
+    if f_base == 0:
+        print("No noise will be injected into the system.")
+        noise_pop = sim.Population(N_layer,
+                                   sim.SpikeSourceArray,
+                                   {'spike_times': []},
+                                   label="(No) Noise population")
+    else:
+        noise_pop = sim.Population(N_layer,
+                                   sim.SpikeSourcePoisson,
+                                   {'rate': f_base,
+                                    'start': 0,
+                                    'duration': simtime},
+                                   label="Noise population")
 else:
     # TESTING REGIME!
     input_grating_fname = "spiking_moving_bar_input/" \
@@ -298,12 +305,19 @@ else:
                                     {'spike_times': final_off_gratings
                                      },
                                     label="Moving grating off population")
-    noise_pop = sim.Population(N_layer,
-                               sim.SpikeSourcePoisson,
-                               {'rate': f_base,
-                                'start': 0,
-                                'duration': simtime},
-                               label="Noise population")
+    if f_base == 0:
+        print("No noise will be injected into the system.")
+        noise_pop = sim.Population(N_layer,
+                                   sim.SpikeSourceArray,
+                                   {'spike_times': []},
+                                   label="(No) Noise population")
+    else:
+        noise_pop = sim.Population(N_layer,
+                                   sim.SpikeSourcePoisson,
+                                   {'rate': f_base,
+                                    'start': 0,
+                                    'duration': simtime},
+                                   label="Noise population")
 
 ff_s = np.zeros(N_layer, dtype=np.uint)
 lat_s = np.zeros(N_layer, dtype=np.uint)
