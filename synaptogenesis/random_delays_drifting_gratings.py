@@ -197,6 +197,8 @@ sim_params = {'g_max': g_max,
               'p_elim_dep': p_elim_dep,
               'p_elim_pot': p_elim_pot,
               'f_rew': f_rew,
+              'f_rew_exc': args.f_rew_exc,
+              'f_rew_inh': args.f_rew_inh,
               'lateral_inhibition': args.lateral_inhibition,
               'delay': args.delay,
               'b': b,
@@ -232,9 +234,10 @@ actual_angles = []
 
 if not args.testing:
     # TRAINING REGIME!
+    # the following loads ALL of the spikes in Memory! This is expensive for long simulations
     aa, final_on_gratings, final_off_gratings = \
-        generate_bar_input(no_iterations, chunk, N_layer,
-                           angles=training_angles)
+        generate_bar_input(t_record, chunk, N_layer,
+                           angles=training_angles, offset=0)
     actual_angles.append(aa)
 
     # Add +-1 ms to all times in input
@@ -635,14 +638,23 @@ try:
         print("run", current_run + 1, "of", no_runs)
         sim.run(run_duration)
 
-        # if not args.testing:
-        #     aa, final_on_gratings, final_off_gratings = \
-        #         generate_bar_input(t_record, chunk, N_layer,
-        #                            angles=training_angles,
-        #                            offset=current_run * run_duration)
-        #     actual_angles.append(aa)
-        #     source_pop.tset("spike_times", final_on_gratings)
-        #     source_pop_off.tset("spike_times", final_off_gratings)
+        # generate spikes depending on whether we're training or testing
+        # load data
+        if not args.testing:
+            aa, final_on_gratings, final_off_gratings = \
+                generate_bar_input(t_record, chunk, N_layer,
+                                   angles=training_angles,
+                                   offset=current_run * run_duration)
+
+            actual_angles.append(aa)
+            # Add +-1 ms to all times in input
+            if args.jitter:
+                final_on_gratings, final_off_gratings = jitter_the_input(
+                    final_on_gratings, final_off_gratings)
+            source_pop.tset("spike_times", final_on_gratings)
+            source_pop_off.tset("spike_times", final_off_gratings)
+
+
 
     if not args.testing:
         pre_weights.append(
