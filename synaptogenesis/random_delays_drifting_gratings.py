@@ -516,11 +516,18 @@ else:
         label="ff_off_projection"
     )
 
-    noise_projection = sim.Projection(
-        noise_pop, target_pop,
-        sim.FromListConnector(trained_noise_connectivity),
-        label="noise_projection"
-    )
+    if trained_noise_connectivity.size == 0:
+        noise_projection = sim.Projection(
+            noise_pop, target_pop,
+            sim.FixedProbabilityConnector(0),
+            label="noise_projection"
+        )
+    else:
+        noise_projection = sim.Projection(
+            noise_pop, target_pop,
+            sim.FromListConnector(trained_noise_connectivity),
+            label="noise_projection"
+        )
 
     lat_projection = sim.Projection(
         target_pop, target_pop,
@@ -560,12 +567,18 @@ else:
             sim.FromListConnector(trained_off_inh_connectivity),
             label="ff_off_inh_projection"
         )
-
-        noise_inh_projection = sim.Projection(
-            noise_pop, inh_pop,
-            sim.FromListConnector(trained_noise_inh_connectivity),
-            label="noise_inh_projection"
-        )
+        if trained_noise_inh_connectivity.size == 0:
+            noise_inh_projection = sim.Projection(
+                noise_pop, inh_pop,
+                sim.FixedProbabilityConnector(0),
+                label="noise_inh_projection"
+            )
+        else:
+            noise_inh_projection = sim.Projection(
+                noise_pop, inh_pop,
+                sim.FromListConnector(trained_noise_inh_connectivity),
+                label="noise_inh_projection"
+            )
 
 # +-------------------------------------------------------------------+
 # | Simulation and results                                            |
