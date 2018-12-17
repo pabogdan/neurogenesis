@@ -937,6 +937,41 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
             plt.show()
         plt.close(fig)
 
+    # Entropy play
+    entropy = np.empty((N_layer))
+    max_entropy = (-np.log2(1./angles.size))
+    for nid in range(N_layer):
+        # Retrieve the firing profile of this neuron
+        profile = get_omnidirectional_neural_response_for_neuron(nid, per_neuron_all_rates, angles, N_layer)
+        normalised_profile = profile / np.sum(profile)
+        current_sum = 0
+        for normed_rate in normalised_profile:
+            if not np.less(normed_rate, 0.0001):
+                current_sum += (normed_rate * np.log2(normed_rate))
+        assert np.all((-current_sum) <= max_entropy), -current_sum
+        entropy[nid] = -current_sum
+
+    fig, (ax) = plt.subplots(1, 1, figsize=(10, 10), dpi=600)
+    i = ax.imshow(entropy.reshape(grid[0], grid[1]), vmin=0, vmax=max_entropy)
+
+    divider = make_axes_locatable(plt.gca())
+    cax = divider.append_axes("right", "5%", pad="3%")
+    cbar = plt.colorbar(i, cax=cax)
+    cbar.set_label("Entropy")
+
+    plt.savefig(
+        fig_folder + "per_neuron_entropy{}.pdf".format(suffix_test),
+        bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "per_neuron_entropy{}.svg".format(suffix_test),
+        bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+
+
+
     return suffix_test, dsi_selective, dsi_not_selective
 
 
@@ -1638,6 +1673,7 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     exp_shape_angle = copy.deepcopy(file_shape)
     exp_shape_angle.append(angles.size)
     all_mean_rates = np.ones(exp_shape_angle) * np.nan
+    entropies = np.ones(exp_shape_angle) * np.nan
     for file_index, file_key in np.ndenumerate(file_matrix):
         if file_key == '' or ".npz" not in file_key or file_key not in batch_data.files:
             continue  # I don't particularly want this, but otherwise I indent everything too much
@@ -2222,18 +2258,16 @@ def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_pl
 
 if __name__ == "__main__":
     import sys
-    # filenames = [
-    #     "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_evo",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_evo",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_evo",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"]
     #
-    # times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
-    #          38400 * bunits.second, 76800 * bunits.second]
-    #
-    # evolution(filenames, times, path=args.preproc_folder, suffix="1_angles_0")
+    # Entropy
+
+    # fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+    # analyse_one(fname)
+    # sys.exit()
+
+    # fname = args.preproc_folder + "motion_batch_analysis_145113_17122018"
+    # info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
+    # batch_analyser(fname, info_fname)
     # sys.exit()
 
     # Single experiment analysis
@@ -2459,6 +2493,19 @@ if __name__ == "__main__":
              38400 * bunits.second, 76800 * bunits.second]
     evolution(filenames, times, path=args.preproc_folder, suffix="_4_angles_0_90_180_270")
 
+    filenames = [
+        "results_for_testing_without_noise_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_NESW_evo",
+        "results_for_testing_without_noise_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_NESW_evo",
+        "results_for_testing_without_noise_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_NESW_evo",
+        "results_for_testing_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo",
+        "results_for_testing_without_noise_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_evo",
+        "results_for_testing_without_noise_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_evo"
+    ]
+
+    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+             38400 * bunits.second, 76800 * bunits.second]
+    evolution(filenames, times, path=args.preproc_folder, suffix="_4_angles_0_90_180_270_testing_without_noise")
+
     # all angles
     filenames = [
         "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_all_evo",
@@ -2476,7 +2523,7 @@ if __name__ == "__main__":
     evolution(filenames, times, path=args.preproc_folder, suffix="_all_angles")
 
     # Experiment batch analysis -- usually, these are sensitivity analysis
-    fname = args.preproc_folder + "motion_batch_analysis_182314_03122018"
+    fname = args.preproc_folder + "motion_batch_analysis_145113_17122018"
     info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
     batch_analyser(fname, info_fname)
 
