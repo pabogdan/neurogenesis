@@ -892,7 +892,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
         plt.show()
     plt.close(fig)
 
-    # TODO plot a few of the best neurons based on DSI
+    # plot a few of the best neurons based on DSI
     if dsi_selective.size > 0:
         unique_angles_of_interest = np.unique(dsi_selective[:, 1]).astype(int)  # unique_aoi s
         dsi_selective_firing_curves = np.empty((unique_angles_of_interest.size, angles.size))
@@ -939,7 +939,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
 
     # Entropy play
     entropy = np.empty((N_layer))
-    max_entropy = (-np.log2(1./angles.size))
+    max_entropy = (-np.log2(1. / angles.size))
     for nid in range(N_layer):
         # Retrieve the firing profile of this neuron
         profile = get_omnidirectional_neural_response_for_neuron(nid, per_neuron_all_rates, angles, N_layer)
@@ -969,8 +969,47 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
         plt.show()
     plt.close(fig)
 
+    entropy_selective_n_to_plot = 5
+    entropy_selective_firing_curves = np.empty((entropy_selective_n_to_plot, angles.size))
+    argsorted_entropy = np.argsort(entropy)
+    entropy_selective_neuron_ids = argsorted_entropy[:entropy_selective_n_to_plot]
 
+    for i in np.arange(entropy_selective_n_to_plot):
+        entropy_selective_firing_curves[i, :] = get_omnidirectional_neural_response_for_neuron(
+            entropy_selective_neuron_ids[i], per_neuron_all_rates, angles, N_layer)
 
+    maximus = np.max(entropy_selective_firing_curves)
+    no_files = entropy_selective_n_to_plot
+    size_scale = 8
+    available_dsi = np.ones(entropy_selective_n_to_plot) * np.nan
+    # if dsi_selective_dsi_values.size > 0:
+    #     available_dsi = dsi_selective_dsi_values[dsi_selective_neuron_ids[entropy_selective_neuron_ids]]
+    fig, axes = plt.subplots(1, entropy_selective_n_to_plot,
+                             figsize=(entropy_selective_n_to_plot * size_scale, 8),
+                             subplot_kw=dict(projection='polar'))
+
+    viridis_cmap = mlib.cm.get_cmap('viridis')
+    for curr_ax_id, curr_ax in np.ndenumerate(axes):
+        i = int(curr_ax_id[0])
+        # curr_ax.axvline(np.deg2rad(unique_angles_of_interest[i]), color="#bbbbbb", lw=4, zorder=1)
+        curr_ax.fill(radians, entropy_selective_firing_curves[i, :],
+                     c=viridis_cmap(float(i) / (no_files - 1)),
+                     alpha=0.9, fill=False, lw=4, zorder=2)
+        curr_ax.set_xlabel("Entropy {:1.3f} - id {:4}".format(
+            entropy[entropy_selective_neuron_ids[i]],
+            # available_dsi[i],
+            entropy_selective_neuron_ids[i]))
+        curr_ax.set_ylim([0, 1.1 * maximus])
+
+    plt.savefig(
+        fig_folder + "entropy_individual_neurons{}.pdf".format(suffix_test),
+        bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "entropy_individual_neurons{}.svg".format(suffix_test),
+        bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
 
     return suffix_test, dsi_selective, dsi_not_selective
 
@@ -1589,7 +1628,7 @@ def evolution(filenames, times, suffix, path=None, show_plots=False):
     fig = plt.figure(figsize=(16, 8), dpi=600)
 
     plt.axhline(.5, color='#b2dd2c', ls=":")
-    bp = plt.boxplot(all_dsis.T, notch=True)#, patch_artist=True)
+    bp = plt.boxplot(all_dsis.T, notch=True)  # , patch_artist=True)
     # plt.setp(bp['medians'], color='#414C82')
     # plt.setp(bp['boxes'], alpha=0)
 
@@ -1993,7 +2032,6 @@ def elephant_analysis(archive, extra_suffix=None, show_plots=False, time_to_wast
     exc_spike_trains = exc_segment.spiketrains
     inh_spike_trains = inh_segment.spiketrains
 
-
     gathered_results['exc_block'] = exc_block
     gathered_results['inh_block'] = inh_block
 
@@ -2032,7 +2070,6 @@ def elephant_analysis(archive, extra_suffix=None, show_plots=False, time_to_wast
 
     # analysis using SPADE https://elephant.readthedocs.io/en/latest/reference/spade.html
 
-
     if not time_to_waste:
         print("{:45}".format("Seems we have no time to waste. Exiting this test ..."))
         return gathered_results
@@ -2041,7 +2078,7 @@ def elephant_analysis(archive, extra_suffix=None, show_plots=False, time_to_wast
     binsize = 20 * ms
     print("{:45}".format("Binning excitatory spikes ..."))
     start_time = datetime.now()
-    binned_spikes = conversion.BinnedSpikeTrain(exc_spike_trains, binsize=binsize, t_start=0 * ms, t_stop=simtime/10)
+    binned_spikes = conversion.BinnedSpikeTrain(exc_spike_trains, binsize=binsize, t_start=0 * ms, t_stop=simtime / 10)
     end_time = datetime.now()
     total_time = end_time - start_time
     print("{:45}".format("Excitatory spikes binned. Process took {}".format(total_time)))
@@ -2057,10 +2094,10 @@ def elephant_analysis(archive, extra_suffix=None, show_plots=False, time_to_wast
             plt.plot(patterns['times'] * binsize, [neu] * len(patterns['times']), 'ro', label='pattern')
         else:
             plt.plot(patterns['times'] * binsize, [neu] * len(patterns['times']), 'ro')
-         # Raster plot of the data
+        # Raster plot of the data
     for st_idx, st in enumerate(exc_spike_trains):
         if st_idx == 0:
-            plt.plot(st.rescale(ms), [st_idx] * len(st), 'k.', label = 'spikes')
+            plt.plot(st.rescale(ms), [st_idx] * len(st), 'k.', label='spikes')
         else:
             plt.plot(st.rescale(ms), [st_idx] * len(st), 'k.')
     plt.ylim([-1, len(exc_spike_trains)])
@@ -2083,13 +2120,11 @@ def elephant_analysis(archive, extra_suffix=None, show_plots=False, time_to_wast
     # also, incorporate knowledge about individual neuron preferences to see if they have similar activity and
     # if they are different from other angles
 
-
     numbers = np.random.choice(np.arange(N_layer), 100, replace=False)
     numbers = np.sort(numbers)
     print("{:45}".format("Computing van Rossum spike train dissimilarity between some EXC and INH neurons ("
                          "independent)"))
     print("{:45}".format("Neuron ids selected"), ":", numbers)
-
 
     list_of_spiketrains = []
     for no in numbers:
@@ -2258,6 +2293,7 @@ def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_pl
 
 if __name__ == "__main__":
     import sys
+
     #
     # Entropy
 
