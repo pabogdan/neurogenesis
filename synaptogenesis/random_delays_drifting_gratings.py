@@ -236,8 +236,8 @@ if not args.testing:
     # TRAINING REGIME!
     # the following loads ALL of the spikes in Memory! This is expensive for long simulations
     aa, final_on_gratings, final_off_gratings = \
-        generate_bar_input(t_record, chunk, N_layer,
-                           angles=training_angles, offset=0)
+        generate_bar_input(no_iterations, chunk, N_layer,
+                           angles=training_angles)
     actual_angles.append(aa)
 
     # Add +-1 ms to all times in input
@@ -640,19 +640,19 @@ try:
 
         # generate spikes depending on whether we're training or testing
         # load data
-        if not args.testing:
-            aa, final_on_gratings, final_off_gratings = \
-                generate_bar_input(t_record, chunk, N_layer,
-                                   angles=training_angles,
-                                   offset=current_run * run_duration)
-
-            actual_angles.append(aa)
-            # Add +-1 ms to all times in input
-            if args.jitter:
-                final_on_gratings, final_off_gratings = jitter_the_input(
-                    final_on_gratings, final_off_gratings)
-            source_pop.tset("spike_times", final_on_gratings)
-            source_pop_off.tset("spike_times", final_off_gratings)
+        # if not args.testing:
+        #     aa, final_on_gratings, final_off_gratings = \
+        #         generate_bar_input(t_record, chunk, N_layer,
+        #                            angles=training_angles,
+        #                            offset=current_run * run_duration)
+        #
+        #     actual_angles.append(aa)
+        #     # Add +-1 ms to all times in input
+        #     if args.jitter:
+        #         final_on_gratings, final_off_gratings = jitter_the_input(
+        #             final_on_gratings, final_off_gratings)
+        #     source_pop.tset("spike_times", final_on_gratings)
+        #     source_pop_off.tset("spike_times", final_off_gratings)
 
 
 
