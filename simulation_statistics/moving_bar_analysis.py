@@ -943,6 +943,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     assert np.all(entropy <= max_entropy), entropy
 
     print("{:45}".format("Mean Entropy"), ":", np.mean(entropy))
+    print("{:45}".format("Max possible Entropy (least amount of information)"), ":", max_entropy)
 
     fig, (ax) = plt.subplots(1, 1, figsize=(10, 10), dpi=600)
     i = ax.imshow(entropy.reshape(grid[0], grid[1]), vmin=0, vmax=max_entropy)
@@ -999,6 +1000,25 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     plt.savefig(
         fig_folder + "entropy_individual_neurons{}.svg".format(suffix_test),
         bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    # Entropy histogram
+    hist_weights = np.ones_like(entropy) / float(N_layer)
+    normalised_entropy = entropy / max_entropy
+    fig = plt.figure(figsize=(16, 8))
+    plt.hist(normalised_entropy, bins=np.linspace(0, 1, 21), color='#414C82',
+             edgecolor='k', weights=hist_weights)
+    plt.xticks(np.linspace(0, 1, 11))
+    plt.xlabel("Normalised Entropy")
+    plt.ylabel("% of neurons")
+    plt.savefig(
+        fig_folder + "entropy_histogram{}.pdf".format(
+            suffix_test))
+    plt.savefig(
+        fig_folder + "entropy_histogram{}.svg".format(
+            suffix_test))
     if show_plots:
         plt.show()
     plt.close(fig)
