@@ -430,3 +430,17 @@ def backward_compatibility_get_dsi(per_neuron_all_rates, angles, N_layer):
     dsi_selective = np.asarray(dsi_selective)
     dsi_not_selective = np.asarray(dsi_not_selective)
     return dsi_selective, dsi_not_selective
+
+def compute_per_neuron_entropy(per_neuron_all_rates, angles, N_layer):
+    entropy = np.empty((N_layer))
+    for nid in range(N_layer):
+        # Retrieve the firing profile of this neuron
+        profile = get_omnidirectional_neural_response_for_neuron(nid, per_neuron_all_rates, angles, N_layer)
+        normalised_profile = profile / np.sum(profile)
+        current_sum = 0
+        for normed_rate in normalised_profile:
+            if not np.less(normed_rate, 0.0001):
+                current_sum += (normed_rate * np.log2(normed_rate))
+        entropy[nid] = -current_sum
+    return entropy
+

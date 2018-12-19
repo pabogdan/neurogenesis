@@ -938,18 +938,11 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
         plt.close(fig)
 
     # Entropy play
-    entropy = np.empty((N_layer))
+    entropy = compute_per_neuron_entropy(per_neuron_all_rates, angles, N_layer)
     max_entropy = (-np.log2(1. / angles.size))
-    for nid in range(N_layer):
-        # Retrieve the firing profile of this neuron
-        profile = get_omnidirectional_neural_response_for_neuron(nid, per_neuron_all_rates, angles, N_layer)
-        normalised_profile = profile / np.sum(profile)
-        current_sum = 0
-        for normed_rate in normalised_profile:
-            if not np.less(normed_rate, 0.0001):
-                current_sum += (normed_rate * np.log2(normed_rate))
-        assert np.all((-current_sum) <= max_entropy), -current_sum
-        entropy[nid] = -current_sum
+    assert np.all(entropy <= max_entropy), entropy
+
+    print("{:45}".format("Mean Entropy"), ":", np.mean(entropy))
 
     fig, (ax) = plt.subplots(1, 1, figsize=(10, 10), dpi=600)
     i = ax.imshow(entropy.reshape(grid[0], grid[1]), vmin=0, vmax=max_entropy)
@@ -991,7 +984,6 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     viridis_cmap = mlib.cm.get_cmap('viridis')
     for curr_ax_id, curr_ax in np.ndenumerate(axes):
         i = int(curr_ax_id[0])
-        # curr_ax.axvline(np.deg2rad(unique_angles_of_interest[i]), color="#bbbbbb", lw=4, zorder=1)
         curr_ax.fill(radians, entropy_selective_firing_curves[i, :],
                      c=viridis_cmap(float(i) / (no_files - 1)),
                      alpha=0.9, fill=False, lw=4, zorder=2)
@@ -2297,9 +2289,9 @@ if __name__ == "__main__":
     #
     # Entropy
 
-    # fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
-    # analyse_one(fname)
-    # sys.exit()
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+    analyse_one(fname)
+    sys.exit()
 
     # fname = args.preproc_folder + "motion_batch_analysis_145113_17122018"
     # info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
