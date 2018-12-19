@@ -943,7 +943,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     assert np.all(entropy <= max_entropy), entropy
 
     print("{:45}".format("Mean Entropy"), ":", np.mean(entropy))
-    print("{:45}".format("Max possible Entropy (least amount of information)"), ":", max_entropy)
+    print("{:45}".format("Max possible Entropy"), ":", max_entropy)
 
     fig, (ax) = plt.subplots(1, 1, figsize=(10, 10), dpi=600)
     i = ax.imshow(entropy.reshape(grid[0], grid[1]), vmin=0, vmax=max_entropy)
@@ -1107,6 +1107,8 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
     N_layer = grid[0] * grid[1]
     n = grid[0]
     g_max = sim_params['g_max']
+
+    viridis_cmap = mlib.cm.get_cmap('viridis')
     # TODO Begin asserts
 
     # generate suffix
@@ -1550,6 +1552,53 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
     plt.savefig(
         fig_folder + "comparison_per_angle_dsi_response{}.svg".format(suffix_test), dpi=800,
         bbox_inches='tight')  # , pad_inches=1)
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    random_entropy = compute_per_neuron_entropy(random_per_neuron_all_rates, angles, N_layer)
+    constant_entropy = compute_per_neuron_entropy(constant_per_neuron_all_rates, angles, N_layer)
+    max_entropy = (-np.log2(1. / angles.size))
+    assert np.all(random_entropy <= max_entropy), random_entropy
+    assert np.all(constant_entropy <= max_entropy), constant_entropy
+
+    print("{:45}".format("Mean Random Entropy"), ":", np.mean(random_entropy))
+    print("{:45}".format("Mean Constant Entropy"), ":", np.mean(constant_entropy))
+    print("{:45}".format("Max possible Entropy"), ":", max_entropy)
+
+    fig = plt.figure(figsize=(15, 8), dpi=800)
+    img_grid = ImageGrid(fig, 111,
+                         nrows_ncols=(1, 2),
+                         axes_pad=0.15,
+                         share_all=True,
+                         cbar_location="right",
+                         cbar_mode="single",
+                         cbar_size="7%",
+                         cbar_pad=0.15,
+                         )
+    imgs = [random_entropy.reshape(grid[0], grid[1]),
+            constant_entropy.reshape(grid[0], grid[1])]
+    # Add data to image grid
+
+    index = 0
+    for ax in img_grid:
+        im = ax.imshow(imgs[index], vmin=0, vmax=max_entropy, cmap=viridis_cmap)
+        index += 1
+
+    # Colorbar
+    ax.cax.colorbar(im)
+    ax.cax.toggle_label(True)
+
+    img_grid[0].set_xlabel("Neuron ID")
+    img_grid[0].set_ylabel("Neuron ID")
+    img_grid[1].set_xlabel("Neuron ID")
+
+    plt.savefig(
+        fig_folder + "comparison_per_neuron_entropy{}.pdf".format(suffix_test),
+        bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "comparison_per_neuron_entropy{}.svg".format(suffix_test),
+        bbox_inches='tight')
     if show_plots:
         plt.show()
     plt.close(fig)
@@ -2341,20 +2390,22 @@ if __name__ == "__main__":
     # info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
     # batch_analyser(fname, info_fname)
 
-    filenames = [
-        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0",
-        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"]
-
-    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
-             38400 * bunits.second, 76800 * bunits.second]
-
-    evolution(filenames, times, path=args.preproc_folder, suffix="1_angles_0")
-
-    sys.exit()
+    # filenames = [
+    #     "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_evo",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_evo",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_evo",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"]
+    #
+    # times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+    #          38400 * bunits.second, 76800 * bunits.second]
+    #
+    # evolution(filenames, times, path=args.preproc_folder, suffix="1_angles_0")
+    # fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+    # fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
+    # comparison(fname1, fname2)
+    # sys.exit()
 
     # Single experiment analysis
     # Runs for 192k ms or ~5 hours ---------------------------
