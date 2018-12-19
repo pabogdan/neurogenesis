@@ -1567,6 +1567,7 @@ def evolution(filenames, times, suffix, path=None, show_plots=False):
     angles = []
     N_layer = None
     radians = None
+    all_entropies = []
     times = np.asarray(times)
     times_in_minutes = times / (60 * bunits.second)
     times_in_minutes = times_in_minutes.astype(dtype=int)
@@ -1603,11 +1604,14 @@ def evolution(filenames, times, suffix, path=None, show_plots=False):
         all_dsis.append(concatenated_dsis)
 
         assert concatenated_dsis.size == N_layer
+        # Compute entropy
+        all_entropies.append(compute_per_neuron_entropy(per_neuron_all_rates, angles, N_layer))
         # Close files
         cached_data.close()
         testing_data.close()
 
     all_dsis = np.asarray(all_dsis)
+    all_entropies = np.asarray(all_entropies)
 
     fig = plt.figure(figsize=(10, 10), dpi=800)
     ax = plt.subplot(111, projection='polar')
@@ -1651,6 +1655,25 @@ def evolution(filenames, times, suffix, path=None, show_plots=False):
     plt.grid(True, which='major', axis='y')
     plt.savefig(fig_folder + "dsi_evolution_boxplot_{}.pdf".format(suffix))
     plt.savefig(fig_folder + "dsi_evolution_boxplot_{}.svg".format(suffix))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    max_entropy = (-np.log2(1. / angles.size))
+    # plot evolution of entropy when increasing training
+    fig = plt.figure(figsize=(16, 8), dpi=600)
+
+    bp = plt.boxplot(all_entropies.T, notch=True)  # , patch_artist=True)
+    # plt.setp(bp['medians'], color='#414C82')
+    # plt.setp(bp['boxes'], alpha=0)
+
+    plt.xticks(np.arange(times_in_minutes.shape[0]) + 1, times_in_minutes)
+    plt.xlabel("Time (minutes)")
+    plt.ylabel("Entropy")
+    plt.ylim([-.05, max_entropy + 0.05])
+    plt.grid(True, which='major', axis='y')
+    plt.savefig(fig_folder + "entropy_evolution_boxplot_{}.pdf".format(suffix))
+    plt.savefig(fig_folder + "entropy_evolution_boxplot_{}.svg".format(suffix))
     if show_plots:
         plt.show()
     plt.close(fig)
@@ -1720,11 +1743,12 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     exp_shape_layer.append(N_layer)
 
     all_dsis = np.ones(exp_shape_layer) * np.nan
+    # TODO this requires the preprocessed file already have this information
+    all_entropies = np.ones(exp_shape_layer) * np.nan
 
     exp_shape_angle = copy.deepcopy(file_shape)
     exp_shape_angle.append(angles.size)
     all_mean_rates = np.ones(exp_shape_angle) * np.nan
-    entropies = np.ones(exp_shape_angle) * np.nan
     for file_index, file_key in np.ndenumerate(file_matrix):
         if file_key == '' or ".npz" not in file_key or file_key not in batch_data.files:
             continue  # I don't particularly want this, but otherwise I indent everything too much
@@ -2309,18 +2333,33 @@ if __name__ == "__main__":
     #
     # Entropy
 
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
-    analyse_one(fname)
-    sys.exit()
+    # fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+    # analyse_one(fname)
+    # sys.exit()
 
     # fname = args.preproc_folder + "motion_batch_analysis_145113_17122018"
     # info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
     # batch_analyser(fname, info_fname)
-    # sys.exit()
+
+    filenames = [
+        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0",
+        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"]
+
+    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+             38400 * bunits.second, 76800 * bunits.second]
+
+    evolution(filenames, times, path=args.preproc_folder, suffix="1_angles_0")
+
+    sys.exit()
 
     # Single experiment analysis
     # Runs for 192k ms or ~5 hours ---------------------------
     # 1 angle
+    print("{:45}".format("Generating single experiment plots ..."))
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
     analyse_one(fname)
 
@@ -2395,6 +2434,7 @@ if __name__ == "__main__":
     # Comparison between 2 experiments
     # Runs for 192k ms or ~5 hours ---------------------------
     # 1 angle
+    print("{:45}".format("Generating 2 experiment comparison plots ..."))
 
     fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
     fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
@@ -2464,6 +2504,7 @@ if __name__ == "__main__":
 
     # Generating evolution plots
     # 1 angle, random delays
+    print("{:45}".format("Generating evolution plots ..."))
     filenames = [
         "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_evo",
         "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_evo",
@@ -2586,10 +2627,12 @@ if __name__ == "__main__":
     evolution(filenames, times, path=args.preproc_folder, suffix="_all_angles")
 
     # Experiment batch analysis -- usually, these are sensitivity analysis
+    print("{:45}".format("Generating batch analysis plots ..."))
     fname = args.preproc_folder + "motion_batch_analysis_145113_17122018"
     info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
     batch_analyser(fname, info_fname)
 
     # Elephant analysis of single experiments
+    print("{:45}".format("Generating Elephant plots ..."))
     fname = "testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
     elephant_analysis(fname, time_to_waste=args.time_to_waste)
