@@ -191,7 +191,8 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     if extra_suffix:
         suffix_test += "_" + extra_suffix
 
-    print("analysing one run:", archive, "with suffix", suffix_test)
+    print("{:45}".format("Analysing a single experiment"), ":", archive)
+    print("{:45}".format("Results appended the following suffix"), ":", suffix_test)
     # Begin the plotting
     # response histograms
     fig = plt.figure(figsize=(16, 8), dpi=600)
@@ -594,6 +595,8 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     if show_plots:
         plt.show()
     plt.close(fig)
+    print("{:45}".format("Mean Synaptic capacity usage"), ":", np.mean(number_of_afferents))
+    print("{:45}".format("STD Synaptic capacity usage"), ":", np.std(number_of_afferents))
 
     # weight histograms
     fig, axes = plt.subplots(1, 5, figsize=(15, 7), sharey=True)
@@ -1621,6 +1624,9 @@ def evolution(filenames, times, suffix, path=None, show_plots=False):
     times_in_minutes = times / (60 * bunits.second)
     times_in_minutes = times_in_minutes.astype(dtype=int)
 
+    print("{:45}".format("Experiment evolution. # of snapshots"), ":", len(filenames))
+    print("{:45}".format("Results appended the following suffix"), ":", suffix)
+
     if not path:
         path = root_syn
 
@@ -1793,7 +1799,10 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
 
     all_dsis = np.ones(exp_shape_layer) * np.nan
     # TODO this requires the preprocessed file already have this information
-    all_entropies = np.ones(exp_shape_layer) * np.nan
+    all_exc_entropies = np.ones(exp_shape_layer) * np.nan
+    all_inh_entropies = np.ones(exp_shape_layer) * np.nan
+    mean_exc_entropy = np.empty(dsi_comparison.shape)
+    mean_inh_entropy = np.empty(dsi_comparison.shape)
 
     exp_shape_angle = copy.deepcopy(file_shape)
     exp_shape_angle.append(angles.size)
@@ -1812,6 +1821,10 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
         dsi_comparison[file_index] = average_dsi
         all_dsis[file_index] = all_dsi
         all_mean_rates[file_index] = rate_means
+        all_exc_entropies[file_index] = current_results['exc_entropy']
+        all_inh_entropies[file_index] = current_results['inh_entropy']
+        mean_exc_entropy[file_index] = np.mean(all_exc_entropies[file_index])
+        mean_inh_entropy[file_index] = np.mean(all_inh_entropies[file_index])
 
     # Mean DSI comparison
     fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8), dpi=800)
@@ -1856,10 +1869,10 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     # plt.xlabel("DSI")
     # plt.ylabel("% of neurons")
     plt.savefig(
-        fig_folder + "dsi_histograms_comparison{}.pdf".format(
+        fig_folder + "dsi_histograms_comparison_{}.pdf".format(
             suffix_test))
     plt.savefig(
-        fig_folder + "dsi_histograms_comparison{}.svg".format(
+        fig_folder + "dsi_histograms_comparison_{}.svg".format(
             suffix_test))
     if show_plots:
         plt.show()
@@ -1889,10 +1902,10 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     # ax.set_ylim([.8 * minimus, 1.1 * maximus])
     # ax.set_xlabel("Random delays")
     plt.savefig(
-        fig_folder + "rate_means_comparison{}.pdf".format(suffix_test),
+        fig_folder + "rate_means_comparison_{}.pdf".format(suffix_test),
         bbox_inches='tight')
     plt.savefig(
-        fig_folder + "rate_means_comparison{}.svg".format(suffix_test),
+        fig_folder + "rate_means_comparison_{}.svg".format(suffix_test),
         bbox_inches='tight')
     if show_plots:
         plt.show()
@@ -1900,6 +1913,56 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
 
     batch_data.close()
     batch_info.close()
+
+    # Mean Entropy comparison
+    fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8), dpi=800)
+    i = ax1.matshow(mean_exc_entropy)
+    ax1.set_ylabel(batch_parameters.keys()[0])
+    ax1.set_yticks(np.arange(value_list[0].size))
+    ax1.set_yticklabels(value_list[0])
+    ax1.set_xlabel(batch_parameters.keys()[1])
+    ax1.set_xticks(np.arange(value_list[1].size))
+    ax1.set_xticklabels(value_list[1], rotation='vertical')
+    ax1.grid(visible=False)
+    divider = make_axes_locatable(plt.gca())
+    cax = divider.append_axes("right", "5%", pad="3%")
+    cbar = plt.colorbar(i, cax=cax)
+    cbar.set_label("Entropy")
+    plt.savefig(
+        fig_folder + "entropy_comparison_{}.pdf".format(
+            suffix_test))
+    plt.savefig(
+        fig_folder + "entropy_comparison_{}.svg".format(
+            suffix_test))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    # inhibitory
+
+    fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8), dpi=800)
+    i = ax1.matshow(mean_inh_entropy)
+    ax1.set_ylabel(batch_parameters.keys()[0])
+    ax1.set_yticks(np.arange(value_list[0].size))
+    ax1.set_yticklabels(value_list[0])
+    ax1.set_xlabel(batch_parameters.keys()[1])
+    ax1.set_xticks(np.arange(value_list[1].size))
+    ax1.set_xticklabels(value_list[1], rotation='vertical')
+    ax1.grid(visible=False)
+    divider = make_axes_locatable(plt.gca())
+    cax = divider.append_axes("right", "5%", pad="3%")
+    cbar = plt.colorbar(i, cax=cax)
+    cbar.set_label("Entropy")
+    plt.savefig(
+        fig_folder + "inh_entropy_comparison_{}.pdf".format(
+            suffix_test))
+    plt.savefig(
+        fig_folder + "inh_entropy_comparison_{}.svg".format(
+            suffix_test))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
 
 
 def sigma_and_ad_analyser(archive, out_filename=None, extra_suffix=None, show_plots=False):
@@ -2386,7 +2449,7 @@ if __name__ == "__main__":
     # analyse_one(fname)
     # sys.exit()
 
-    # fname = args.preproc_folder + "motion_batch_analysis_145113_17122018"
+    # fname = args.preproc_folder + "motion_batch_analysis_120019_22122018"
     # info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
     # batch_analyser(fname, info_fname)
 
@@ -2405,7 +2468,7 @@ if __name__ == "__main__":
     # fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
     # fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
     # comparison(fname1, fname2)
-    # sys.exit()
+    sys.exit()
 
     # Single experiment analysis
     # Runs for 192k ms or ~5 hours ---------------------------
@@ -2529,6 +2592,18 @@ if __name__ == "__main__":
 
     comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=diff_duration_custom_labels)
 
+    # 0 vs 45
+    diff_angles_custom_labels = ["0", "45"]
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo"
+    comparison(fname1, fname2, extra_suffix="0_vs_45", custom_labels=diff_angles_custom_labels)
+
+    # and longer
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_evo"
+    comparison(fname1, fname2, extra_suffix="0_vs_45_384k", custom_labels=diff_angles_custom_labels)
+
     # 2 angles
     # 0 and 90 degrees
     fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
@@ -2540,6 +2615,17 @@ if __name__ == "__main__":
     fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_135_evo"
 
     comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=diff_duration_custom_labels)
+
+    # 0+90 vs 45+135
+    diff_angles_custom_labels = ["0 and 90", "45 and 135"]
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_evo"
+    comparison(fname1, fname2, extra_suffix="0_90_vs_45_135", custom_labels=diff_angles_custom_labels)
+
+    # and longer
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_evo"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_135_evo"
+    comparison(fname1, fname2, extra_suffix="0_90_vs_45_135_384k", custom_labels=diff_angles_custom_labels)
 
     # 4 angles
     fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
@@ -2679,7 +2765,7 @@ if __name__ == "__main__":
 
     # Experiment batch analysis -- usually, these are sensitivity analysis
     print("{:45}".format("Generating batch analysis plots ..."))
-    fname = args.preproc_folder + "motion_batch_analysis_145113_17122018"
+    fname = args.preproc_folder + "motion_batch_analysis_120019_22122018"
     info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
     batch_analyser(fname, info_fname)
 
