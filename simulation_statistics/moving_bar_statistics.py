@@ -353,6 +353,16 @@ for file in paths:
             dsi_selective = np.asarray(dsi_selective)
             dsi_not_selective = np.asarray(dsi_not_selective)
 
+            inh_all_average_responses_with_angle, _, _ = compute_all_average_responses_with_angle(
+                inh_per_neuron_all_rates, angles, N_layer)
+            inh_dsi_selective, inh_dsi_not_selective = get_filtered_dsi_per_neuron(all_average_responses_with_angle,
+                                                                               N_layer)
+            inh_dsi_selective = np.asarray(inh_dsi_selective)
+            inh_dsi_not_selective = np.asarray(inh_dsi_not_selective)
+
+            exc_entropy = compute_per_neuron_entropy(per_neuron_all_rates, angles, N_layer)
+            inh_entropy = compute_per_neuron_entropy(inh_per_neuron_all_rates, angles, N_layer)
+
         else:
             print("Using cached data.")
             if ".npz" in filename:
@@ -415,6 +425,16 @@ for file in paths:
             dsi_selective = np.asarray(dsi_selective)
             dsi_not_selective = np.asarray(dsi_not_selective)
 
+            inh_all_average_responses_with_angle, _, _ = compute_all_average_responses_with_angle(
+                inh_per_neuron_all_rates, angles, N_layer)
+            inh_dsi_selective, inh_dsi_not_selective = get_filtered_dsi_per_neuron(all_average_responses_with_angle,
+                                                                               N_layer)
+            inh_dsi_selective = np.asarray(inh_dsi_selective)
+            inh_dsi_not_selective = np.asarray(inh_dsi_not_selective)
+
+            exc_entropy = compute_per_neuron_entropy(per_neuron_all_rates, angles, N_layer)
+            inh_entropy = compute_per_neuron_entropy(inh_per_neuron_all_rates, angles, N_layer)
+
         print()
         pp(sim_params)
         print()
@@ -476,7 +496,11 @@ for file in paths:
                 lat_num_network=lat_num_network,
                 ff_num_network=ff_num_network,
 
+                # direction selectivity indices
                 dsi_selective=dsi_selective, dsi_not_selective=dsi_not_selective,
+                inh_dsi_selective=inh_dsi_selective, inh_dsi_not_selective=inh_dsi_not_selective,
+                # entropy
+                exc_entropy=exc_entropy, inh_entropy=inh_entropy,
 
                 # Simulation parameters
                 testing_sim_params=sim_params,
@@ -501,6 +525,8 @@ for file in paths:
                 "lat_last": np.copy(lat_last),
                 "dsi_selective": np.copy(dsi_selective),
                 "dsi_not_selective": np.copy(dsi_not_selective),
+                "inh_dsi_selective": np.copy(inh_dsi_selective),
+                "inh_dsi_not_selective": np.copy(inh_dsi_not_selective),
                 "inh_to_exh_last": np.copy(inh_to_exh_last),
                 "exh_to_inh_last": np.copy(exh_to_inh_last),
                 "inh_ff_last": np.copy(inh_ff_last),
@@ -508,86 +534,10 @@ for file in paths:
                 "inh_noise_last": np.copy(inh_noise_last),
                 "testing_sim_params": copy.deepcopy(sim_params),
                 "training_sim_params": copy.deepcopy(training_sim_params),
+                "exc_entropy": np.copy(exc_entropy),
+                "inh_entropy": np.copy(inh_entropy),
             }
             batch_files.append(file)
-        if args.plot and not sensitivity_analysis:
-            fig = plt.figure(figsize=(16, 8), dpi=600)
-            y, binEdges = np.histogram(angles, bins=angles.size)
-            bincenters = 0.5 * (binEdges[1:] + binEdges[:-1])
-            width = 5
-            plt.bar(angles, rate_means, width=width, yerr=rate_sem,
-                    color='#414C82', edgecolor='k')
-            plt.xlabel("Degree")
-            plt.ylabel("Hz")
-            plt.savefig("firing_rate_with_angle_hist.png")
-            plt.show()
-
-            fig = plt.figure(figsize=(16, 8), dpi=600)
-            y, binEdges = np.histogram(angles, bins=angles.size)
-            bincenters = 0.5 * (binEdges[1:] + binEdges[:-1])
-            width = 5
-            plt.bar(angles, rate_means, width=width, yerr=rate_stds,
-                    color='#414C82', edgecolor='k')
-            plt.xlabel("Degree")
-            plt.ylabel("Hz")
-            plt.savefig("firing_rate_with_angle_hist_std.png")
-            plt.show()
-
-            fig = plt.figure(figsize=(10, 10), dpi=600)
-            ax = plt.subplot(111, projection='polar')
-            N = 150
-            r = 2 * np.random.rand(N)
-            theta = 2 * np.pi * np.random.rand(N)
-            c = plt.scatter(radians, rate_means, c=rate_sem,
-                            s=100)
-            c.set_alpha(0.8)
-            plt.ylim([0, 1.2 * np.max(rate_means)])
-            plt.xlabel("Angle")
-
-            ax.set_title("Mean firing rate for specific input angle\n",
-                         va='bottom')
-            plt.savefig("firing_rate_with_angle.png")
-            plt.show()
-
-            f, ax = plt.subplots(1, 1, figsize=(15, 8),
-                                 subplot_kw=dict(projection='polar'), dpi=800)
-
-            # '#440357'  '#228b8d', '#b2dd2c'
-
-            maximus = np.max((rate_means))
-            minimus = 0
-
-            c = ax.fill(radians, rate_means, fill=False, edgecolor='#228b8d',
-                        lw=2, alpha=.8, label="Mean response")
-            mins = [np.min(r) for r in all_rates]
-            ax.fill(radians, mins, fill=False, edgecolor='#440357', lw=2,
-                    alpha=.8, label="Min response")
-            maxs = [np.max(r) for r in all_rates]
-            ax.fill(radians, maxs, fill=False, edgecolor='#b2dd2c', lw=2,
-                    alpha=1, label="Max response")
-            maximus = np.max(maxs)
-            ax.set_ylim([minimus, 1.1 * maximus])
-            ax.set_xlabel("Random delays")
-            plt.savefig("rate_means_min_max_mean.png", bbox_inches='tight')
-            plt.show()
-
-            plt.figure(figsize=(14, 8), dpi=600)
-            n, bins, patches = plt.hist(instaneous_rates, bins=40, normed=True)
-            print("mean", np.mean(instaneous_rates))
-            print("skew", stats.skew(n))
-            print("kurtosis", stats.kurtosis(n))
-            print("normality", stats.normaltest(n))
-            plt.title("Distribution of rates")
-            plt.xlabel("Instantaneous rate (Hz)")
-            plt.show()
-
-            plt.figure(figsize=(14, 8), dpi=600)
-            plt.plot(instaneous_rates)
-            plt.title("Evolution of rates")
-            plt.xlabel("Testing iteration")
-            plt.show()
-
-
     except IOError as e:
         print("IOError:", e)
         traceback.print_exc()
