@@ -2468,7 +2468,7 @@ if __name__ == "__main__":
     # fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
     # fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
     # comparison(fname1, fname2)
-    sys.exit()
+    # sys.exit()
 
     # Single experiment analysis
     # Runs for 192k ms or ~5 hours ---------------------------
