@@ -51,15 +51,15 @@ for phase in PHASES:
     for sigma_form_ff in sigma_form_ffs:
         for sigma_form_lat in sigma_form_lats:
             filename = "random_delay_" \
-                "smax_{}_" \
-                "gmax_{}_" \
-                "sigmaformff_{}_" \
-                "sigmaformlat_{}_" \
-                "_@{}".format(S_MAX,
-                              G_MAX,
-                              sigma_form_ff,
-                              sigma_form_lat,
-                              suffix)
+                       "smax_{}_" \
+                       "gmax_{}_" \
+                       "sigmaformff_{}_" \
+                       "sigmaformlat_{}_" \
+                       "_@{}".format(S_MAX,
+                                     G_MAX,
+                                     sigma_form_ff,
+                                     sigma_form_lat,
+                                     suffix)
             concurrently_active_processes += 1
             null = open(os.devnull, 'w')
             print("Run ", concurrently_active_processes, "...")
@@ -71,10 +71,11 @@ for phase in PHASES:
                     '--g_max', str(G_MAX),
                     '--no_iterations', str(iterations),
                     '--sigma_form_ff', str(sigma_form_ff),
-                    '--sigma_form_lat', str(sigma_form_lat)
+                    '--sigma_form_lat', str(sigma_form_lat),
+                    '--training_angles 0 90 180 270'
                     ]
             log_calls.append(call)
-            if concurrently_active_processes % MAX_CONCURRENT_PROCESSES == 0\
+            if concurrently_active_processes % MAX_CONCURRENT_PROCESSES == 0 \
                     or concurrently_active_processes == total_runs:
                 # Blocking
                 subprocess.call(call,
@@ -89,6 +90,6 @@ print("All done!")
 end_time = plt.datetime.datetime.now()
 total_time = end_time - currrent_time
 np.savez_compressed("batch_{}".format(suffix),
-         parameters_of_interest=parameters_of_interest,
-         total_time=total_time,
-         log_calls=log_calls)
+                    parameters_of_interest=parameters_of_interest,
+                    total_time=total_time,
+                    log_calls=log_calls)
