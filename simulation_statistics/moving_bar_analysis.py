@@ -2441,33 +2441,6 @@ def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_pl
 
 if __name__ == "__main__":
     import sys
-
-    #
-    # Entropy
-
-    # fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
-    # analyse_one(fname)
-    # sys.exit()
-
-    # fname = args.preproc_folder + "motion_batch_analysis_120019_22122018"
-    # info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
-    # batch_analyser(fname, info_fname)
-
-    # filenames = [
-    #     "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_evo",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_evo",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_evo",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"]
-    #
-    # times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
-    #          38400 * bunits.second, 76800 * bunits.second]
-    #
-    # evolution(filenames, times, path=args.preproc_folder, suffix="1_angles_0")
-    # fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
-    # fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
-    # comparison(fname1, fname2)
     # sys.exit()
 
     # Single experiment analysis
@@ -2738,12 +2711,12 @@ if __name__ == "__main__":
         "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_NESW_evo",
         "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo",
         "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_evo",
-        # "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_evo"
+        "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_evo"
     ]
 
     times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
              38400 * bunits.second,
-             # 76800 * bunits.second
+             76800 * bunits.second
              ]
     evolution(filenames, times, path=args.preproc_folder, suffix="_4_angles_0_90_180_270_training_without_noise")
 
