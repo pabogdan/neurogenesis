@@ -453,3 +453,11 @@ def compute_per_neuron_entropy(per_neuron_all_rates, angles, N_layer):
 
 def get_max_entropy(angles):
     return -np.log2(1. / angles.size)
+
+def get_number_of_afferents(N_layer, ff_num_network, lat_num_network):
+    number_of_afferents = np.empty(N_layer)
+    for index, value in np.ndenumerate(number_of_afferents):
+        number_of_afferents[index] = np.nansum(
+            ff_num_network[:, index[0]]) + np.nansum(
+            lat_num_network[:, index[0]])
+    return number_of_afferents

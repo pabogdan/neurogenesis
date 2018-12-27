@@ -576,11 +576,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
 
     # connectivity plots and info
 
-    number_of_afferents = np.empty(N_layer)
-    for index, value in np.ndenumerate(number_of_afferents):
-        number_of_afferents[index] = np.nansum(
-            ff_num_network[:, index[0]]) + np.nansum(
-            lat_num_network[:, index[0]])
+    number_of_afferents = get_number_of_afferents(N_layer, ff_num_network, lat_num_network)
 
     fig, (ax) = plt.subplots(1, 1, figsize=(12, 10))
     i = ax.imshow(number_of_afferents.reshape(grid[0], grid[1]), vmin=0)
@@ -1619,11 +1615,13 @@ def evolution(filenames, times, suffix, path=None, show_plots=False):
     all_dsis = []
     angles = []
     N_layer = None
+    s_max = None
     radians = None
     all_entropies = []
     times = np.asarray(times)
     times_in_minutes = times / (60 * bunits.second)
     times_in_minutes = times_in_minutes.astype(dtype=int)
+    num_afferents = []
 
     print("{:45}".format("Experiment evolution. # of snapshots"), ":", len(filenames))
     print("{:45}".format("Results appended the following suffix"), ":", suffix)
@@ -1638,6 +1636,7 @@ def evolution(filenames, times, suffix, path=None, show_plots=False):
             os.path.join(root_syn, "spiking_moving_bar_input", "spiking_moving_bar_motif_bank_simtime_1200s.npz"))
         sim_params = np.array(cached_data['testing_sim_params']).ravel()[0]
         grid = sim_params['grid']
+        s_max = sim_params['s_max']
         N_layer = grid[0] * grid[1]
         rate_means = cached_data['rate_means']
         rate_stds = cached_data['rate_stds']
@@ -1646,10 +1645,13 @@ def evolution(filenames, times, suffix, path=None, show_plots=False):
         radians = cached_data['radians']
         angles = cached_data['angles']
         per_neuron_all_rates = cached_data['per_neuron_all_rates']
+        ff_num_network = cached_data['ff_num_network']
+        lat_num_network = cached_data['lat_num_network']
 
         all_rate_means.append(rate_means)
         all_rate_sems.append(rate_sem)
         all_radians = radians
+        num_afferents.append(get_number_of_afferents(N_layer, ff_num_network, lat_num_network))
 
         if "dsi_selective" in cached_data.files and "dsi_not_selective" in cached_data.files:
             dsi_selective = cached_data['dsi_selective']
@@ -1668,6 +1670,10 @@ def evolution(filenames, times, suffix, path=None, show_plots=False):
 
     all_dsis = np.asarray(all_dsis)
     all_entropies = np.asarray(all_entropies)
+    num_afferents = np.asarray(num_afferents)
+
+    # stlye the median of boxplots
+    medianprops = dict(color='#414C82', linewidth=1.5)
 
     fig = plt.figure(figsize=(10, 10), dpi=800)
     ax = plt.subplot(111, projection='polar')
@@ -1700,7 +1706,7 @@ def evolution(filenames, times, suffix, path=None, show_plots=False):
     fig = plt.figure(figsize=(16, 8), dpi=600)
 
     plt.axhline(.5, color='#b2dd2c', ls=":")
-    bp = plt.boxplot(all_dsis.T, notch=True)  # , patch_artist=True)
+    bp = plt.boxplot(all_dsis.T, notch=True, medianprops=medianprops)  # , patch_artist=True)
     # plt.setp(bp['medians'], color='#414C82')
     # plt.setp(bp['boxes'], alpha=0)
 
@@ -1719,7 +1725,7 @@ def evolution(filenames, times, suffix, path=None, show_plots=False):
     # plot evolution of entropy when increasing training
     fig = plt.figure(figsize=(16, 8), dpi=600)
 
-    bp = plt.boxplot(all_entropies.T, notch=True)  # , patch_artist=True)
+    bp = plt.boxplot(all_entropies.T, notch=True, medianprops=medianprops)  # , patch_artist=True)
     # plt.setp(bp['medians'], color='#414C82')
     # plt.setp(bp['boxes'], alpha=0)
 
@@ -1733,6 +1739,23 @@ def evolution(filenames, times, suffix, path=None, show_plots=False):
     if show_plots:
         plt.show()
     plt.close(fig)
+
+    # synaptic capacity evolution
+    fig = plt.figure(figsize=(16, 8), dpi=600)
+
+    plt.axhline(s_max, color='#b2dd2c', ls=":")
+    bp = plt.boxplot(num_afferents.T, notch=True, medianprops=medianprops)
+
+    plt.xticks(np.arange(times_in_minutes.shape[0]) + 1, times_in_minutes)
+    plt.xlabel("Time (minutes)")
+    plt.ylabel("Mean synaptic capacity usage")
+    plt.grid(True, which='major', axis='y')
+    plt.savefig(fig_folder + "number_of_afferents_evolution_boxplot_{}.pdf".format(suffix))
+    plt.savefig(fig_folder + "number_of_afferents_evolution_boxplot_{}.svg".format(suffix))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
 
 
 def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plots=False):
@@ -2522,6 +2545,19 @@ if __name__ == "__main__":
     # fname = args.preproc_folder + "motion_batch_analysis_120019_22122018"
     # info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
     # batch_analyser(fname, info_fname)
+
+    # filenames = [
+    #     "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_evo",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_evo",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_evo",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
+    #     "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"]
+    #
+    # times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+    #          38400 * bunits.second, 76800 * bunits.second]
+    #
+    # evolution(filenames, times, path=args.preproc_folder, suffix="1_angles_0")
     # sys.exit()
 
     # Single experiment analysis
