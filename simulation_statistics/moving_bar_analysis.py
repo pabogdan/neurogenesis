@@ -95,7 +95,7 @@ def generate_suffix(training_angles):
     if unique_tas.size <= 4:
         for ta in unique_tas:
             suffix_test += "_" + str(ta)
-    print("The suffix for this set of figures is ", suffix_test)
+    print("{:45}".format("The suffix for this set of figures is "),":", suffix_test)
     return suffix_test
 
 
@@ -276,10 +276,10 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     if inh_instaneous_rates.size > 0:
         n, bins, patches = plt.hist(inh_instaneous_rates, bins=40, normed=True,
                                     alpha=.75)
-    print("mean", np.mean(instaneous_rates))
-    print("skew", stats.skew(n))
-    print("kurtosis", stats.kurtosis(n))
-    print("normality", stats.normaltest(n))
+    print("{:45}".format("mean rate"), np.mean(instaneous_rates))
+    print("{:45}".format("rate distribution skew"), stats.skew(n))
+    print("{:45}".format("rate distribution kurtosis"), stats.kurtosis(n))
+    print("{:45}".format("rate distribution normality"), stats.normaltest(n))
     plt.title("Distribution of rates")
     plt.xlabel("Instantaneous rate (Hz)")
     plt.savefig(fig_folder + "rate_distribution{}.pdf".format(suffix_test),
@@ -299,7 +299,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     y, binEdges = np.histogram(all_delays, bins=np.unique(all_delays).size)
     bincenters = 0.5 * (binEdges[1:] + binEdges[:-1])
     width = 1
-    print("Delays:", np.unique(all_delays))
+    print("{:45}".format("Unique Delays present in networ"), ":", np.unique(all_delays))
     plt.bar(np.unique(all_delays), y, width=width,
             color='#414C82', edgecolor='k')
 
@@ -534,7 +534,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     selective_180s = selective_ids[180 // 5]
     selective_270s = selective_ids[270 // 5]
     the_4 = [selective_0s, selective_90s, selective_180s, selective_270s]
-    print("the 4", the_4)
+    # print("the 4", the_4)
 
     super_selective_tuning_curves = np.empty((4, angles.size))
 
@@ -632,7 +632,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
                   i], "% of the possible connectivity (this number includes "
                       "multapses and autapses, if applicable")
     percentage_conn = np.asarray(percentage_conn)
-    print("Total connectivity =", all_conns.shape[0], "or ", np.sum(
+    print("{:45}".format("Total connectivity"), ":", all_conns.shape[0], "or ", np.sum(
         percentage_conn), "% of the possible connectivity")
     # TODO return a list of neuron indices in descending order of
     # selectivity to the training angles and / or in 45 deg increments
@@ -1562,8 +1562,8 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
     assert np.all(random_entropy <= max_entropy), random_entropy
     assert np.all(constant_entropy <= max_entropy), constant_entropy
 
-    print("{:45}".format("Mean Random Entropy"), ":", np.mean(random_entropy))
-    print("{:45}".format("Mean Constant Entropy"), ":", np.mean(constant_entropy))
+    print("{:45}".format("Random delays -- Mean Entropy"), ":", np.mean(random_entropy))
+    print("{:45}".format("Constant delays -- Mean Entropy"), ":", np.mean(constant_entropy))
     print("{:45}".format("Max possible Entropy"), ":", max_entropy)
 
     fig = plt.figure(figsize=(15, 8), dpi=800)
