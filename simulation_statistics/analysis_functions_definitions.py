@@ -379,6 +379,7 @@ def odc(fan_in_mat, mode=None):
     output[np.where(np.isnan(output))] = .5
     return output
 
+
 def compute_all_average_responses_with_angle(per_neuron_all_rates, angles, N_layer):
     all_average_responses_with_angle = np.empty((N_layer, angles.size, 2))
     for angle in angles:
@@ -399,10 +400,12 @@ def compute_all_average_responses_with_angle(per_neuron_all_rates, angles, N_lay
             i, int(max_average_responses_with_angle[i] // 5), 1]
     return all_average_responses_with_angle, max_average_responses_with_angle, sem_responses_with_angle
 
+
 def get_per_angle_responses(per_neuron_all_rates, angle, N_layer):
     current_angle_responses = per_neuron_all_rates[angle // 5].reshape(
         N_layer, per_neuron_all_rates[angle // 5].shape[0] // N_layer)
     return current_angle_responses
+
 
 def get_omnidirectional_neural_response_for_neuron(neuron_id, per_neuron_all_rates, angles, N_layer):
     neuron_id = int(neuron_id)
@@ -413,6 +416,7 @@ def get_omnidirectional_neural_response_for_neuron(neuron_id, per_neuron_all_rat
         response_profile[angle // 5] = np.mean(current_response)
     return response_profile
 
+
 def get_concatenated_dsis(dsi_selective, dsi_not_selective):
     if dsi_selective.size > 0 and dsi_not_selective.size > 0:
         all_dsi = np.concatenate((dsi_selective[:, -1], dsi_not_selective[:, -1]))
@@ -422,6 +426,7 @@ def get_concatenated_dsis(dsi_selective, dsi_not_selective):
         all_dsi = dsi_selective[:, -1]
     return all_dsi
 
+
 def backward_compatibility_get_dsi(per_neuron_all_rates, angles, N_layer):
     from gari_analysis_functions import get_filtered_dsi_per_neuron
     all_average_responses_with_angle, _, _ = compute_all_average_responses_with_angle(per_neuron_all_rates,
@@ -430,6 +435,7 @@ def backward_compatibility_get_dsi(per_neuron_all_rates, angles, N_layer):
     dsi_selective = np.asarray(dsi_selective)
     dsi_not_selective = np.asarray(dsi_not_selective)
     return dsi_selective, dsi_not_selective
+
 
 def compute_per_neuron_entropy(per_neuron_all_rates, angles, N_layer):
     entropy = np.empty((N_layer))
@@ -444,3 +450,6 @@ def compute_per_neuron_entropy(per_neuron_all_rates, angles, N_layer):
         entropy[nid] = -current_sum
     return entropy
 
+
+def get_max_entropy(angles):
+    return -np.log2(1. / angles.size)

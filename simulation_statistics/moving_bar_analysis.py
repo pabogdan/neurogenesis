@@ -1008,8 +1008,9 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     plt.close(fig)
 
     # Entropy histogram
-    hist_weights = np.ones_like(entropy) / float(N_layer)
     normalised_entropy = entropy / max_entropy
+    hist_weights = np.ones_like(normalised_entropy) / float(N_layer)
+
     fig = plt.figure(figsize=(16, 8))
     plt.hist(normalised_entropy, bins=np.linspace(0, 1, 21), color='#414C82',
              edgecolor='k', weights=hist_weights)
@@ -1561,7 +1562,7 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
 
     random_entropy = compute_per_neuron_entropy(random_per_neuron_all_rates, angles, N_layer)
     constant_entropy = compute_per_neuron_entropy(constant_per_neuron_all_rates, angles, N_layer)
-    max_entropy = (-np.log2(1. / angles.size))
+    max_entropy = get_max_entropy(angles)
     assert np.all(random_entropy <= max_entropy), random_entropy
     assert np.all(constant_entropy <= max_entropy), constant_entropy
 
@@ -1714,7 +1715,7 @@ def evolution(filenames, times, suffix, path=None, show_plots=False):
         plt.show()
     plt.close(fig)
 
-    max_entropy = (-np.log2(1. / angles.size))
+    max_entropy = get_max_entropy(angles)
     # plot evolution of entropy when increasing training
     fig = plt.figure(figsize=(16, 8), dpi=600)
 
@@ -1754,7 +1755,7 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
             files_to_ignore.append(k)
     file_shape = []
     value_list = []
-    suffix_test = "batch"
+    suffix_test = "_batch"
     for poi in batch_parameters.keys():
         file_shape.append(batch_parameters[poi].size)
         # set up parameters to generate all combinations of these
@@ -1788,9 +1789,9 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     print("{:45}".format("Batch focused on the following params"), ":", batch_parameters.keys())
     print("{:45}".format("Shape of result matrices"), ":", file_shape)
     print("{:45}".format("Suffix for generated figures"), ":", suffix_test)
-    print("<File matrix>", "-" * 50)
-    print(file_matrix)
-    print("</File matrix>", "-" * 50)
+    # print("<File matrix>", "-" * 50)
+    # print(file_matrix)
+    # print("</File matrix>", "-" * 50)
 
     dsi_comparison = np.ones(file_shape) * np.nan
 
@@ -1798,7 +1799,6 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     exp_shape_layer.append(N_layer)
 
     all_dsis = np.ones(exp_shape_layer) * np.nan
-    # TODO this requires the preprocessed file already have this information
     all_exc_entropies = np.ones(exp_shape_layer) * np.nan
     all_inh_entropies = np.ones(exp_shape_layer) * np.nan
     mean_exc_entropy = np.empty(dsi_comparison.shape)
@@ -1825,6 +1825,59 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
         all_inh_entropies[file_index] = current_results['inh_entropy']
         mean_exc_entropy[file_index] = np.mean(all_exc_entropies[file_index])
         mean_inh_entropy[file_index] = np.mean(all_inh_entropies[file_index])
+
+    # exc_entropy_description = stats.describe(all_exc_entropies.reshape(file_matrix.size, N_layer), axis=1)
+    # dsi_description = stats.describe(all_dsis.reshape(file_matrix.size, N_layer), axis=1)
+    # print("{:45}".format("Describe exh entropy"), ":", exc_entropy_description)
+    # print("{:45}".format("Describe DSI"), ":", dsi_description)
+
+    # covariance matrix between exc and inh Entropy
+    # TODO I need to check how normal the input distributions are
+    # TODO switch to scipy pearsonr
+    exc_inh_entropy_covariance = np.corrcoef(all_exc_entropies.reshape(file_matrix.size, N_layer),
+                                             all_inh_entropies.reshape(file_matrix.size, N_layer))
+
+    print("{:45}".format("Mean exh inh covariance coeff"), ":", np.mean(exc_inh_entropy_covariance))
+
+    fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8), dpi=800)
+    i = ax1.matshow(exc_inh_entropy_covariance, vmin=-1, vmax=1)
+    ax1.grid(visible=False)
+    divider = make_axes_locatable(plt.gca())
+    cax = divider.append_axes("right", "5%", pad="3%")
+    cbar = plt.colorbar(i, cax=cax)
+    cbar.set_label("Covariance")
+    plt.savefig(
+        fig_folder + "exc_inh_entropy_covariance{}.pdf".format(
+            suffix_test))
+    plt.savefig(
+        fig_folder + "exc_inh_entropy_covariance{}.svg".format(
+            suffix_test))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    # covariance matrix between DSI and Entropy
+    # TODO switch to scipy pearsonr
+    dsi_entropy_covariance = np.corrcoef(all_exc_entropies.reshape(file_matrix.size, N_layer),
+                                         all_dsis.reshape(file_matrix.size, N_layer))
+    print("{:45}".format("Mean entropy dsi covariance coeff"), ":", np.mean(dsi_entropy_covariance))
+
+    fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8), dpi=800)
+    i = ax1.matshow(dsi_entropy_covariance, vmin=-1, vmax=1)
+    ax1.grid(visible=False)
+    divider = make_axes_locatable(plt.gca())
+    cax = divider.append_axes("right", "5%", pad="3%")
+    cbar = plt.colorbar(i, cax=cax)
+    cbar.set_label("Covariance")
+    plt.savefig(
+        fig_folder + "dsi_entropy_covariance{}.pdf".format(
+            suffix_test))
+    plt.savefig(
+        fig_folder + "dsi_entropy_covariance{}.svg".format(
+            suffix_test))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
 
     # Mean DSI comparison
     fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8), dpi=800)
@@ -1869,10 +1922,36 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     # plt.xlabel("DSI")
     # plt.ylabel("% of neurons")
     plt.savefig(
-        fig_folder + "dsi_histograms_comparison_{}.pdf".format(
+        fig_folder + "dsi_histograms_comparison{}.pdf".format(
             suffix_test))
     plt.savefig(
-        fig_folder + "dsi_histograms_comparison_{}.svg".format(
+        fig_folder + "dsi_histograms_comparison{}.svg".format(
+            suffix_test))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    # Plot Entropy histograms
+    dsi_thresh = 0.5
+    size_scale = 8
+    fig, axes = plt.subplots(value_list[0].size, value_list[1].size, figsize=(value_list[0].size * size_scale,
+                                                                              value_list[1].size * size_scale))
+
+    for y_axis in np.arange(all_exc_entropies.shape[0]):
+        for x_axis in np.arange(all_exc_entropies.shape[0]):
+            curent_all_entropy = all_exc_entropies[y_axis, x_axis]
+            max_entropy = get_max_entropy(angles)
+            normalised_entropy = curent_all_entropy / max_entropy
+            hist_weights = np.ones_like(normalised_entropy) / float(N_layer)
+            curr_ax = axes[y_axis, x_axis]
+            curr_ax.hist(normalised_entropy, bins=np.linspace(0, 1, 21), color='#414C82',
+                         edgecolor='k', weights=hist_weights)
+            curr_ax.set_xticks(np.linspace(0, 1, 11))
+    plt.savefig(
+        fig_folder + "entropy_histograms_comparison{}.pdf".format(
+            suffix_test))
+    plt.savefig(
+        fig_folder + "entropy_histograms_comparison{}.svg".format(
             suffix_test))
     if show_plots:
         plt.show()
@@ -1889,23 +1968,11 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
             curr_ax = axes[y_axis, x_axis]
             curr_ax.fill(radians, curent_mean_rate, fill=False, edgecolor='#228b8d',
                          lw=2, alpha=.8, label="Mean response")
-    # minimus = 0
-    # c = ax.fill(radians, rate_means, fill=False, edgecolor='#228b8d',
-    #             lw=2, alpha=.8, label="Mean response")
-    # mins = [np.min(r) for r in all_rates]
-    # ax.fill(radians, mins, fill=False, edgecolor='#440357', lw=2,
-    #         alpha=.8, label="Min response")
-    # maxs = [np.max(r) for r in all_rates]
-    # ax.fill(radians, maxs, fill=False, edgecolor='#b2dd2c', lw=2,
-    #         alpha=1, label="Max response")
-    # maximus = np.max(maxs)
-    # ax.set_ylim([.8 * minimus, 1.1 * maximus])
-    # ax.set_xlabel("Random delays")
     plt.savefig(
-        fig_folder + "rate_means_comparison_{}.pdf".format(suffix_test),
+        fig_folder + "rate_means_comparison{}.pdf".format(suffix_test),
         bbox_inches='tight')
     plt.savefig(
-        fig_folder + "rate_means_comparison_{}.svg".format(suffix_test),
+        fig_folder + "rate_means_comparison{}.svg".format(suffix_test),
         bbox_inches='tight')
     if show_plots:
         plt.show()
@@ -1929,10 +1996,10 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     cbar = plt.colorbar(i, cax=cax)
     cbar.set_label("Entropy")
     plt.savefig(
-        fig_folder + "entropy_comparison_{}.pdf".format(
+        fig_folder + "entropy_comparison{}.pdf".format(
             suffix_test))
     plt.savefig(
-        fig_folder + "entropy_comparison_{}.svg".format(
+        fig_folder + "entropy_comparison{}.svg".format(
             suffix_test))
     if show_plots:
         plt.show()
@@ -1954,15 +2021,14 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     cbar = plt.colorbar(i, cax=cax)
     cbar.set_label("Entropy")
     plt.savefig(
-        fig_folder + "inh_entropy_comparison_{}.pdf".format(
+        fig_folder + "inh_entropy_comparison{}.pdf".format(
             suffix_test))
     plt.savefig(
-        fig_folder + "inh_entropy_comparison_{}.svg".format(
+        fig_folder + "inh_entropy_comparison{}.svg".format(
             suffix_test))
     if show_plots:
         plt.show()
     plt.close(fig)
-
 
 
 def sigma_and_ad_analyser(archive, out_filename=None, extra_suffix=None, show_plots=False):
@@ -2441,7 +2507,11 @@ def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_pl
 
 if __name__ == "__main__":
     import sys
-    # sys.exit()
+
+    fname = args.preproc_folder + "motion_batch_analysis_120019_22122018"
+    info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
+    batch_analyser(fname, info_fname)
+    sys.exit()
 
     # Single experiment analysis
     # Runs for 192k ms or ~5 hours ---------------------------
