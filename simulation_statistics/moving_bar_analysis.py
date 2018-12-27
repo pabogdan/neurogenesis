@@ -1833,7 +1833,7 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
 
     # covariance matrix between exc and inh Entropy
     # TODO I need to check how normal the input distributions are
-    # TODO switch to scipy pearsonr
+    # TODO switch to scipy pearsonr (need to manually to an all to all comparison)
     exc_inh_entropy_covariance = np.corrcoef(all_exc_entropies.reshape(file_matrix.size, N_layer),
                                              all_inh_entropies.reshape(file_matrix.size, N_layer))
 
@@ -1857,10 +1857,22 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     plt.close(fig)
 
     # covariance matrix between DSI and Entropy
-    # TODO switch to scipy pearsonr
+    # TODO switch to scipy pearsonr (need to manually to an all to all comparison)
     dsi_entropy_covariance = np.corrcoef(all_exc_entropies.reshape(file_matrix.size, N_layer),
                                          all_dsis.reshape(file_matrix.size, N_layer))
+    # dsi_entropy_covariance = np.empty(file_shape)
+    # dsi_entropy_pearson_p = np.empty(file_shape)
+    # for index, _ in np.ndenumerate(dsi_entropy_covariance):
+    #     # for each run in the sensitivity analysis compute a covariance and an associated p-value
+    #     dsi_entropy_covariance[index], dsi_entropy_pearson_p[index] = stats.pearsonr(
+    #         all_exc_entropies[index],
+    #         all_dsis[index])
     print("{:45}".format("Mean entropy dsi covariance coeff"), ":", np.mean(dsi_entropy_covariance))
+    # create a significance mask where insignificant results get multiplied by nan
+    # 2 sigma?
+    # p_threshold = 0.01
+    # dsi_entropy_significance_mask = np.ones(file_shape) * np.nan
+    # dsi_entropy_significance_mask[np.where(dsi_entropy_pearson_p < p_threshold)] = 1
 
     fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8), dpi=800)
     i = ax1.matshow(dsi_entropy_covariance, vmin=-1, vmax=1)
@@ -1932,7 +1944,6 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     plt.close(fig)
 
     # Plot Entropy histograms
-    dsi_thresh = 0.5
     size_scale = 8
     fig, axes = plt.subplots(value_list[0].size, value_list[1].size, figsize=(value_list[0].size * size_scale,
                                                                               value_list[1].size * size_scale))
@@ -2508,10 +2519,10 @@ def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_pl
 if __name__ == "__main__":
     import sys
 
-    fname = args.preproc_folder + "motion_batch_analysis_120019_22122018"
-    info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
-    batch_analyser(fname, info_fname)
-    sys.exit()
+    # fname = args.preproc_folder + "motion_batch_analysis_120019_22122018"
+    # info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
+    # batch_analyser(fname, info_fname)
+    # sys.exit()
 
     # Single experiment analysis
     # Runs for 192k ms or ~5 hours ---------------------------
