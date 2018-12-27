@@ -1725,6 +1725,7 @@ def evolution(filenames, times, suffix, path=None, show_plots=False):
     # plot evolution of entropy when increasing training
     fig = plt.figure(figsize=(16, 8), dpi=600)
 
+    plt.axhline(max_entropy, color='#b2dd2c', ls=":")
     bp = plt.boxplot(all_entropies.T, notch=True, medianprops=medianprops)  # , patch_artist=True)
     # plt.setp(bp['medians'], color='#414C82')
     # plt.setp(bp['boxes'], alpha=0)
