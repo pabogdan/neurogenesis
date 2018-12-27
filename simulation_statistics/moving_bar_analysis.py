@@ -57,6 +57,13 @@ testing_data = np.load(
 if not os.path.isdir(fig_folder) and not os.path.exists(fig_folder):
     os.mkdir(fig_folder)
 
+# if no analysis defined then run all
+if not (args.singles or args.comparisons or args.evolutions or args.batches or args.elephants):
+    print("{:45}".format("Going to run all possible tests ..."))
+    args.all_tests = True
+else:
+    print("{:45}".format("Only running a subset of possible tests ..."))
+    args.all_tests = False
 
 # TODO make this useful and use it!
 def save_figure(fig, filename, suffix, fig_folder=fig_folder, extensions=["pdf", "svg"]):
@@ -2564,303 +2571,308 @@ if __name__ == "__main__":
     # Single experiment analysis
     # Runs for 192k ms or ~5 hours ---------------------------
     # 1 angle
-    print("{:45}".format("Generating single experiment plots ..."))
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
-    analyse_one(fname)
+    if args.singles or args.all_tests:
+        print("{:45}".format("Generating single experiment plots ..."))
+        fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+        analyse_one(fname)
 
-    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
-    analyse_one(fname, extra_suffix="constant")
+        fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
+        analyse_one(fname, extra_suffix="constant")
 
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo"
-    analyse_one(fname)
+        fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo"
+        analyse_one(fname)
 
-    # 2 angles
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
-    analyse_one(fname)
+        # 2 angles
+        fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
+        analyse_one(fname)
 
-    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90"
-    analyse_one(fname, extra_suffix="constant")
+        fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90"
+        analyse_one(fname, extra_suffix="constant")
 
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_evo"
-    analyse_one(fname)
+        fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_evo"
+        analyse_one(fname)
 
-    # 4 angles
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
-    analyse_one(fname)
+        # 4 angles
+        fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
+        analyse_one(fname)
 
-    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW"
-    analyse_one(fname, extra_suffix="constant")
+        fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW"
+        analyse_one(fname, extra_suffix="constant")
 
-    # all angles
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_all_angles"
-    analyse_one(fname)
+        # all angles
+        fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_all_angles"
+        analyse_one(fname)
 
-    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_all_angles"
-    analyse_one(fname, extra_suffix="constant")
+        fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_all_angles"
+        analyse_one(fname, extra_suffix="constant")
 
-    # Runs for 384k ms or ~10 hours ---------------------------
-    # 1 angle
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo"
-    analyse_one(fname, extra_suffix="384k")
+        # Runs for 384k ms or ~10 hours ---------------------------
+        # 1 angle
+        fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo"
+        analyse_one(fname, extra_suffix="384k")
 
-    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo"
-    analyse_one(fname, extra_suffix="constant_384k")
+        fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo"
+        analyse_one(fname, extra_suffix="constant_384k")
 
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_evo"
-    analyse_one(fname, extra_suffix="384k")
+        fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_evo"
+        analyse_one(fname, extra_suffix="384k")
 
-    # 2 angles
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_evo"
-    analyse_one(fname, extra_suffix="384k")
+        # 2 angles
+        fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_evo"
+        analyse_one(fname, extra_suffix="384k")
 
-    # TODO
-    # fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90"
-    # analyse_one(fname, extra_suffix="constant")
+        # TODO
+        # fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90"
+        # analyse_one(fname, extra_suffix="constant")
 
-    # TODO
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_135_evo"
-    analyse_one(fname, extra_suffix="384k")
+        # TODO
+        fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_135_evo"
+        analyse_one(fname, extra_suffix="384k")
 
-    # 4 angles
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_evo"
-    analyse_one(fname, extra_suffix="384k")
+        # 4 angles
+        fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_evo"
+        analyse_one(fname, extra_suffix="384k")
 
-    # TODO
-    # fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW"
-    # analyse_one(fname, extra_suffix="constant")
+        # TODO
+        # fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW"
+        # analyse_one(fname, extra_suffix="constant")
 
-    # all angles
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_all_evo"
-    analyse_one(fname, extra_suffix="384k")
-    # TODO
-    # fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_all_angles"
-    # analyse_one(fname, extra_suffix="constant_384k")
+        # all angles
+        fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_all_evo"
+        analyse_one(fname, extra_suffix="384k")
+        # TODO
+        # fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_all_angles"
+        # analyse_one(fname, extra_suffix="constant_384k")
 
     # Comparison between 2 experiments
     # Runs for 192k ms or ~5 hours ---------------------------
     # 1 angle
-    print("{:45}".format("Generating 2 experiment comparison plots ..."))
+    if args.comparisons or args.all_tests:
+        print("{:45}".format("Generating 2 experiment comparison plots ..."))
 
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
-    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
-    comparison(fname1, fname2)
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+        fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
+        comparison(fname1, fname2)
 
-    # 2 angles
+        # 2 angles
 
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
-    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90"
-    comparison(fname1, fname2)
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
+        fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90"
+        comparison(fname1, fname2)
 
-    # 4 angles
+        # 4 angles
 
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
-    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW"
-    comparison(fname1, fname2)
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
+        fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW"
+        comparison(fname1, fname2)
 
-    # all angles
+        # all angles
 
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_all_angles"
-    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_all_angles"
-    comparison(fname1, fname2)
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_all_angles"
+        fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_all_angles"
+        comparison(fname1, fname2)
 
-    # Comparison between 2 experiments of different durations
-    diff_duration_custom_labels = ["~5 hours", "~10 hours"]
-    # 1 angle
-    # 0 degrees
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo"
+        # Comparison between 2 experiments of different durations
+        diff_duration_custom_labels = ["~5 hours", "~10 hours"]
+        # 1 angle
+        # 0 degrees
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo"
 
-    comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=diff_duration_custom_labels)
+        comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=diff_duration_custom_labels)
 
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo"
+        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"
 
-    comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=["~10 hours", "~20 hours"])
+        comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=["~10 hours", "~20 hours"])
 
-    # 45 degrees
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_evo"
+        # 45 degrees
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo"
+        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_evo"
 
-    comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=diff_duration_custom_labels)
+        comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=diff_duration_custom_labels)
 
-    # 0 vs 45
-    diff_angles_custom_labels = ["0", "45"]
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo"
-    comparison(fname1, fname2, extra_suffix="0_vs_45", custom_labels=diff_angles_custom_labels)
+        # 0 vs 45
+        diff_angles_custom_labels = ["0", "45"]
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo"
+        comparison(fname1, fname2, extra_suffix="0_vs_45", custom_labels=diff_angles_custom_labels)
 
-    # and longer
+        # and longer
 
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_evo"
-    comparison(fname1, fname2, extra_suffix="0_vs_45_384k", custom_labels=diff_angles_custom_labels)
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo"
+        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_evo"
+        comparison(fname1, fname2, extra_suffix="0_vs_45_384k", custom_labels=diff_angles_custom_labels)
 
-    # 2 angles
-    # 0 and 90 degrees
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_evo"
+        # 2 angles
+        # 0 and 90 degrees
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
+        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_evo"
 
-    comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=diff_duration_custom_labels)
-    # 45 and 135 degrees
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_evo"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_135_evo"
+        comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=diff_duration_custom_labels)
+        # 45 and 135 degrees
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_evo"
+        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_135_evo"
 
-    comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=diff_duration_custom_labels)
+        comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=diff_duration_custom_labels)
 
-    # 0+90 vs 45+135
-    diff_angles_custom_labels = ["0 and 90", "45 and 135"]
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_evo"
-    comparison(fname1, fname2, extra_suffix="0_90_vs_45_135", custom_labels=diff_angles_custom_labels)
+        # 0+90 vs 45+135
+        diff_angles_custom_labels = ["0 and 90", "45 and 135"]
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
+        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_evo"
+        comparison(fname1, fname2, extra_suffix="0_90_vs_45_135", custom_labels=diff_angles_custom_labels)
 
-    # and longer
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_evo"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_135_evo"
-    comparison(fname1, fname2, extra_suffix="0_90_vs_45_135_384k", custom_labels=diff_angles_custom_labels)
+        # and longer
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_evo"
+        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_135_evo"
+        comparison(fname1, fname2, extra_suffix="0_90_vs_45_135_384k", custom_labels=diff_angles_custom_labels)
 
-    # 4 angles
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_evo"
+        # 4 angles
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
+        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_evo"
 
-    comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=diff_duration_custom_labels)
+        comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=diff_duration_custom_labels)
 
-    # all angles
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_all_evo"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_all_evo"
+        # all angles
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_all_evo"
+        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_all_evo"
 
-    comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=diff_duration_custom_labels)
+        comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=diff_duration_custom_labels)
 
     # Generating evolution plots
     # 1 angle, random delays
-    print("{:45}".format("Generating evolution plots ..."))
-    filenames = [
-        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0",
-        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"]
+    if args.evolutions or args.all_tests:
+        print("{:45}".format("Generating evolution plots ..."))
+        filenames = [
+            "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0",
+            "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"]
 
-    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
-             38400 * bunits.second, 76800 * bunits.second]
+        times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+                 38400 * bunits.second, 76800 * bunits.second]
 
-    evolution(filenames, times, path=args.preproc_folder, suffix="1_angles_0")
+        evolution(filenames, times, path=args.preproc_folder, suffix="1_angles_0")
 
-    # 1 angle, constant delays
-    filenames = [
-        "results_for_testing_constant_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_evo",
-        "results_for_testing_constant_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_evo",
-        "results_for_testing_constant_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_evo",
-        "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo",
-        "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
-        "results_for_testing_constant_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"]
+        # 1 angle, constant delays
+        filenames = [
+            "results_for_testing_constant_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_evo",
+            "results_for_testing_constant_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_evo",
+            "results_for_testing_constant_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_evo",
+            "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo",
+            "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
+            "results_for_testing_constant_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"]
 
-    evolution(filenames, times, path=args.preproc_folder, suffix="constant_1_angles_0")
+        evolution(filenames, times, path=args.preproc_folder, suffix="constant_1_angles_0")
 
-    # 2 angles, random delays, 0 + 90
-    filenames = [
-        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_90_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_90_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_90_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_90_evo"
-    ]
-    evolution(filenames, times, path=args.preproc_folder, suffix="2_angles_0_90")
+        # 2 angles, random delays, 0 + 90
+        filenames = [
+            "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_90_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_90_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_90_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_90_evo"
+        ]
+        evolution(filenames, times, path=args.preproc_folder, suffix="2_angles_0_90")
 
-    # 45 degrees
-    filenames = [
-        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_45_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_45_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_45_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_evo"
-        # TODO extra time
-    ]
-    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
-             38400 * bunits.second
-             ]
-    evolution(filenames, times, path=args.preproc_folder, suffix="_1_angles_45")
+        # 45 degrees
+        filenames = [
+            "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_45_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_45_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_45_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_evo"
+            # TODO extra time
+        ]
+        times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+                 38400 * bunits.second
+                 ]
+        evolution(filenames, times, path=args.preproc_folder, suffix="_1_angles_45")
 
-    # 2 angles, random delays, 45 and 135
-    filenames = [
-        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_45_135_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_45_135_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_45_135_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_135_evo",
-        # TODO extra times
-    ]
-    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
-             38400 * bunits.second,
-             ]
-    evolution(filenames, times, path=args.preproc_folder, suffix="_2_angles_45_135")
+        # 2 angles, random delays, 45 and 135
+        filenames = [
+            "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_45_135_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_45_135_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_45_135_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_135_evo",
+            # TODO extra times
+        ]
+        times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+                 38400 * bunits.second,
+                 ]
+        evolution(filenames, times, path=args.preproc_folder, suffix="_2_angles_45_135")
 
-    # 4 angles, random delays, 0 + 90 + 180 + 270
-    filenames = [
-        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_NESW_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_NESW_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_NESW_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_evo"
-    ]
+        # 4 angles, random delays, 0 + 90 + 180 + 270
+        filenames = [
+            "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_NESW_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_NESW_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_NESW_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_evo"
+        ]
 
-    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
-             38400 * bunits.second, 76800 * bunits.second]
-    evolution(filenames, times, path=args.preproc_folder, suffix="_4_angles_0_90_180_270")
+        times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+                 38400 * bunits.second, 76800 * bunits.second]
+        evolution(filenames, times, path=args.preproc_folder, suffix="_4_angles_0_90_180_270")
 
-    filenames = [
-        "results_for_testing_without_noise_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_NESW_evo",
-        "results_for_testing_without_noise_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_NESW_evo",
-        "results_for_testing_without_noise_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_NESW_evo",
-        "results_for_testing_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo",
-        "results_for_testing_without_noise_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_evo",
-        "results_for_testing_without_noise_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_evo"
-    ]
+        filenames = [
+            "results_for_testing_without_noise_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_NESW_evo",
+            "results_for_testing_without_noise_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_NESW_evo",
+            "results_for_testing_without_noise_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_NESW_evo",
+            "results_for_testing_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo",
+            "results_for_testing_without_noise_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_evo",
+            "results_for_testing_without_noise_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_evo"
+        ]
 
-    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
-             38400 * bunits.second, 76800 * bunits.second]
-    evolution(filenames, times, path=args.preproc_folder, suffix="_4_angles_0_90_180_270_testing_without_noise")
+        times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+                 38400 * bunits.second, 76800 * bunits.second]
+        evolution(filenames, times, path=args.preproc_folder, suffix="_4_angles_0_90_180_270_testing_without_noise")
 
-    filenames = [
-        "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_NESW_evo",
-        "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_NESW_evo",
-        "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_NESW_evo",
-        "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo",
-        "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_evo",
-        "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_evo"
-    ]
+        filenames = [
+            "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_NESW_evo",
+            "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_NESW_evo",
+            "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_NESW_evo",
+            "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo",
+            "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_evo",
+            "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_evo"
+        ]
 
-    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
-             38400 * bunits.second,
-             76800 * bunits.second
-             ]
-    evolution(filenames, times, path=args.preproc_folder, suffix="_4_angles_0_90_180_270_training_without_noise")
+        times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+                 38400 * bunits.second,
+                 76800 * bunits.second
+                 ]
+        evolution(filenames, times, path=args.preproc_folder, suffix="_4_angles_0_90_180_270_training_without_noise")
 
-    # all angles
-    filenames = [
-        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_all_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_all_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_all_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_all_evo",
-        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_all_evo",
-        # "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_all_evo"
-    ]
+        # all angles
+        filenames = [
+            "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_all_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_all_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_all_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_all_evo",
+            "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_all_evo",
+            # "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_all_evo"
+        ]
 
-    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
-             38400 * bunits.second,
-             # 76800 * bunits.second
-             ]
-    evolution(filenames, times, path=args.preproc_folder, suffix="_all_angles")
+        times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+                 38400 * bunits.second,
+                 # 76800 * bunits.second
+                 ]
+        evolution(filenames, times, path=args.preproc_folder, suffix="_all_angles")
 
     # Experiment batch analysis -- usually, these are sensitivity analysis
-    print("{:45}".format("Generating batch analysis plots ..."))
-    fname = args.preproc_folder + "motion_batch_analysis_120019_22122018"
-    info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
-    batch_analyser(fname, info_fname)
+    if args.batches or args.all_tests:
+        print("{:45}".format("Generating batch analysis plots ..."))
+        fname = args.preproc_folder + "motion_batch_analysis_120019_22122018"
+        info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
+        batch_analyser(fname, info_fname)
 
     # Elephant analysis of single experiments
-    print("{:45}".format("Generating Elephant plots ..."))
-    fname = "testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
-    elephant_analysis(fname, time_to_waste=args.time_to_waste)
+    if args.elephants or args.all_tests:
+        print("{:45}".format("Generating Elephant plots ..."))
+        fname = "testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+        elephant_analysis(fname, time_to_waste=args.time_to_waste)

@@ -55,4 +55,16 @@ flags.add_argument('--no-cache', help="force simulation re-analysis without "
 flags.add_argument('--time_to_waste', help="we have time to waste with Elephant",
                     action="store_true", dest="time_to_waste")
 
+# flags to control which types of analysis will be run
+flags.add_argument('--singles', help="analyse all single experiments",
+                    action="store_true")
+flags.add_argument('--comparisons', help="analyse all comparison experiments",
+                    action="store_true")
+flags.add_argument('--evolutions', help="analyse all evolution experiments",
+                    action="store_true")
+flags.add_argument('--elephants', help="analyse all elephant experiments",
+                    action="store_true")
+flags.add_argument('--batches', help="analyse all batch experiments",
+                    action="store_true")
+
 args = parser.parse_args()
