@@ -330,4 +330,8 @@ parser.add_argument('--f_rew_inh',
                     help="[App: Motion detection] Rate of rewiring (Hz) attempts for the INH population",
                     type=float, default=DEFAULT_F_REW)
 
+
+parser.add_argument('--no_off_polarity', help="disable off polarity for moving bar",
+                    action="store_true")
+
 args = parser.parse_args()

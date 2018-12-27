@@ -215,7 +215,8 @@ sim_params = {'g_max': g_max,
               'constant_delay': args.constant_delay,
               'training_angles': training_angles,
               'argparser': vars(args),
-              'chunk': chunk
+              'chunk': chunk,
+              'no_off_polarity':args.no_off_polarity
               }
 
 if args.input_type == GAUSSIAN_INPUT:
@@ -248,11 +249,17 @@ if not args.testing:
                                 sim.SpikeSourceArray,
                                 {'spike_times': final_on_gratings
                                  }, label="Moving grating on population")
-
-    source_pop_off = sim.Population(N_layer,
-                                    sim.SpikeSourceArray,
-                                    {'spike_times': final_off_gratings
-                                     }, label="Moving grating off population")
+    if args.no_off_polarity:
+        print("No off polarity will be injected into the system.")
+        source_pop_off = sim.Population(N_layer,
+                                   sim.SpikeSourceArray,
+                                   {'spike_times': []},
+                                   label="(No) Moving grating off population")
+    else:
+        source_pop_off = sim.Population(N_layer,
+                                        sim.SpikeSourceArray,
+                                        {'spike_times': final_off_gratings
+                                         }, label="Moving grating off population")
 
     if np.isclose(f_base, 0):
         print("No noise will be injected into the system.")
@@ -293,11 +300,18 @@ else:
                                 {'spike_times': final_on_gratings
                                  }, label="Moving grating on population")
 
-    source_pop_off = sim.Population(N_layer,
-                                    sim.SpikeSourceArray,
-                                    {'spike_times': final_off_gratings
-                                     },
-                                    label="Moving grating off population")
+    if args.no_off_polarity:
+        print("No off polarity will be injected into the system.")
+        source_pop_off = sim.Population(N_layer,
+                                        sim.SpikeSourceArray,
+                                        {'spike_times': []},
+                                        label="(No) Moving grating off population")
+    else:
+        source_pop_off = sim.Population(N_layer,
+                                        sim.SpikeSourceArray,
+                                        {'spike_times': final_off_gratings
+                                         },
+                                        label="Moving grating off population")
     if np.isclose(f_base, 0):
         print("No noise will be injected into the system.")
         noise_pop = sim.Population(N_layer,
@@ -513,11 +527,18 @@ else:
         label="plastic_ff_projection"
     )
 
-    ff_off_projection = sim.Projection(
-        source_pop_off, target_pop,
-        sim.FromListConnector(trained_ff_off_connectivity),
-        label="ff_off_projection"
-    )
+    if trained_noise_connectivity.size == 0:
+        ff_off_projection = sim.Projection(
+            source_pop_off, target_pop,
+            sim.FixedProbabilityConnector(0),
+            label="ff_off_projection"
+        )
+    else:
+        ff_off_projection = sim.Projection(
+            source_pop_off, target_pop,
+            sim.FromListConnector(trained_ff_off_connectivity),
+            label="ff_off_projection"
+        )
 
     if trained_noise_connectivity.size == 0:
         noise_projection = sim.Projection(
