@@ -356,7 +356,7 @@ def has_other_max(angle, angle_delta, max_rate, rate_delta, responses, angle_ste
 
 # Peter: for my convenience
 
-def get_filtered_dsi_per_neuron(all_average_responses_with_angle, N_layer, dsi_thresh=0.5):
+def get_filtered_dsi_per_neuron(all_average_responses_with_angle, N_layer, dsi_thresh=0.5, harsh=False):
     '''
     I assume this bit of code does the following:
     based on individual neuron activations it computes a Direction Selectivty Index (DSI) or
@@ -408,21 +408,25 @@ def get_filtered_dsi_per_neuron(all_average_responses_with_angle, N_layer, dsi_t
         osi = get_wosi(models[nid], curr_ang, angle_diff)
         other_max = has_other_max(curr_ang, delta_ang, max_resp,
                                   delta_resp, models[nid], angle_diff)
-        if (max_resp - mean_resp) <= min_diff:
-            not_selective.append((nid, dsi))
-            continue
 
+        # Assuming the most important metric is the DSI value
         if dsi <= min_dsi:
             not_selective.append((nid, dsi))
             continue
 
-        if osi <= min_osi:
-            not_selective.append((nid, dsi))
-            continue
+        # Additional checks only if we're being harsh
+        if harsh:
+            if (max_resp - mean_resp) <= min_diff:
+                not_selective.append((nid, dsi))
+                continue
 
-        if other_max:
-            not_selective.append((nid, dsi))
-            continue
+            if osi <= min_osi:
+                not_selective.append((nid, dsi))
+                continue
+
+            if other_max:
+                not_selective.append((nid, dsi))
+                continue
 
         selective.append((nid, curr_ang, dsi))
     return selective, not_selective

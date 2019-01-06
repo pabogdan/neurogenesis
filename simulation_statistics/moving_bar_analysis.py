@@ -1231,13 +1231,9 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
     plt.xlim([-177.5, 177.5])
     plt.xticks(np.concatenate((np.arange(-180, 180, 45), [175])))
     plt.savefig(
-        fig_folder + "comparison_firing_rate_with_angle_hist_centred{" \
-                     "}.pdf".format(
-            suffix_test))
+        fig_folder + "comparison_firing_rate_with_angle_hist_centred{}.pdf".format(suffix_test))
     plt.savefig(
-        fig_folder + "comparison_firing_rate_with_angle_hist_centred{" \
-                     "}.svg".format(
-            suffix_test))
+        fig_folder + "comparison_firing_rate_with_angle_hist_centred{}.svg".format(suffix_test))
     if show_plots:
         plt.show()
     plt.close(fig)
@@ -1403,18 +1399,14 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
                          cbar_pad=0.15,
                          )
     imgs = [random_max_average_responses_with_angle.reshape(grid[0], grid[1]),
-            constant_max_average_responses_with_angle.reshape(grid[0],
-                                                              grid[1])]
+            constant_max_average_responses_with_angle.reshape(grid[0], grid[1])]
 
-    dxs = [np.cos(
-        random_max_average_responses_with_angle.reshape(grid[0], grid[1])),
-        np.cos(constant_max_average_responses_with_angle.reshape(grid[0],
-                                                                 grid[1]))]
+    dxs = [np.cos(random_max_average_responses_with_angle.reshape(grid[0], grid[1])),
+        np.cos(constant_max_average_responses_with_angle.reshape(grid[0], grid[1]))]
 
     dys = [np.sin(
         random_max_average_responses_with_angle.reshape(grid[0], grid[1])),
-        np.sin(constant_max_average_responses_with_angle.reshape(grid[0],
-                                                                 grid[1]))]
+        np.sin(constant_max_average_responses_with_angle.reshape(grid[0], grid[1]))]
     # Add data to image grid
 
     index = 0
@@ -1479,7 +1471,7 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
         plt.show()
     plt.close(fig)
 
-    # TODO dsi comparison
+    # DSI quiver comparison
     random_all_average_responses_with_angle, _, _ = compute_all_average_responses_with_angle(
         random_per_neuron_all_rates, angles, N_layer)
     random_dsi_selective, random_dsi_not_selective = get_filtered_dsi_per_neuron(
@@ -1528,19 +1520,20 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
 
     imgs = [random_max_dsi.reshape(grid[0], grid[1]),
             constant_max_dsi.reshape(grid[0], grid[1])]
+    angs = [random_dsi_pref_angle.reshape(grid[0], grid[1]),
+            constant_dsi_pref_angle.reshape(grid[0], grid[1])]
 
     dxs = [np.cos(random_dsi_pref_angle.reshape(grid[0], grid[1])),
            np.cos(constant_dsi_pref_angle.reshape(grid[0], grid[1]))]
 
-    dys = [np.sin(
-        random_dsi_pref_angle.reshape(grid[0], grid[1])),
-        np.sin(constant_dsi_pref_angle.reshape(grid[0], grid[1]))]
+    dys = [np.sin(random_dsi_pref_angle.reshape(grid[0], grid[1])),
+           np.sin(constant_dsi_pref_angle.reshape(grid[0], grid[1]))]
     # Add data to image grid
 
     index = 0
     for ax in img_grid:
         im = ax.imshow(imgs[index], vmin=0, vmax=1)
-        ax.quiver(dxs[index], dys[index], color='w', angles=imgs[index],
+        ax.quiver(dxs[index], dys[index], color='w', angles=angs[index],
                   pivot='mid')
         index += 1
 
@@ -2550,22 +2543,11 @@ def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_pl
 if __name__ == "__main__":
     import sys
 
-    # fname = args.preproc_folder + "motion_batch_analysis_120019_22122018"
-    # info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
-    # batch_analyser(fname, info_fname)
-
-    # filenames = [
-    #     "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_evo",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_evo",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_evo",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
-    #     "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"]
-    #
-    # times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
-    #          38400 * bunits.second, 76800 * bunits.second]
-    #
-    # evolution(filenames, times, path=args.preproc_folder, suffix="1_angles_0")
+    # 0 vs 45
+    # diff_angles_custom_labels = ["0", "45"]
+    # fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+    # fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo"
+    # comparison(fname1, fname2, extra_suffix="0_vs_45", custom_labels=diff_angles_custom_labels)
     # sys.exit()
 
     # Single experiment analysis
