@@ -15,13 +15,23 @@ setup(
     install_requires=["numpy",
                       "scipy",
                       "brian2",
-                      "pynn==0.7.5",
-                      "spynnaker>= 4.0.0, < 6.0.0"],
+                      "spynnaker>= 1!4.0.0, < 1!5.0.0",
+                      "neo",
+                      "quantities",
+                      "elephant",
+                      "matplotlib"],
     classifiers=[
+        "Development Status :: 3 - Alpha",
+
+        "Intended Audience :: Science/Research",
+
         "Operating System :: POSIX :: Linux",
         "Operating System :: Microsoft :: Windows",
         "Operating System :: MacOS",
 
+        "Programming Language :: Python :: 2"
         "Programming Language :: Python :: 2.7"
+        
+        "Topic :: Scientific/Engineering",
     ]
 )

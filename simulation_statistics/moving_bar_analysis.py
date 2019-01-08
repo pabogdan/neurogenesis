@@ -25,7 +25,6 @@ import elephant.cell_assembly_detection as cad
 import neo
 from datetime import datetime
 from quantities import s, ms, Hz
-import pandas as pd
 
 # ensure we use viridis as the default cmap
 plt.viridis()
