@@ -101,7 +101,6 @@ def generate_suffix(training_angles):
     if unique_tas.size <= 4:
         for ta in unique_tas:
             suffix_test += "_" + str(ta)
-    print("{:45}".format("The suffix for this set of figures is "),":", suffix_test)
     return suffix_test
 
 
@@ -197,6 +196,8 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     if extra_suffix:
         suffix_test += "_" + extra_suffix
 
+
+    print("{:45}".format("The suffix for this set of figures is "),":", suffix_test)
     print("{:45}".format("Analysing a single experiment"), ":", archive)
     print("{:45}".format("Results appended the following suffix"), ":", suffix_test)
     # Begin the plotting
@@ -944,10 +945,10 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
 
     # Entropy play
     entropy = compute_per_neuron_entropy(per_neuron_all_rates, angles, N_layer)
-    max_entropy = (-np.log2(1. / angles.size))
-    assert np.all(entropy <= max_entropy), entropy
+    max_entropy = get_max_entropy(angles)
+    # assert np.all(entropy <= max_entropy), entropy
 
-    print("{:45}".format("Mean Entropy"), ":", np.mean(entropy))
+    print("{:45}".format("Mean Entropy"), ":", np.nanmean(entropy))
     print("{:45}".format("Max possible Entropy"), ":", max_entropy)
 
     fig, (ax) = plt.subplots(1, 1, figsize=(10, 10), dpi=600)
@@ -1558,11 +1559,11 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
     random_entropy = compute_per_neuron_entropy(random_per_neuron_all_rates, angles, N_layer)
     constant_entropy = compute_per_neuron_entropy(constant_per_neuron_all_rates, angles, N_layer)
     max_entropy = get_max_entropy(angles)
-    assert np.all(random_entropy <= max_entropy), random_entropy
-    assert np.all(constant_entropy <= max_entropy), constant_entropy
+    # assert np.all(random_entropy <= max_entropy), random_entropy
+    # assert np.all(constant_entropy <= max_entropy), constant_entropy
 
-    print("{:45}".format("Random delays -- Mean Entropy"), ":", np.mean(random_entropy))
-    print("{:45}".format("Constant delays -- Mean Entropy"), ":", np.mean(constant_entropy))
+    print("{:45}".format("Random delays -- Mean Entropy"), ":", np.nanmean(random_entropy))
+    print("{:45}".format("Constant delays -- Mean Entropy"), ":", np.nanmean(constant_entropy))
     print("{:45}".format("Max possible Entropy"), ":", max_entropy)
 
     fig = plt.figure(figsize=(15, 8), dpi=800)
@@ -2543,11 +2544,12 @@ if __name__ == "__main__":
     import sys
 
     # 0 vs 45
-    # diff_angles_custom_labels = ["0", "45"]
+    # diff_angles_custom_labels = ["noise", "test w/o noise"]
     # fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
     # fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo"
     # comparison(fname1, fname2, extra_suffix="0_vs_45", custom_labels=diff_angles_custom_labels)
-    # sys.exit()
+
+
 
     # Single experiment analysis
     # Runs for 192k ms or ~5 hours ---------------------------
@@ -2624,6 +2626,13 @@ if __name__ == "__main__":
         # TODO
         # fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_all_angles"
         # analyse_one(fname, extra_suffix="constant_384k")
+
+        # Exotics
+        fname = args.preproc_folder + "results_for_testing_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
+        analyse_one(fname, extra_suffix="testing_without_noise")
+
+        fname = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
+        analyse_one(fname, extra_suffix="training_without_noise")
 
     # Comparison between 2 experiments
     # Runs for 192k ms or ~5 hours ---------------------------
@@ -2719,6 +2728,15 @@ if __name__ == "__main__":
         fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_all_evo"
 
         comparison(fname1, fname2, extra_suffix="192k_vs_384k", custom_labels=diff_duration_custom_labels)
+
+        # Exotics
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
+        fname2 = args.preproc_folder + "results_for_testing_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
+        comparison(fname1, fname2, custom_labels=["noise", "test w/o noise"], extra_suffix="testing_without_noise")
+
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
+        fname2 = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
+        comparison(fname1, fname2, custom_labels=["noise", "train w/o noise"], extra_suffix="training_without_noise")
 
     # Generating evolution plots
     # 1 angle, random delays
@@ -2857,3 +2875,55 @@ if __name__ == "__main__":
         print("{:45}".format("Generating Elephant plots ..."))
         fname = "testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
         elephant_analysis(fname, time_to_waste=args.time_to_waste)
+
+    # Misc tests
+    # Backpropagation delay effect tests
+    # 0
+    filenames = [
+        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_backprop_delay_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_backprop_delay_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_backprop_delay_evo",
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_backprop_delay_evo",
+        # "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_evo",
+        # "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_evo"
+    ]
+
+    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+             # 38400 * bunits.second,
+             # 76800 * bunits.second
+             ]
+
+    evolution(filenames, times, path=args.preproc_folder, suffix="1_angles_0_backprop_delay")
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_backprop_delay_evo"
+    analyse_one(fname, extra_suffix="backprop_delay")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_backprop_delay_evo"
+    comparison(fname1, fname2, extra_suffix="backprop_delay", custom_labels=["no backprop", "backprop delay"])
+    # 0 and 90
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_backprop_delay_evo"
+    analyse_one(fname, extra_suffix="backprop_delay")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_backprop_delay_evo"
+    comparison(fname1, fname2, extra_suffix="backprop_delay", custom_labels=["no backprop", "backprop delay"])
+
+    # NESW
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_backprop_delay_evo"
+    analyse_one(fname, extra_suffix="backprop_delay")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_backprop_delay_evo"
+    comparison(fname1, fname2, extra_suffix="backprop_delay", custom_labels=["no backprop", "backprop delay"])
+
+    # 0 for 96k
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_backprop_delay"
+    analyse_one(fname, extra_suffix="96k_backprop_delay")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_evo"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_backprop_delay"
+    comparison(fname1, fname2, extra_suffix="96k_backprop_delay", custom_labels=["no backprop", "backprop delay"])
+
+
