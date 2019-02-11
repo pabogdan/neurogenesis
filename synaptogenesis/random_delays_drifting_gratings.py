@@ -427,7 +427,7 @@ if not args.testing:
     )
     structure_model_w_stdp.set_projection_parameter(
         lat_projection,
-        sim.StructuralMechanismSTDP.param.delay,
+        sim.StructuralMechanismSTDP.connectivity_exception_param.delay,
         local_connection_delay_dist)
     if args.topology == 0:
         inh_weights = generate_initial_connectivity(5, p_form_forward,
@@ -459,7 +459,7 @@ if not args.testing:
         )
         structure_model_w_stdp.set_projection_parameter(
             inh_inh_projection,
-            sim.StructuralMechanismSTDP.param.delay,
+            sim.StructuralMechanismSTDP.connectivity_exception_param.delay,
             local_connection_delay_dist)
         exh_projection = sim.Projection(
             target_pop, inh_pop,
@@ -478,7 +478,7 @@ if not args.testing:
         )
         structure_model_w_stdp.set_projection_parameter(
             inh_projection,
-            sim.StructuralMechanismSTDP.param.delay,
+            sim.StructuralMechanismSTDP.connectivity_exception_param.delay,
             local_connection_delay_dist)
         inh_inh_projection = sim.Projection(
             inh_pop, inh_pop,
@@ -489,7 +489,7 @@ if not args.testing:
         )
         structure_model_w_stdp.set_projection_parameter(
             inh_inh_projection,
-            sim.StructuralMechanismSTDP.param.delay,
+            sim.StructuralMechanismSTDP.connectivity_exception_param.delay,
             local_connection_delay_dist)
         exh_projection = sim.Projection(
             target_pop, inh_pop,
@@ -500,7 +500,7 @@ if not args.testing:
         )
         structure_model_w_stdp.set_projection_parameter(
             exh_projection,
-            sim.StructuralMechanismSTDP.param.delay,
+            sim.StructuralMechanismSTDP.connectivity_exception_param.delay,
             local_connection_delay_dist)
     if args.topology == 3:
         ff_inh_projection = sim.Projection(
