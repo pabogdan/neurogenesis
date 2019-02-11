@@ -16,6 +16,15 @@ from synaptogenesis.function_definitions import *
 from analysis_functions_definitions import *
 from argparser import *
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import matplotlib as mlib
+
+# ensure we use viridis as the default cmap
+plt.viridis()
+
+# ensure we use the same rc parameters for all matplotlib outputs
+mlib.rcParams.update({'font.size': 24})
+mlib.rcParams.update({'errorbar.capsize': 5})
+mlib.rcParams.update({'figure.autolayout': True})
 
 paths = []
 for file in args.path:
@@ -374,19 +383,48 @@ for file in paths:
                 wsr_AD_fin_weight_fin_weight_shuffle.pvalue,
                 file
             ))
+
+        root_stats = args.root_stats
+        root_syn = args.root_syn
+        fig_folder = args.fig_folder
+        suffix_test = "_case_{}".format(str(simdata['case']))
         # final weight histogram
         # ff weight histogram
-        plt.figure(figsize=(10, 5), dpi=600)
-        plt.hist(ff_last[:, 2]/g_max, bins=100, normed=True)
-        plt.title("Histogram of feedforward weights")
+        fig = plt.figure(figsize=(10, 5), dpi=600)
+        plt.hist(ff_last[:, 2]/g_max, bins=20, normed=True, edgecolor='k', color='#414C82')
+        # plt.title("Histogram of feedforward weights")
         plt.tight_layout()
-        plt.show()
+
+        plt.savefig(
+            fig_folder + "topographic_map_weight_hist{}.pdf".format(suffix_test),
+            bbox_inches='tight', dpi=800)
+        plt.savefig(
+            fig_folder + "topographic_map_weight_hist{}.svg".format(suffix_test),
+            bbox_inches='tight', dpi=800)
+
+        if args.plot:
+            plt.show()
+        plt.close(fig)
+
+
+
         # lat weight histogram
-        plt.figure(figsize=(10, 5), dpi=600)
-        plt.hist(lat_last[:, 2]/g_max, bins=100, normed=True)
-        plt.title("Histogram of lateral weights")
+        fig = plt.figure(figsize=(10, 5), dpi=600)
+        plt.hist(lat_last[:, 2]/g_max, bins=20, normed=True, edgecolor='k', color='#414C82')
+        # plt.title("Histogram of lateral weights")
         plt.tight_layout()
-        plt.show()
+
+        plt.savefig(
+            fig_folder + "topographic_map_lat_weight_hist{}.pdf".format(suffix_test),
+            bbox_inches='tight', dpi=800)
+        plt.savefig(
+            fig_folder + "topographic_map_lat_weight_hist{}.svg".format(suffix_test),
+            bbox_inches='tight', dpi=800)
+
+        if args.plot:
+            plt.show()
+
+        plt.close(fig)
         # LAT connection bar chart
 
         init_fan_in_rec = fan_in(init_conn, init_weight, 'conn', 'rec')

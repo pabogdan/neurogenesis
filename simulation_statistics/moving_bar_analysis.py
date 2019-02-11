@@ -1786,7 +1786,7 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
         value_list.append(batch_parameters[poi])
         suffix_test += "_" + poi
     if extra_suffix:
-        suffix_test += extra_suffix
+        suffix_test += "_" + extra_suffix
     value_list = np.asarray(value_list)
     file_matrix = np.empty(file_shape, dtype="S200")
     # for index, value in np.ndenumerate(file_matrix):
@@ -1841,14 +1841,14 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
         dsi_selective = np.asarray(dsi_selective)
         dsi_not_selective = np.asarray(dsi_not_selective)
         all_dsi = get_concatenated_dsis(dsi_selective, dsi_not_selective)
-        average_dsi = np.mean(all_dsi)
+        average_dsi = np.nanmean(all_dsi)
         dsi_comparison[file_index] = average_dsi
         all_dsis[file_index] = all_dsi
         all_mean_rates[file_index] = rate_means
         all_exc_entropies[file_index] = current_results['exc_entropy']
         all_inh_entropies[file_index] = current_results['inh_entropy']
-        mean_exc_entropy[file_index] = np.mean(all_exc_entropies[file_index])
-        mean_inh_entropy[file_index] = np.mean(all_inh_entropies[file_index])
+        mean_exc_entropy[file_index] = np.nanmean(all_exc_entropies[file_index])
+        mean_inh_entropy[file_index] = np.nanmean(all_inh_entropies[file_index])
 
     # exc_entropy_description = stats.describe(all_exc_entropies.reshape(file_matrix.size, N_layer), axis=1)
     # dsi_description = stats.describe(all_dsis.reshape(file_matrix.size, N_layer), axis=1)
@@ -2869,6 +2869,10 @@ if __name__ == "__main__":
         fname = args.preproc_folder + "motion_batch_analysis_120019_22122018"
         info_fname = args.preproc_folder + "batch_5499ba5019881fd475ec21bd36e4c8b0"
         batch_analyser(fname, info_fname)
+
+        fname = args.preproc_folder + "motion_batch_analysis_221322_04022019"
+        info_fname = args.preproc_folder + "batch_4b6586d616ff42c6f973b04816cddd28"
+        batch_analyser(fname, info_fname, extra_suffix="all_angles")
 
     # Elephant analysis of single experiments
     if args.elephants or args.all_tests:

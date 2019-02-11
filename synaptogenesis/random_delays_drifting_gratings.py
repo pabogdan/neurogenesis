@@ -124,6 +124,8 @@ t_record = args.t_record if args.t_record <= args.no_iterations else \
     args.no_iterations
 # ms
 
+local_connection_delay_dist = [1,3]
+
 # STDP
 a_plus = 0.1
 b = args.b
@@ -423,6 +425,10 @@ if not args.testing:
         label="plastic_lat_projection",
         target="inhibitory" if args.lateral_inhibition else "excitatory"
     )
+    structure_model_w_stdp.set_projection_parameter(
+        lat_projection,
+        sim.StructuralMechanismSTDP.param.delay,
+        local_connection_delay_dist)
     if args.topology == 0:
         inh_weights = generate_initial_connectivity(5, p_form_forward,
                                                     "inh ff weights ...",
@@ -451,6 +457,10 @@ if not args.testing:
             label="static_inh_inh_projection",
             target="inhibitory"
         )
+        structure_model_w_stdp.set_projection_parameter(
+            inh_inh_projection,
+            sim.StructuralMechanismSTDP.param.delay,
+            local_connection_delay_dist)
         exh_projection = sim.Projection(
             target_pop, inh_pop,
             sim.FromListConnector(exh_weights),
@@ -466,6 +476,10 @@ if not args.testing:
             label="plastic_inh_lat_projection",
             target="inhibitory"
         )
+        structure_model_w_stdp.set_projection_parameter(
+            inh_projection,
+            sim.StructuralMechanismSTDP.param.delay,
+            local_connection_delay_dist)
         inh_inh_projection = sim.Projection(
             inh_pop, inh_pop,
             sim.FixedProbabilityConnector(0.),
@@ -473,6 +487,10 @@ if not args.testing:
             label="plastic_inh_inh_projection",
             target="inhibitory"
         )
+        structure_model_w_stdp.set_projection_parameter(
+            inh_inh_projection,
+            sim.StructuralMechanismSTDP.param.delay,
+            local_connection_delay_dist)
         exh_projection = sim.Projection(
             target_pop, inh_pop,
             sim.FixedProbabilityConnector(0.),
@@ -480,6 +498,10 @@ if not args.testing:
             label="plastic_exh_lat_projection",
             target="excitatory"
         )
+        structure_model_w_stdp.set_projection_parameter(
+            exh_projection,
+            sim.StructuralMechanismSTDP.param.delay,
+            local_connection_delay_dist)
     if args.topology == 3:
         ff_inh_projection = sim.Projection(
             source_pop, inh_pop,

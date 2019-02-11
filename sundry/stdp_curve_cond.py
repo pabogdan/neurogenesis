@@ -1,9 +1,11 @@
-import matplotlib.pyplot as plt
+import pylab as plt
 
 try:
     import pyNN.spiNNaker as sim
 except Exception as e:
     import spynnaker7.pyNN as sim
+
+import numpy as np
 
 # ------------------------------------------------------------------
 # This example uses the sPyNNaker implementation of pair-based STDP
@@ -14,12 +16,15 @@ except Exception as e:
 # ------------------------------------------------------------------
 # Common parameters
 # ------------------------------------------------------------------
+start_datetime = plt.datetime.datetime.now()
 time_between_pairs = 1400
 num_pairs = 60
 start_w = 0.005
 delta_t = [-100, -60, -40, -30, -20, -10, -1, 0, 1, 10, 20, 30, 40, 60, 80, 100, 120, 140, 160, 180, 220, 260]
+# delta_t = np.linspace(-100, 260, 20)
 start_time = 200
-mad = True
+# mad = True
+mad = 3
 
 # Original values
 w_min = 0.0
@@ -82,7 +87,7 @@ sim_time = 0
 for t in delta_t:
     # Calculate phase of input spike trains
     # If M.A.D., take into account dendritic delay
-    if mad:
+    if mad == 1:
         # Pre after post
         if t > 0:
             post_phase = 0
@@ -92,7 +97,7 @@ for t in delta_t:
             post_phase = -t
             pre_phase = 1
     # Otherwise, take into account axonal delay
-    else:
+    elif mad == 2:
         # Pre after post
         if t > 0:
             post_phase = 1
@@ -101,6 +106,16 @@ for t in delta_t:
         else:
             post_phase = 1 - t
             pre_phase = 0
+    elif mad == 3:
+        # Pre after post
+        if t > 0:
+            post_phase = 0
+            pre_phase = t
+        # Post after pre
+        else:
+            post_phase = - t
+            pre_phase = 0
+
 
     sim_time = max(sim_time, (num_pairs * time_between_pairs) + abs(t))
 
@@ -163,7 +178,7 @@ mlib.rcParams.update({'errorbar.capsize': 5})
 mlib.rcParams.update({'figure.autolayout': True})
 
 # Plot STDP curve
-figure, axis = plt.subplots(figsize=(10, 8), dpi=600)
+figure, axis = plt.subplots(figsize=(10, 6), dpi=600)
 axis.set_xlabel(r"$t_{j} - t_{i} (ms) $")
 axis.set_ylabel(r"$\frac{\Delta w_{ij}}{w_{ij}}$",
                 rotation="horizontal")
@@ -178,5 +193,17 @@ plt.savefig(
 plt.savefig(
     "stdp_curve_cond.svg",
     bbox_inches='tight', dpi=800)
+end_time = plt.datetime.datetime.now()
+total_time = end_time - start_datetime
 
+print("Total time elapsed -- " + str(total_time))
+
+suffix = end_time.strftime("_%H%M%S_%d%m%Y")
+filename = "stdp_curve" + str(suffix)
+
+np.savez(filename,
+         delta_t=delta_t,
+         delta_w=delta_w,
+         sim_time=sim_time,
+         total_time=total_time)
 # plt.show()
