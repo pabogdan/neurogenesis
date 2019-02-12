@@ -334,4 +334,15 @@ parser.add_argument('--f_rew_inh',
 parser.add_argument('--no_off_polarity', help="disable off polarity for moving bar",
                     action="store_true")
 
+
+parser.add_argument('--stationary_input', help="disable off polarity for moving bar",
+                    action="store_true")
+
+
+parser.add_argument('--mnist_input', help="input MNIST, not moving bars",
+                    action="store_true")
+
+parser.add_argument('--coplanar', help="Target layers are now coplanar. Affects delay between them",
+                    action="store_true")
+
 args = parser.parse_args()
