@@ -79,7 +79,21 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
         suffix += "_" + extra_suffix
 
     print("{:45}".format("Beginning MNIST analysis"))
+    print("{:45}".format("Archive name"), ":", archive)
     print("{:45}".format("Suffix"), ":", suffix)
+    print("{:45}".format("Reporting some parameters used in the current simulation"))
+    print("{:45}".format("Lateral Inhibition"), ":", bool(sim_params['lateral_inhibition']))
+    print("{:45}".format("Simulation time"), ":", sim_params['simtime'])
+    print("{:45}".format("STDP t_minus"), ":", sim_params['t_minus'])
+    print("{:45}".format("STDP t_plus"), ":", sim_params['t_plus'])
+    print("{:45}".format("SR Synaptic capacity"), ":", sim_params['s_max'])
+    print("{:45}".format("SR sigma_form_forward"), ":", sim_params['sigma_form_forward'])
+    print("{:45}".format("SR sigma_form_lateral"), ":", sim_params['sigma_form_lateral'])
+    print("{:45}".format("Grid shape"), ":", sim_params['grid'])
+    print("{:45}".format("Input type"), ":", sim_params['input_type'])
+
+    N_layer = sim_params['grid'][0] + sim_params['grid'][1]
+    s_max = sim_params['s_max']
 
 
     simtime = data['simtime'].ravel()[0]
@@ -326,6 +340,30 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
 
     rmse = np.sqrt(np.mean((testing_numbers - what_network_thinks) ** 2))
     print("{:45}".format("RMSE"), ":", rmse)
+
+    number_of_afferents = []
+    for ff_conn, lat_conn in zip(final_ff_conn, final_lat_conn):
+        number_of_afferents.append(get_number_of_afferents_from_list(N_layer, ff_conn, lat_conn))
+    number_of_afferents = np.asarray(number_of_afferents)
+
+    # stlye the median of boxplots
+    medianprops = dict(color='#414C82', linewidth=1.5)
+
+    # synaptic capacity per
+    fig = plt.figure(figsize=(16, 8), dpi=600)
+
+    plt.axhline(s_max, color='#b2dd2c', ls=":")
+    bp = plt.boxplot(number_of_afferents.T, notch=True, medianprops=medianprops)
+
+    plt.xticks(np.arange(number_of_afferents.shape[0]) + 1, np.arange(number_of_afferents.shape[0]))
+    plt.xlabel("Target layer")
+    plt.ylabel("Mean synaptic capacity usage")
+    plt.grid(True, which='major', axis='y')
+    plt.savefig(fig_folder + "mnist_number_of_afferents_boxplot{}.pdf".format(suffix))
+    plt.savefig(fig_folder + "mnist_number_of_afferents_boxplot{}.svg".format(suffix))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
 
 
 if __name__ == "__main__":

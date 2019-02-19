@@ -461,3 +461,10 @@ def get_number_of_afferents(N_layer, ff_num_network, lat_num_network):
             ff_num_network[:, index[0]]) + np.nansum(
             lat_num_network[:, index[0]])
     return number_of_afferents
+
+def get_number_of_afferents_from_list(N_layer, ff_list, lat_list):
+    number_of_afferents = np.empty(N_layer)
+    for index, value in np.ndenumerate(number_of_afferents):
+        number_of_afferents[index] = ff_list[ff_list[:, 1]==index].shape[0] + \
+                                     lat_list[lat_list[:, 1] == index].shape[0]
+    return number_of_afferents
