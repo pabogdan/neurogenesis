@@ -306,7 +306,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     y, binEdges = np.histogram(all_delays, bins=np.unique(all_delays).size)
     bincenters = 0.5 * (binEdges[1:] + binEdges[:-1])
     width = 1
-    print("{:45}".format("Unique Delays present in networ"), ":", np.unique(all_delays))
+    print("{:45}".format("Unique Delays present in network"), ":", np.unique(all_delays))
     plt.bar(np.unique(all_delays), y, width=width,
             color='#414C82', edgecolor='k')
 
@@ -923,10 +923,13 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
 
         viridis_cmap = mlib.cm.get_cmap('viridis')
         for curr_ax_id, curr_ax in np.ndenumerate(axes):
-            i = int(curr_ax_id[0])
+            if len(curr_ax_id) == 0:  # I don't understand why this happens but ok ...
+                i = 0
+            else:
+                i = int(curr_ax_id[0])
             curr_ax.axvline(np.deg2rad(unique_angles_of_interest[i]), color="#bbbbbb", lw=4, zorder=1)
             curr_ax.fill(radians, dsi_selective_firing_curves[i, :],
-                         c=viridis_cmap(float(i) / (no_files - 1)),
+                         c=viridis_cmap(float(i) / (no_files)),
                          alpha=0.9, fill=False, lw=4, zorder=2)
             curr_ax.set_xlabel("${:3}^\circ$ - DSI {:.2} - id {:4}".format(unique_angles_of_interest[i],
                                                                            dsi_selective_dsi_values[i],
@@ -1265,8 +1268,8 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
     tstat = np.asarray([t[0] for t in ttests])
     pstat = np.asarray([t[1] for t in ttests])
 
-    below_threshold = pstat <= 0.01
-    above_threshold = pstat > 0.01
+    below_threshold = pstat < 0.01
+    above_threshold = pstat >= 0.01
     plt.scatter(radians[above_threshold], tstat[above_threshold],
                 c='orangered', zorder=6)
     plt.xlabel("Independent t-test")
@@ -2549,6 +2552,119 @@ if __name__ == "__main__":
     # fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo"
     # comparison(fname1, fname2, extra_suffix="0_vs_45", custom_labels=diff_angles_custom_labels)
 
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_coplanar"
+    analyse_one(fname, extra_suffix="coplanar")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_coplanar"
+    comparison(fname1, fname2, extra_suffix="coplanar_vs_standard", custom_labels=["standard", "coplanar"])
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_coplanar"
+    analyse_one(fname, extra_suffix="coplanar")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_coplanar"
+    comparison(fname1, fname2, extra_suffix="coplanar_vs_standard", custom_labels=["standard", "coplanar"])
+
+    sys.exit()
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_coplanar"
+    analyse_one(fname, extra_suffix="coplanar_384k")
+
+    filenames = [
+        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_45_coplanar",
+        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_45_coplanar",
+        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_45_coplanar",
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_coplanar",
+        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_45_coplanar",
+        # "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_45_coplanar"
+    ]
+
+    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+             38400 * bunits.second,
+             # 76800 * bunits.second
+             ]
+    evolution(filenames, times, path=args.preproc_folder, suffix="1_angles_45_coplanar")
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_coplanar_2"
+    analyse_one(fname, extra_suffix="coplanar_2")
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_coplanar_3"
+    analyse_one(fname, extra_suffix="coplanar_3")
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_all_coplanar"
+    analyse_one(fname, extra_suffix="coplanar")
+
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_all_evo"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_all_coplanar"
+    comparison(fname1, fname2, extra_suffix="coplanar_vs_standard", custom_labels=["standard", "coplanar"])
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_coplanar"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
+    comparison(fname1, fname2, extra_suffix="coplanar_vs_continuous_test", custom_labels=["coplanar", "continuous test"])
+
+
+
+    fname1 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
+    comparison(fname1, fname2, extra_suffix="constant_continuous_test", custom_labels=["constant", "continuous test"])
+
+
+
+    filenames = [
+        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_NESW_coplanar",
+        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_NESW_coplanar",
+        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_NESW_coplanar",
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_coplanar",
+        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_coplanar",
+        # "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_coplanar"
+    ]
+
+    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+             38400 * bunits.second,
+             # 76800 * bunits.second
+             ]
+
+    evolution(filenames, times, path=args.preproc_folder, suffix="4_angles_NESW_coplanar")
+
+
+    filenames = [
+        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_coplanar",
+        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_coplanar",
+        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_coplanar",
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_coplanar",
+        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_coplanar",
+        # "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_coplanar"
+    ]
+
+    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+             38400 * bunits.second,
+             # 76800 * bunits.second
+             ]
+
+    evolution(filenames, times, path=args.preproc_folder, suffix="1_angles_0_coplanar")
+
+
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_coplanar"
+    analyse_one(fname, extra_suffix="coplanar")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_coplanar"
+    comparison(fname1, fname2, extra_suffix="coplanar_vs_standard", custom_labels=["standard", "coplanar"])
+
+
+
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_coplanar"
+    analyse_one(fname, extra_suffix="coplanar")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_coplanar"
+    comparison(fname1, fname2, extra_suffix="coplanar_vs_standard", custom_labels=["standard", "coplanar"])
+
+    sys.exit()
 
 
     # Single experiment analysis
@@ -2633,6 +2749,12 @@ if __name__ == "__main__":
 
         fname = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
         analyse_one(fname, extra_suffix="training_without_noise")
+
+        fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
+        analyse_one(fname, extra_suffix="continuous_test")
+
+        fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
+        analyse_one(fname, extra_suffix="constant_continuous_test")
 
     # Comparison between 2 experiments
     # Runs for 192k ms or ~5 hours ---------------------------
@@ -2737,6 +2859,14 @@ if __name__ == "__main__":
         fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
         fname2 = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
         comparison(fname1, fname2, custom_labels=["noise", "train w/o noise"], extra_suffix="training_without_noise")
+
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
+        fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
+        comparison(fname1, fname2, extra_suffix="continuous_test")
+
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
+        comparison(fname1, fname2, extra_suffix="continuous_test_vs_standard", custom_labels=["standard", "continuous test"])
 
     # Generating evolution plots
     # 1 angle, random delays
