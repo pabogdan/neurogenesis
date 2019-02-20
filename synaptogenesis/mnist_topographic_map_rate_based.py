@@ -291,19 +291,18 @@ else:
             N_layer,
             sim.SpikeSourcePoissonVariable,
             {
-                'rate': testing_rates.reshape(simtime // t_stim, N_layer).T,
-                'start': slots_starts,
-                'duration': simtime,
-                'rate_interval_duration': t_stim
+                'rates': testing_rates.reshape(simtime // t_stim, N_layer).T,
+                'starts': slots_starts,
+                'durations': durations
             },
             label="VRPSS for testing")
     else:
         source_pop = sim.Population(
             N_layer,
             sim.SpikeSourcePoisson,
-            {'rates': f_mean,
-             'starts': 100,
-             'durations': durations,
+            {'rate': f_mean,
+             'start': 0,
+             'duration': simtime,
              },
             label="PSS for testing")
 
@@ -403,7 +402,7 @@ if args.filename:
 else:
     filename = "mnist_topographic_map_rate_results" + str(suffix)
 
-np.savez(filename,
+np.savez_compressed(filename,
          pre_spikes=pre_spikes,
          post_spikes=post_spikes,
          init_ff_connections=init_ff_connections,
