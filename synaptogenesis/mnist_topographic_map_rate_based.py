@@ -1,5 +1,5 @@
-
 import numpy as np
+import traceback
 import pylab as plt
 import spynnaker7.pyNN as sim
 from function_definitions import *
@@ -158,12 +158,10 @@ else:
 # Use the same initial connectivity for all sets of Populations
 randomised_testing_numbers = None
 
-
 number_of_slots = int(simtime / t_stim)
 range_of_slots = np.arange(number_of_slots)
 slots_starts = np.ones((N_layer, number_of_slots)) * (range_of_slots * t_stim)
 durations = np.ones((N_layer, number_of_slots)) * t_stim
-
 
 if not args.testing:
 
@@ -183,16 +181,19 @@ if not args.testing:
                             np.random.rand() < .01]
 
     for number in range(10):
+        # TODO Make input folder variable so that you can swap between averaged and CS
         rates_on, rates_off = load_mnist_rates('mnist_input_rates/averaged/',
-                                               number, min_noise=f_mean/4.,
-                                               max_noise=f_mean/4.,
+                                               number, min_noise=f_mean / 4.,
+                                               max_noise=f_mean / 4.,
                                                mean_rate=f_mean)
+
+        # TODO randomise input and allow for arbitrary simulation durations
+        # Input population
         source_column.append(
             sim.Population(
                 N_layer,
                 sim.SpikeSourcePoissonVariable,
-                {'rates': rates_on[0:simtime // t_stim, :, :].reshape(
-                   simtime // t_stim, N_layer).T,
+                {'rates': rates_on[0:simtime // t_stim, :, :].reshape(simtime // t_stim, N_layer).T,
                  'starts': slots_starts,
                  'durations': durations
                  },
@@ -206,6 +207,7 @@ if not args.testing:
                            label="TARGET_POP # " + str(number))
         )
 
+        # Setting up connectivity
         ff_connections.append(
             sim.Projection(
                 source_column[number], target_column[number],
@@ -272,8 +274,8 @@ else:
         for number in range(10):
             rates_on, rates_off = load_mnist_rates(
                 'mnist_input_rates/testing/',
-                number, min_noise=f_mean/4.,
-                max_noise=f_mean/4.,
+                number, min_noise=f_mean / 4.,
+                max_noise=f_mean / 4.,
                 mean_rate=f_mean)
 
             rates.append(rates_on)
@@ -358,37 +360,43 @@ post_weights = []
 
 no_runs = simtime // t_record
 run_duration = t_record
+e = None
+print("Starting the sim")
 
-for current_run in range(no_runs):
-    print("run", current_run + 1, "of", no_runs)
-    sim.run(run_duration)
+try:
+    for current_run in range(no_runs):
+        print("run", current_run + 1, "of", no_runs)
+        sim.run(run_duration)
 
-    # Retrieve data if training
-    if not args.testing:
-        for ff_projection in ff_connections:
-            pre_weights.append(
-                np.array([
-                    ff_projection._get_synaptic_data(True, 'source'),
-                    ff_projection._get_synaptic_data(True, 'target'),
-                    ff_projection._get_synaptic_data(True, 'weight'),
-                    ff_projection._get_synaptic_data(True, 'delay')]).T)
-        if args.case != CASE_CORR_NO_REW:
-            for lat_projection in lat_connections:
-                post_weights.append(
+        # Retrieve data if training
+        if not args.testing:
+            for ff_projection in ff_connections:
+                pre_weights.append(
                     np.array([
-                        lat_projection._get_synaptic_data(True, 'source'),
-                        lat_projection._get_synaptic_data(True, 'target'),
-                        lat_projection._get_synaptic_data(True, 'weight'),
-                        lat_projection._get_synaptic_data(True,
-                                                          'delay')]).T)
+                        ff_projection._get_synaptic_data(True, 'source'),
+                        ff_projection._get_synaptic_data(True, 'target'),
+                        ff_projection._get_synaptic_data(True, 'weight'),
+                        ff_projection._get_synaptic_data(True, 'delay')]).T)
+            if args.case != CASE_CORR_NO_REW:
+                for lat_projection in lat_connections:
+                    post_weights.append(
+                        np.array([
+                            lat_projection._get_synaptic_data(True, 'source'),
+                            lat_projection._get_synaptic_data(True, 'target'),
+                            lat_projection._get_synaptic_data(True, 'weight'),
+                            lat_projection._get_synaptic_data(True,
+                                                              'delay')]).T)
 
-if args.record_source:
-    for source_pop in source_column:
-        pre_spikes.append(source_pop.getSpikes(compatible_output=True))
-for target_pop in target_column:
-    post_spikes.append(target_pop.getSpikes(compatible_output=True))
-# End simulation on SpiNNaker
-sim.end()
+    if args.record_source:
+        for source_pop in source_column:
+            pre_spikes.append(source_pop.getSpikes(compatible_output=True))
+    for target_pop in target_column:
+        post_spikes.append(target_pop.getSpikes(compatible_output=True))
+    # End simulation on SpiNNaker
+    sim.end()
+except Exception as e:
+    # print(e)
+    traceback.print_exc()
 
 end_time = plt.datetime.datetime.now()
 total_time = end_time - start_time
@@ -399,43 +407,29 @@ suffix = end_time.strftime("_%H%M%S_%d%m%Y")
 
 if args.filename:
     filename = args.filename
+elif args.testing:
+    filename = "testing_" + args.testing
 else:
     filename = "mnist_topographic_map_rate_results" + str(suffix)
 
+if e:
+    filename = "error_" + filename
+
 np.savez_compressed(filename,
-         pre_spikes=pre_spikes,
-         post_spikes=post_spikes,
-         init_ff_connections=init_ff_connections,
-         init_lat_connections=init_lat_connections,
-         ff_connections=pre_weights,
-         lat_connections=post_weights,
-         final_pre_weights=pre_weights[-10:],
-         final_post_weights=post_weights[-10:],
-         simtime=simtime,
-         sim_params=sim_params,
-         total_time=total_time,
-         testing_numbers=randomised_testing_numbers,
-         testing_file=args.testing, random_input=args.random_input,
-         exception=None)
+                    pre_spikes=pre_spikes,
+                    post_spikes=post_spikes,
+                    init_ff_connections=init_ff_connections,
+                    init_lat_connections=init_lat_connections,
+                    ff_connections=pre_weights,
+                    lat_connections=post_weights,
+                    final_pre_weights=pre_weights[-10:],
+                    final_post_weights=post_weights[-10:],
+                    simtime=simtime,
+                    sim_params=sim_params,
+                    total_time=total_time,
+                    testing_numbers=randomised_testing_numbers,
+                    testing_file=args.testing, random_input=args.random_input,
+                    exception=None)
 
-if args.plot:
-    def plot_spikes(spikes, title):
-        if spikes is not None and len(spikes) > 0:
-            f, ax1 = plt.subplots(1, 1, figsize=(16, 8))
-            ax1.set_xlim((0, simtime))
-            ax1.scatter([i[1] for i in spikes], [i[0] for i in spikes],
-                        s=.2)
-            ax1.set_xlabel('Time/ms')
-            ax1.set_ylabel('spikes')
-            ax1.set_title(title)
-
-        else:
-            print("No spikes received")
-
-
-    plot_spikes(pre_spikes, "Source layer spikes")
-    plt.show()
-    plot_spikes(post_spikes, "Target layer spikes")
-    plt.show()
 print("Results in", filename)
 print("Total time elapsed -- " + str(total_time))
