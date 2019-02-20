@@ -13,7 +13,7 @@ sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
 sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
 sim.set_number_of_neurons_per_core("IF_cond_exp", 50)
 sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256)
-sim.set_number_of_neurons_per_core("SpikeSourcePoissonVariable", 256)
+sim.set_number_of_neurons_per_core("SpikeSourcePoissonVariable", 128)
 sim.set_number_of_neurons_per_core("SpikeSourceArray", 256)
 # +-------------------------------------------------------------------+
 # | General Parameters                                                |
