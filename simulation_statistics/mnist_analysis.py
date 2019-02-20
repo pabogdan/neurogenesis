@@ -94,6 +94,7 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
 
     N_layer = sim_params['grid'][0] * sim_params['grid'][1]
     s_max = sim_params['s_max']
+    g_max = sim_params['g_max']
 
 
     simtime = data['simtime'].ravel()[0]
@@ -111,6 +112,9 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
 
     testing_simtime = testing_data['simtime'].ravel()[0]
     testing_numbers = testing_data['testing_numbers']
+
+    # stlye the median of boxplots
+    medianprops = dict(color='#414C82', linewidth=1.5)
 
 
 
@@ -166,8 +170,8 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     # plt.colorbar(silly_ax[4], cax=cax)
 
     plt.tight_layout()
-    plt.savefig(fig_folder + "total_target_hits_rate_based{}.pdf".format(suffix))
-    plt.savefig(fig_folder + "total_target_hits_rate_based{}.svg".format(suffix))
+    plt.savefig(fig_folder + "mnist_total_target_hits_rate_based{}.pdf".format(suffix))
+    plt.savefig(fig_folder + "mnist_total_target_hits_rate_based{}.svg".format(suffix))
     if show_plots:
         plt.show()
     plt.close(fig_conn)
@@ -211,8 +215,8 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     # plt.colorbar(silly_ax[4], cax=cax)
 
     # plt.tight_layout()
-    plt.savefig(fig_folder + "all_digits_weighted_rate_based{}.pdf".format(suffix))
-    plt.savefig(fig_folder + "all_digits_weighted_rate_based{}.svg".format(suffix))
+    plt.savefig(fig_folder + "mnist_all_digits_weighted_rate_based{}.pdf".format(suffix))
+    plt.savefig(fig_folder + "mnist_all_digits_weighted_rate_based{}.svg".format(suffix))
     if show_plots:
         plt.show()
     plt.close(fig_conn)
@@ -256,11 +260,86 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
 
 
 
-    plt.savefig(fig_folder + "all_digits_rate_based{}.pdf".format(suffix))
-    plt.savefig(fig_folder + "all_digits_rate_based{}.svg".format(suffix))
+    plt.savefig(fig_folder + "mnist_all_digits_rate_based{}.pdf".format(suffix))
+    plt.savefig(fig_folder + "mnist_all_digits_rate_based{}.svg".format(suffix))
     if show_plots:
         plt.show()
     plt.close(fig_conn)
+
+    chunk = 200
+    instaneous_rates = np.empty((10, 300000 // chunk))
+    for index, value in np.ndenumerate(instaneous_rates):
+        number_index, chunk_index = index
+        instaneous_rates[number_index, chunk_index] = np.count_nonzero(
+            np.logical_and(
+                post_spikes[number_index][:, 1] >= (chunk_index * chunk),
+                post_spikes[number_index][:, 1] <= ((chunk_index + 1) * chunk)
+            )
+        ) / (28 ** 2 * chunk * ms)
+
+    # firing rate per digit
+    fig = plt.figure(figsize=(16, 8), dpi=600)
+
+    # plt.axhline(s_max, color='#b2dd2c', ls=":")
+    bp = plt.boxplot(instaneous_rates.T, notch=True, medianprops=medianprops)
+
+    plt.xticks(np.arange(instaneous_rates.shape[0]) + 1, np.arange(instaneous_rates.shape[0]))
+    plt.xlabel("Target layer")
+    plt.ylabel("Firing rate (Hz)")
+    plt.grid(True, which='major', axis='y')
+    plt.savefig(fig_folder + "mnist_training_firing_rate_boxplot{}.pdf".format(suffix))
+    plt.savefig(fig_folder + "mnist_training_firing_rate_boxplot{}.svg".format(suffix))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    ff_all_conns= np.asarray([])
+    for ff_conn in final_ff_conn:
+        if ff_all_conns.size == 0:
+            ff_all_conns = ff_conn
+        else:
+            ff_all_conns = np.concatenate((ff_all_conns, ff_conn), axis=0)
+
+
+    lat_all_conns= np.asarray([])
+    if final_lat_conn.size > 0:
+        for lat_conn in final_lat_conn:
+            if lat_all_conns.size == 0:
+                lat_all_conns = lat_conn
+            else:
+                lat_all_conns = np.concatenate((lat_all_conns, lat_conn), axis=0)
+    # weight histograms
+    if final_lat_conn.size > 0:
+        conns = (ff_all_conns, lat_all_conns)
+        conns_names = ["$ff$", "$lat$"]
+    else:
+        conns = (ff_all_conns)
+        conns_names = ["$ff$"]
+
+    minimus = 0
+    maximus = 1.
+
+    fig, axes = plt.subplots(1, len(conns_names), figsize=(7.5 * len(conns_names), 7), sharey=True)
+    for index, ax in np.ndenumerate(axes):
+        if len(index) == 0:
+            i = 0
+            curr_conn = ff_all_conns
+        else:
+            i = index[0]
+            curr_conn = conns[i]
+        ax.hist(curr_conn[:, 2] / g_max, bins=20, color='#414C82', edgecolor='k', normed=True)
+        ax.set_title(conns_names[i])
+        ax.set_xlim([minimus, maximus])
+        ax.set_xticklabels(["0", "0.5", "1"])
+        ax.set_xticks([0, .5, 1])
+    plt.tight_layout()
+    plt.savefig(fig_folder + "mnist_weight_histograms{}.pdf".format(suffix), bbox_inches='tight')
+    plt.savefig(fig_folder + "mnist_weight_histograms{}.svg".format(suffix), bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    # ----------------- Analysing the test ------------------------
 
     post_spikes = testing_data['post_spikes']
     rates_for_number = np.zeros((10, 28 ** 2))
@@ -350,10 +429,7 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
             number_of_afferents.append(get_number_of_afferents_from_list(N_layer, ff_conn, np.array([])))
     number_of_afferents = np.asarray(number_of_afferents)
 
-    # stlye the median of boxplots
-    medianprops = dict(color='#414C82', linewidth=1.5)
-
-    # synaptic capacity per
+    # synaptic capacity per digit
     fig = plt.figure(figsize=(16, 8), dpi=600)
 
     plt.axhline(s_max, color='#b2dd2c', ls=":")
@@ -369,6 +445,22 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
         plt.show()
     plt.close(fig)
 
+    # firing rate per digit
+    fig = plt.figure(figsize=(16, 8), dpi=600)
+
+    # plt.axhline(s_max, color='#b2dd2c', ls=":")
+    bp = plt.boxplot(instaneous_rates.T, notch=True, medianprops=medianprops)
+
+    plt.xticks(np.arange(number_of_afferents.shape[0]) + 1, np.arange(number_of_afferents.shape[0]))
+    plt.xlabel("Target layer")
+    plt.ylabel("Firing rate (Hz)")
+    plt.grid(True, which='major', axis='y')
+    plt.savefig(fig_folder + "mnist_testing_firing_rate_boxplot{}.pdf".format(suffix))
+    plt.savefig(fig_folder + "mnist_testing_firing_rate_boxplot{}.svg".format(suffix))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
 
 if __name__ == "__main__":
     import sys
@@ -376,6 +468,18 @@ if __name__ == "__main__":
     #   1 - rewiring and     STDP
     #   2 - rewiring and     STDP, but no lateral connections
     #   3 - rewiring, but no STDP
+
+    filename = "mnist_case_1_smax_128_cont"
+    mnist_analysis(filename, extra_suffix="smax_128_continuous_test")
+    # sys.exit()
+
+    filename = "mnist_case_1_cont"
+    mnist_analysis(filename, extra_suffix="continuous_test")
+
+
+
+    filename = "mnist_case_3_cont"
+    mnist_analysis(filename, extra_suffix="continuous_test")
 
     # Rate-based input experiments
 
