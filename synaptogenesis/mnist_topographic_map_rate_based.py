@@ -282,21 +282,17 @@ else:
         if not args.random_input:
             testing_rates[index, :, :] = \
                 rates[
-                    randomised_testing_numbers[index]] \
-                    [np.random.randint(0, rates[
-                    randomised_testing_numbers[
-                        index]].shape[
-                    0]),
-                :, :]
+                    randomised_testing_numbers
+                    [index]][np.random.randint(0, rates[randomised_testing_numbers[index]].shape[0]), :, :]
         else:
             break
     if not args.random_input:
         source_pop = sim.Population(
             N_layer,
             sim.SpikeSourcePoissonVariable,
-            {'rate': testing_rates.reshape(
-                simtime // t_stim, N_layer),
-                'start': 100,
+            {
+                'rate': testing_rates.reshape(simtime // t_stim, N_layer).T,
+                'start': slots_starts,
                 'duration': simtime,
                 'rate_interval_duration': t_stim
             },
@@ -305,9 +301,9 @@ else:
         source_pop = sim.Population(
             N_layer,
             sim.SpikeSourcePoisson,
-            {'rate': f_mean,
-             'start': 100,
-             'duration': simtime,
+            {'rates': f_mean,
+             'starts': 100,
+             'durations': durations,
              },
             label="PSS for testing")
 
