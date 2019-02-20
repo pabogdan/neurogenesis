@@ -4,13 +4,17 @@ import pylab as plt
 import spynnaker7.pyNN as sim
 from function_definitions import *
 from argparser import *
+import sys
 
 # SpiNNaker setup
 start_time = plt.datetime.datetime.now()
 
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
-sim.set_number_of_neurons_per_core("IF_cond_exp", 256 // 10)
-sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 5)
+sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
+sim.set_number_of_neurons_per_core("IF_cond_exp", 50)
+sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256)
+sim.set_number_of_neurons_per_core("SpikeSourcePoissonVariable", 256)
+sim.set_number_of_neurons_per_core("SpikeSourceArray", 256)
 # +-------------------------------------------------------------------+
 # | General Parameters                                                |
 # +-------------------------------------------------------------------+
@@ -38,6 +42,25 @@ cell_params = {'cm': 20.0,  # nF
                'e_rev_E': 0.,
                'e_rev_I': -80.
                }
+# Check for cached versions
+
+filename = None
+adjusted_name = None
+if args.filename:
+    filename = args.filename
+elif args.testing:
+    filename = "testing_" + args.testing
+
+if filename:
+    if ".npz" in filename:
+        adjusted_name = filename
+    else:
+        adjusted_name = filename + ".npz"
+if adjusted_name and os.path.isfile(adjusted_name) and not args.no_cache:
+    print("Simulation has been run before & Cached version of results "
+          "exists!")
+    sys.exit()
+
 
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
@@ -47,7 +70,6 @@ simtime = no_iterations
 # Wiring
 n = 28
 N_layer = n ** 2
-# S = (n, n)
 S = (n, n)
 grid = np.asarray(S)
 
@@ -72,7 +94,7 @@ t_record = args.t_record  # ms
 a_plus = 0.1
 b = args.b
 tau_plus = 20.  # ms
-tau_minus = 20.  # ms
+tau_minus = args.t_minus  # ms
 a_minus = (a_plus * tau_plus * b) / tau_minus
 # Reporting
 
@@ -118,7 +140,6 @@ stdp_model = sim.STDPMechanism(
     timing_dependence=sim.SpikePairRule(tau_plus=tau_plus,
                                         tau_minus=tau_minus),
     weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=g_max,
-                                                   # A_plus=0.02, A_minus=0.02
                                                    A_plus=a_plus,
                                                    A_minus=a_minus)
 )
@@ -384,8 +405,7 @@ try:
                             lat_projection._get_synaptic_data(True, 'source'),
                             lat_projection._get_synaptic_data(True, 'target'),
                             lat_projection._get_synaptic_data(True, 'weight'),
-                            lat_projection._get_synaptic_data(True,
-                                                              'delay')]).T)
+                            lat_projection._get_synaptic_data(True, 'delay')]).T)
 
     if args.record_source:
         for source_pop in source_column:

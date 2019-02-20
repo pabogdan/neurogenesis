@@ -10,11 +10,10 @@ import traceback
 from gari_function_definitions import *
 from function_definitions import *
 from argparser import *
-
 import numpy as np
 import pylab as plt
-
 import spynnaker7.pyNN as sim
+import sys
 
 case = args.case
 print("Case", case, "selected!")
@@ -85,9 +84,9 @@ if filename:
     else:
         adjusted_name = filename + ".npz"
 if adjusted_name and os.path.isfile(adjusted_name) and not args.no_cache:
-    print("Analysis has been run before & Cached version of results "
+    print("Simulation has been run before & Cached version of results "
           "exists!")
-    os._exit(1)
+    sys.exit()
 
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
