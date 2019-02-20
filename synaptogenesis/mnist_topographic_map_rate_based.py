@@ -65,7 +65,7 @@ f_mean = args.f_mean  # Hz
 f_base = 5  # Hz
 f_peak = 60  # Hz
 sigma_stim = 2  # 2
-t_stim = args.t_stim  # 20  # ms
+t_stim = 200  # ms
 t_record = args.t_record  # ms
 
 # STDP
@@ -150,11 +150,21 @@ elif args.case == CASE_REW_NO_CORR or args.case == CASE_CORR_NO_REW:
         sigma_form_lateral=sigma_form_lateral,
         p_form_forward=p_form_forward,
         p_form_lateral=p_form_lateral)
+else:
+    raise ValueError("I don't know what {} is supposed to do.".format(args.case))
 # if not testing (i.e. training) construct 10 sources + 10 targets
 # grouped into 2 columns
 # For each source VRPSS load mnist rates from file
 # Use the same initial connectivity for all sets of Populations
 randomised_testing_numbers = None
+
+
+number_of_slots = int(simtime / t_stim)
+range_of_slots = np.arange(number_of_slots)
+slots_starts = np.ones((N_layer, number_of_slots)) * (range_of_slots * t_stim)
+durations = np.ones((N_layer, number_of_slots)) * t_stim
+
+
 if not args.testing:
 
     source_column = []
@@ -181,11 +191,10 @@ if not args.testing:
             sim.Population(
                 N_layer,
                 sim.SpikeSourcePoissonVariable,
-                {'rate': rates_on[0:simtime // t_stim, :, :].reshape(
-                   simtime // t_stim, N_layer),
-                 'start': 100,
-                 'duration': simtime,
-                 'rate_interval_duration': t_stim
+                {'rates': rates_on[0:simtime // t_stim, :, :].reshape(
+                   simtime // t_stim, N_layer).T,
+                 'starts': slots_starts,
+                 'durations': durations
                  },
                 label="Variable-rate Poisson spike source # " +
                       str(number))

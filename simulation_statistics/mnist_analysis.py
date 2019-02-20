@@ -92,7 +92,7 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     print("{:45}".format("Grid shape"), ":", sim_params['grid'])
     print("{:45}".format("Input type"), ":", sim_params['input_type'])
 
-    N_layer = sim_params['grid'][0] + sim_params['grid'][1]
+    N_layer = sim_params['grid'][0] * sim_params['grid'][1]
     s_max = sim_params['s_max']
 
 
@@ -342,8 +342,12 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     print("{:45}".format("RMSE"), ":", rmse)
 
     number_of_afferents = []
-    for ff_conn, lat_conn in zip(final_ff_conn, final_lat_conn):
-        number_of_afferents.append(get_number_of_afferents_from_list(N_layer, ff_conn, lat_conn))
+    if final_lat_conn.size > 0:
+        for ff_conn, lat_conn in zip(final_ff_conn, final_lat_conn):
+            number_of_afferents.append(get_number_of_afferents_from_list(N_layer, ff_conn, lat_conn))
+    else:
+        for ff_conn in final_ff_conn:
+            number_of_afferents.append(get_number_of_afferents_from_list(N_layer, ff_conn, np.array([])))
     number_of_afferents = np.asarray(number_of_afferents)
 
     # stlye the median of boxplots
@@ -378,10 +382,8 @@ if __name__ == "__main__":
     filename = "mnist_case_1_5hz_rate_smax_96_sigma_lat_2"
     mnist_analysis(filename)
 
-
     filename = "mnist_case_2_5hz_rate_smax_96"
     mnist_analysis(filename)
-
 
     filename = "mnist_case_3_5hz_rate_smax_96_sigma_lat_2"
     mnist_analysis(filename)
