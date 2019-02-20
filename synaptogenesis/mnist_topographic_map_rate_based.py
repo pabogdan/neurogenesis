@@ -255,7 +255,11 @@ else:
     target_column = []
     lat_connections = []
 
-    testing_data = np.load(args.testing)
+    if ".npz" in args.testing:
+        testing_data = np.load(args.testing)
+    else:
+        testing_data = np.load(args.testing + ".npz")
+
     trained_ff_connectivity = testing_data['ff_connections'][-10:]
     trained_lat_connectivity = testing_data['lat_connections'][-10:]
 
