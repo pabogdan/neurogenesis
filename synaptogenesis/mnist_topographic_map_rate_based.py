@@ -210,13 +210,18 @@ if not args.testing:
                                                number, min_noise=f_mean / 4.,
                                                max_noise=f_mean / 4.,
                                                mean_rate=f_mean)
-        # TODO randomise input and allow for arbitrary simulation durations
+        # randomise input and allow for arbitrary simulation durations
+        rates_on = rates_on.reshape(rates_on.shape[0], N_layer).T
+        possible_indices = np.arange(rates_on.shape[1])
+        choices = np.random.choice(possible_indices, number_of_slots, replace=True)
+        final_rates_on = rates_on[:, choices]
+
         # Input population
         source_column.append(
             sim.Population(
                 N_layer,
                 sim.SpikeSourcePoissonVariable,
-                {'rates': rates_on[0:simtime // t_stim, :, :].reshape(simtime // t_stim, N_layer).T,
+                {'rates': final_rates_on,
                  'starts': slots_starts,
                  'durations': durations
                  },
