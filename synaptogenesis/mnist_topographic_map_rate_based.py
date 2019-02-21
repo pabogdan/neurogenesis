@@ -65,7 +65,10 @@ if adjusted_name and os.path.isfile(adjusted_name) and not args.no_cache:
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
 # +-------------------------------------------------------------------+
-no_iterations = args.no_iterations  # iterations
+if args.testing:
+    no_iterations = args.testing_iterations
+else:
+    no_iterations = args.no_iterations
 simtime = no_iterations
 # Wiring
 n = 28
@@ -207,7 +210,6 @@ if not args.testing:
                                                number, min_noise=f_mean / 4.,
                                                max_noise=f_mean / 4.,
                                                mean_rate=f_mean)
-
         # TODO randomise input and allow for arbitrary simulation durations
         # Input population
         source_column.append(
