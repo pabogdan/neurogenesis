@@ -340,29 +340,21 @@ else:
             sim.Projection(
                 source_pop, target_column[number],
                 sim.FromListConnector(trained_ff_connectivity[number]),
-                label="ff_projection " + str(number)
+                label="ff_projection " + str(number),
+                # synapse_type=sim.StaticSynapse()
             )
         )
         if args.case != CASE_CORR_NO_REW:
             lat_connections.append(
                 sim.Projection(
                     target_column[number], target_column[number],
-                    sim.FromListConnector(
-                        trained_lat_connectivity[number]),
+                    sim.FromListConnector(trained_lat_connectivity[number]),
                     label="lat_projection " + str(number),
-                    receptor_type="inhibitory" if args.lateral_inhibition else "excitatory"
+                    receptor_type="inhibitory" if args.lateral_inhibition else "excitatory",
+                    # synapse_type=sim.StaticSynapse()
                 )
             )
-    if args.lat_lat_conn:
-        for number_pre in range(10):
-            for number_post in range(10):
-                sim.Projection(
-                    target_column[number_pre], target_column[number_post],
-                    sim.OneToOneConnector(g_max, args.delay),
-                    label="lat_lat_projection"
-                          + str(number_pre) + "" + str(number_post),
-                    receptor_type="inhibitory"
-                )
+
 
 if args.record_source:
     for source_pop in source_column:
@@ -407,9 +399,9 @@ try:
 
     if args.record_source:
         for source_pop in source_column:
-            pre_spikes.append(source_pop.getSpikes(compatible_output=True))
+            pre_spikes.append(source_pop.spinnaker_get_data('spikes'))
     for target_pop in target_column:
-        post_spikes.append(target_pop.getSpikes(compatible_output=True))
+        post_spikes.append(target_pop.spinnaker_get_data('spikes'))
     # End simulation on SpiNNaker
     sim.end()
 except Exception as e:
