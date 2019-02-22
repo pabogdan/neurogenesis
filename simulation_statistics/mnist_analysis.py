@@ -16,11 +16,13 @@ import os
 from argparser import *
 from gari_analysis_functions import *
 from analysis_functions_definitions import *
+from spynnaker8.utilities.neo_convertor import convert_spikes
 from synaptogenesis.function_definitions import generate_equivalent_connectivity
 from gari_analysis_functions import get_filtered_dsi_per_neuron
 import copy
 from pprint import pprint as pp
 from sklearn.metrics import classification_report, confusion_matrix
+import neo
 # imports related to Elephant analysis
 # from elephant import statistics, spade, spike_train_correlation, spike_train_dissimilarity, conversion
 # import elephant.cell_assembly_detection as cad
@@ -99,6 +101,12 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
 
     simtime = data['simtime'].ravel()[0]
     post_spikes = data['post_spikes']
+
+    new_post_spikes = []
+    if isinstance(post_spikes[0], neo.Block):
+        for i in range(10):
+            new_post_spikes.append(convert_spikes(post_spikes[i]))
+    post_spikes = new_post_spikes
 
     if is_input_cs:
         final_ff_on_conn = data['ff_on_connections'][-10:]
@@ -275,7 +283,7 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
                 post_spikes[number_index][:, 1] >= (chunk_index * chunk),
                 post_spikes[number_index][:, 1] <= ((chunk_index + 1) * chunk)
             )
-        ) / (28 ** 2 * chunk * ms)
+        ) / (chunk * ms)
 
     # firing rate per digit
     fig = plt.figure(figsize=(16, 8), dpi=600)
@@ -317,7 +325,7 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
         conns_names = ["$ff$"]
 
     minimus = 0
-    maximus = 1.
+    maximus = np.max([1., np.max(ff_all_conns[:,2]/ g_max)])
 
     fig, axes = plt.subplots(1, len(conns_names), figsize=(7.5 * len(conns_names), 7), sharey=True)
     for index, ax in np.ndenumerate(axes):
@@ -342,8 +350,15 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     # ----------------- Analysing the test ------------------------
 
     post_spikes = testing_data['post_spikes']
+
+    new_post_spikes = []
+    if isinstance(post_spikes[0], neo.Block):
+        for i in range(10):
+            new_post_spikes.append(convert_spikes(post_spikes[i]))
+    post_spikes = new_post_spikes
     rates_for_number = np.zeros((10, 28 ** 2))
 
+    # TODO fix this for neo
     for number in range(10):
         for neuron_id in range(28 ** 2):
             rates_for_number[number, neuron_id] = np.count_nonzero(
@@ -389,7 +404,7 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
                 post_spikes[number_index][:, 1] >= (chunk_index * chunk),
                 post_spikes[number_index][:, 1] <= ((chunk_index + 1) * chunk)
             )
-        ) / (28 ** 2 * chunk * ms)
+        ) / (chunk * ms)
 
     what_network_thinks = np.empty(300000 // chunk)
     for i in range(what_network_thinks.shape[0]):
@@ -461,6 +476,10 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
         plt.show()
     plt.close(fig)
 
+def mnist_comparison(archive_1, archive_2, out_filename=None, extra_suffix=None,
+                     custom_labels=None, show_plots=False):
+    # TODO
+    pass
 
 if __name__ == "__main__":
     import sys
@@ -469,9 +488,33 @@ if __name__ == "__main__":
     #   2 - rewiring and     STDP, but no lateral connections
     #   3 - rewiring, but no STDP
 
+    filename = "mnist_case_3_cont_pynn8"
+    mnist_analysis(filename, extra_suffix="pynn8")
+    sys.exit()
+
+    filename = "mnist_case_3_cont_pynn8_cspc"
+    mnist_analysis(filename, extra_suffix="pynn8_cspc")
+    sys.exit()
+
+
+    filename = "mnist_case_1_300s_cont_fmean_5.npz"
+    mnist_analysis(filename, extra_suffix="300s_continuous_test")
+
+    filename = "mnist_case_1_300s_cont"
+    mnist_analysis(filename, extra_suffix="300s_continuous_test")
+
+    filename = "mnist_case_3_300s_cont"
+    mnist_analysis(filename, extra_suffix="300s_continuous_test")
+
+    filename = "mnist_case_3_600s_cont"
+    mnist_analysis(filename, extra_suffix="600s_continuous_test")
+
+    filename = "mnist_case_1_400s_cont"
+    mnist_analysis(filename, extra_suffix="400s_continuous_test")
+    # sys.exit()
+
     filename = "mnist_case_1_smax_128_cont"
     mnist_analysis(filename, extra_suffix="smax_128_continuous_test")
-    # sys.exit()
 
     filename = "mnist_case_1_cont"
     mnist_analysis(filename, extra_suffix="continuous_test")
