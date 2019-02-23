@@ -441,7 +441,7 @@ for file in paths:
         print("%-60s" % "Target neuron spike rate",
               target_neuron_mean_spike_rate, "Hz")
 
-        if not cached:
+        if not cached and not args.no_cache:
             np.savez_compressed(
                 filename, recording_archive_name=file,
                 target_neuron_mean_spike_rate=target_neuron_mean_spike_rate,
