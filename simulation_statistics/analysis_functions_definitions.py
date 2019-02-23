@@ -475,3 +475,35 @@ def get_number_of_afferents_from_list(N_layer, ff_list, lat_list):
         number_of_afferents[index] = ff_list[ff_list[:, 1] == index].shape[0] + lat_afferents
 
     return number_of_afferents
+
+# From spynnaker8.neo_convertor. Including here because otherwise one needs to install the whole tool-chain
+def convert_spikes(neo, run=0):
+    """ Extracts the spikes for run one from a Neo Object
+
+    :param neo: neo Object including Spike Data
+    :param run: Zero based index of the run to extract data for
+    :type run: int
+    :rtype: nparray
+    """
+    if len(neo.segments) <= run:
+        raise ValueError(
+            "Data only contains {} so unable to run {}. Note run is the "
+            "zero based index.".format(len(neo.segments), run))
+    return convert_spiketrains(neo.segments[run].spiketrains)
+
+
+def convert_spiketrains(spiketrains):
+    """ Converts a list of spiketrains into spynakker7 format
+
+    :param spiketrains: List of SpikeTrains
+    :rtype: nparray
+    """
+    if len(spiketrains) == 0:
+        return np.empty(shape=(0, 2))
+
+    neurons = np.concatenate(
+        list(map(lambda x: np.repeat(x.annotations['source_index'], len(x)),
+             spiketrains)))
+    spikes = np.concatenate(list(map(lambda x: x.magnitude, spiketrains)))
+    return np.column_stack((neurons, spikes))
+

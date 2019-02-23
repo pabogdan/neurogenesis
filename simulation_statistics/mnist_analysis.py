@@ -16,7 +16,6 @@ import os
 from argparser import *
 from gari_analysis_functions import *
 from analysis_functions_definitions import *
-from spynnaker8.utilities.neo_convertor import convert_spikes
 from synaptogenesis.function_definitions import generate_equivalent_connectivity
 from gari_analysis_functions import get_filtered_dsi_per_neuron
 import copy
@@ -54,6 +53,7 @@ cyclic_viridis = colors.LinearSegmentedColormap.from_list(
 root_stats = args.root_stats
 root_syn = args.root_syn
 fig_folder = args.fig_folder
+
 
 # check if the figures folder exist
 if not os.path.isdir(fig_folder) and not os.path.exists(fig_folder):
@@ -106,7 +106,8 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     if isinstance(post_spikes[0], neo.Block):
         for i in range(10):
             new_post_spikes.append(convert_spikes(post_spikes[i]))
-    post_spikes = new_post_spikes
+    if len(new_post_spikes) > 0:
+        post_spikes = new_post_spikes
 
     if is_input_cs:
         final_ff_on_conn = data['ff_on_connections'][-10:]
@@ -355,7 +356,8 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     if isinstance(post_spikes[0], neo.Block):
         for i in range(10):
             new_post_spikes.append(convert_spikes(post_spikes[i]))
-    post_spikes = new_post_spikes
+    if len(new_post_spikes) > 0:
+        post_spikes = new_post_spikes
     rates_for_number = np.zeros((10, 28 ** 2))
 
     # TODO fix this for neo
