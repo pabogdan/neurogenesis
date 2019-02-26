@@ -20,6 +20,21 @@ DEFAULT_A_PLUS = 0.1
 DEFAULT_A_MINUS = (DEFAULT_A_PLUS * DEFAULT_TAU_PLUS * DEFAULT_B) \
                   / float(DEFAULT_TAU_MINUS)
 
+# REWIRING STUFF
+DEFAULT_S_MAX = 128
+DEFAULT_SIGMA_STIM = 2
+DEFAULT_SIGMA_FORM_LAT = 5
+DEFAULT_SIGMA_FORM_FF = 5
+
+# Default probabilities
+
+DEFAULT_P_FORM_LATERAL = 1
+DEFAULT_P_FORM_FORWARD = 0.16
+DEFAULT_P_ELIM_DEP = 0.0245
+DEFAULT_P_ELIM_POT = 1.36 * (10 ** -4)
+
+DEFAULT_F_REW = 10 ** 4
+
 # Default flags
 DEFAULT_REWIRING_FLAG = False
 DEFAULT_MNIST_FLAG = False
@@ -154,6 +169,47 @@ parser.add_argument('--t_record', type=int,
                     help='time between retrieval of recordings (ms)'
                          ' -- [default {}]'.format(DEFAULT_T_RECORD))
 
+# Rewiring arguments
+parser.add_argument('--s_max', type=int,
+                    default=DEFAULT_S_MAX, dest='s_max',
+                    help='maximum synaptic capacity'
+                         ' -- [default {}]'.format(DEFAULT_S_MAX))
+
+parser.add_argument('--sigma_form_ff', type=float,
+                    default=DEFAULT_SIGMA_FORM_FF, dest='sigma_form_ff',
+                    help='spread of feedforward formations'
+                         ' -- [default {}]'.format(DEFAULT_SIGMA_FORM_FF))
+
+parser.add_argument('--sigma_form_lat', type=float,
+                    default=DEFAULT_SIGMA_FORM_LAT, dest='sigma_form_lat',
+                    help='spread of lateral formations'
+                         ' -- [default {}]'.format(DEFAULT_SIGMA_FORM_LAT))
+
+
+parser.add_argument('--p_elim_pot', type=float,
+                    default=DEFAULT_P_ELIM_POT, dest='p_elim_pot',
+                    help='probability of eliminating potentiated synapses'
+                         ' -- [default {}]'.format(DEFAULT_P_ELIM_POT))
+
+parser.add_argument('--p_form_forward', type=float,
+                    default=DEFAULT_P_FORM_FORWARD, dest='p_form_forward',
+                    help='probability of forming feedforward synapses'
+                         ' -- [default {}]'.format(DEFAULT_P_FORM_FORWARD))
+
+parser.add_argument('--p_form_lateral', type=float,
+                    default=DEFAULT_P_FORM_LATERAL, dest='p_form_lateral',
+                    help='probability of forming lateral synapses'
+                         ' -- [default {}]'.format(DEFAULT_P_FORM_LATERAL))
+
+parser.add_argument('--p_elim_dep', type=float,
+                    default=DEFAULT_P_ELIM_DEP, dest='p_elim_dep',
+                    help='probability of eliminating depressed synapses'
+                         ' -- [default {}]'.format(DEFAULT_P_ELIM_DEP))
+
+
+parser.add_argument('--f_rew', type=float,
+                    default=DEFAULT_F_REW, dest='f_rew',
+                    help='frequency of rewire attempts (Hz)')
 
 
 args = parser.parse_args()

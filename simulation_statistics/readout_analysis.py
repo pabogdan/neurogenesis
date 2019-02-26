@@ -87,20 +87,20 @@ def class_assignment(spikes, classes, actual_classes, training_type,
             acc_score = metrics.accuracy_score(actual_classes.ravel(), perm[what_network_thinks.astype(int)].ravel())
 
             if acc_score > wta_max_acc:
-                print "wta_", acc_score
+                print("wta_", acc_score)
                 wta_max_acc = acc_score
                 wta_likely_classes = perm
 
             acc_score = metrics.accuracy_score(actual_classes.ravel(), perm[first_to_spike.astype(int)].ravel())
             if acc_score > rank_order_max_acc:
-                print "ro_", acc_score
+                print("ro_", acc_score)
                 rank_order_max_acc = acc_score
                 rank_order_likely_classes = perm
 
             rmse = np.sqrt(
                 np.mean(((actual_classes.ravel() - perm[first_to_spike.astype(int)].astype(float).ravel()) ** 2)))
             if rmse < min_rmse:
-                print "rmse_", acc_score
+                print("rmse_", acc_score)
                 min_rmse = acc_score
                 rmse_classes = perm
         wta_predictions = what_network_thinks.astype(int).ravel()
@@ -126,7 +126,6 @@ def generate_readout_suffix(training_angles):
     if unique_tas.size <= 4:
         for ta in unique_tas:
             suffix_test += "_" + str(ta)
-    print("The suffix for this set of figures is ", suffix_test)
     return suffix_test
 
 
@@ -153,7 +152,7 @@ def plot_spikes(spikes, title, classes, filename, chunk=200, end_time=1800):
     return None
 
 
-def readout_neuron_analysis(fname, training_type="uns", extra_suffix=None, show_plots=True):
+def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_plots=False):
     training_fname = "training_readout_for_" + training_type + "_" + fname + extra_suffix
     testing_fname = "testing_readout_for_" + training_type + "_" + fname + extra_suffix
 
@@ -172,6 +171,10 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix=None, show_
     simtime = testing_data['simtime'] * ms
     chunk = testing_data['chunk']
 
+    is_rewiring_enable = False
+    if 'rewiring' in training_data.files:
+        is_rewiring_enable = training_data['rewiring']
+
     # Retreive data from training data
     training_actual_classes = training_data['actual_classes']
     training_readout_spikes = training_data['readout_spikes']
@@ -182,6 +185,13 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix=None, show_
     suffix_test += "_" + training_type
     if extra_suffix:
         suffix_test += extra_suffix
+    if is_rewiring_enable:
+        suffix_test += "_rewiring"
+
+    print("="*45)
+    print("{:45}".format("The suffix for this set of figures is "), ":",  suffix_test)
+    print("{:45}".format("The training archive name is "), ":", training_fname)
+    print("{:45}".format("The testing archive name is "), ":", testing_fname)
 
     target_readout_projection = target_readout_projection.reshape(target_readout_projection.size / 4, 4)
     wta_projection = wta_projection.reshape(wta_projection.size / 4, 4)
@@ -190,7 +200,7 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix=None, show_
     training_data.close()
     testing_data.close()
 
-    assert np.all(testing_target_readout_projection == target_readout_projection), target_readout_projection
+    # assert np.all(testing_target_readout_projection == target_readout_projection), target_readout_projection
 
     fig = plot_spikes(training_readout_spikes, "Readout neuron spikes (training)",
                       np.unique(testing_actual_classes),
@@ -199,11 +209,14 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix=None, show_
         plt.show()
     plt.close(fig)
 
-    fig = plot_spikes(testing_readout_spikes, "Readout neuron spikes (testing)", np.unique(testing_actual_classes),
-                      "readout_testing_spikes{}".format(suffix_test))
-    if show_plots:
-        plt.show()
-    plt.close(fig)
+    try:
+        fig = plot_spikes(testing_readout_spikes, "Readout neuron spikes (testing)", np.unique(testing_actual_classes),
+                          "readout_testing_spikes{}".format(suffix_test))
+        if show_plots:
+            plt.show()
+        plt.close(fig)
+    except Exception as e:
+        traceback.print_exc()
 
     spikes = training_readout_spikes
     print("Training ----------------")
@@ -256,18 +269,72 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix=None, show_
         ax.hist(conns[i][:, 2] / w_max, bins=20, color='#414C82', edgecolor='k')
         ax.set_title(conns_names[i])
         ax.set_xlim([minimus, maximus])
-        print np.max(conns[i][:, 2])
-        assert np.max(conns[i][:, 2]) <= w_max
+        print(np.max(conns[i][:, 2]))
+        # assert np.max(conns[i][:, 2]) <= w_max
     plt.tight_layout()
     plt.savefig(fig_folder + "readout_weight_histograms{}.pdf".format(suffix_test), bbox_inches='tight')
     plt.savefig(fig_folder + "readout_weight_histograms{}.svg".format(suffix_test), bbox_inches='tight')
     if show_plots:
         plt.show()
     plt.close(fig)
+    print("="*45,"\n\n")
 
 
 if __name__ == "__main__":
+    import sys
+
+
+    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_rewiring_p_.1_b_1.2")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_rewiring_p_.05_b_1.2_smax_64")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_rewiring_p_.0_b_1.2_smax_32")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_rewiring_p_.0_smax_32")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_rewiring_p_.0_smax_32_80s")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_rewiring_p_.0_smax_32_frew_1000")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_rewiring_p_.0_smax_32_20s_rew_wta")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_rewiring_p_.0_smax_32_rew_wta")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_rewiring_p_.0_smax_32_80s_rew_wta")
+
+    sys.exit()
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_p_.2")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_30s")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_p_.2_b_1")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_p_.2_b_1.1")  # perfect
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_p_.2_b_1.2")  # rewiring run
+
+    # These simulations seem to have an issue with depressing connections too much
+
+    sys.exit()
+    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    readout_neuron_analysis(fname, training_type="uns")
+
+    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_1")
+
+    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_2")
+
+    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_3")
+
+    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    readout_neuron_analysis(fname, training_type="max", extra_suffix="")
+
+
+    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_b_1")
+
+    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_b_1.1")
+
+    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_b_1.2")
+
+    sys.exit()  # These simulations seem to have an issue with depressing connections too much
+
+
+    # The following is the reference simulation
     fname = "random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_evo"
     extra_suffix = "_rerun"
-    readout_neuron_analysis(fname, training_type="uns", extra_suffix=extra_suffix, show_plots=False)
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix=extra_suffix)  # perfect
 

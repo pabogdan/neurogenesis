@@ -123,6 +123,16 @@ for path in args.path:
         if args.unsupervised:
             inhibition_weight_multiplier = 8
 
+        # Wiring
+        s_max = args.s_max
+        sigma_form_forward = args.sigma_form_ff
+        sigma_form_lateral = args.sigma_form_lat
+        p_form_lateral = args.p_form_lateral
+        p_form_forward = args.p_form_forward
+        p_elim_dep = args.p_elim_dep * 10.
+        p_elim_pot = args.p_elim_pot / 10.
+        f_rew = args.f_rew  # 10 ** 4  # Hz
+
         # store ALL parameters
         readout_sim_params = {  # 'g_max': g_max,
             'simtime': simtime,
@@ -167,6 +177,23 @@ for path in args.path:
                                                            w_max=w_max,
                                                            A_plus=a_plus,
                                                            A_minus=a_minus)
+        )
+
+        # if args.rewiring:
+        structure_model_w_stdp = sim.StructuralMechanismSTDP(
+            stdp_model=stdp_model,
+            weight=w_max,
+            delay=1,
+            s_max=s_max,
+            grid=grid,
+            f_rew=f_rew,
+            p_elim_dep=p_elim_dep,
+            p_elim_pot=p_elim_pot,
+            sigma_form_forward=sigma_form_forward,
+            sigma_form_lateral=sigma_form_lateral,
+            p_form_forward=p_form_forward,
+            p_form_lateral=p_form_lateral,
+            is_distance_dependent=False
         )
         # Setup input populations
         source_pop = sim.Population(N_layer,
@@ -240,7 +267,7 @@ for path in args.path:
                         target_pop, readout_pop,
                         sim.FixedProbabilityConnector(p_connect=p_connect,
                                                       weights=w_min),
-                        synapse_dynamics=sim.SynapseDynamics(slow=stdp_model),
+                        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp if args.rewiring else stdp_model),
                         label="min_readout_sampling",
                         target="excitatory")
                     # Supervision provided by an extra Spike Source Array
@@ -257,7 +284,7 @@ for path in args.path:
                         target_pop, readout_pop,
                         sim.FixedProbabilityConnector(p_connect=p_connect,
                                                       weights=w_max),
-                        synapse_dynamics=sim.SynapseDynamics(slow=stdp_model),
+                        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp if args.rewiring else stdp_model),
                         label="max_readout_sampling",
                         target="excitatory")
                     # Supervision provided by an extra Spike Source Array
@@ -277,7 +304,7 @@ for path in args.path:
                     target_pop, readout_pop,
                     sim.FixedProbabilityConnector(p_connect=p_connect,
                                                   weights=w_max),
-                    synapse_dynamics=sim.SynapseDynamics(slow=stdp_model),
+                    synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp if args.rewiring else stdp_model),
                     label="unsupervised_readout_sampling",
                     target="excitatory")
 
@@ -292,11 +319,19 @@ for path in args.path:
                         all_to_all_connections.append(
                             (i, j, inhibition_weight_multiplier*w_max, 1))
 
-                wta_projection = sim.Projection(
-                    readout_pop, readout_pop,
-                    sim.FromListConnector(all_to_all_connections),
-                    label="wta_strong_inhibition_readout",
-                    target="inhibitory")
+                if args.rewiring:
+                    wta_projection = sim.Projection(
+                        readout_pop, readout_pop,
+                        sim.FixedProbabilityConnector(0.),
+                        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+                        label="wta_strong_inhibition_readout_rewired",
+                        target="inhibitory")
+                else:
+                    wta_projection = sim.Projection(
+                        readout_pop, readout_pop,
+                        sim.FromListConnector(all_to_all_connections),
+                        label="wta_strong_inhibition_readout",
+                        target="inhibitory")
 
         elif phase == TESTING_PHASE:
             # Extract static connectivity from the training phase
@@ -497,6 +532,9 @@ for path in args.path:
             filename = "error_" + filename
             current_error = e
 
+        if args.rewiring:
+            filename += "_rewiring"
+
         if args.suffix:
             filename += "_" + args.suffix
 
@@ -530,4 +568,8 @@ for path in args.path:
             actual_classes=actual_classes,
             chunk=chunk,  # ms
             label_time_offset=label_time_offset,
+            # Rewiring present
+            rewiring=args.rewiring,
+
         )
+        print("Results in", filename)
