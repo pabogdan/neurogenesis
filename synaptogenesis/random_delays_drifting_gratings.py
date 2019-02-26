@@ -88,6 +88,15 @@ if adjusted_name and os.path.isfile(adjusted_name) and not args.no_cache:
           "exists!")
     sys.exit()
 
+# Different input types
+BAR_MOVING = 1
+BAR_STATIC = 2
+MNIST_MOVING = 3
+MNIST_STATIC = 4
+
+input_type = args.input_type
+
+
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
 # +-------------------------------------------------------------------+
@@ -208,7 +217,7 @@ sim_params = {'g_max': g_max,
               'tau_refrac': args.tau_refrac,
               'a_minus': a_minus,
               'a_plus': a_plus,
-              'input_type': args.input_type,
+              'input_type': input_type,
               'random_partner': args.random_partner,
               'lesion': args.lesion,
               'delay_interval': delay_interval,
@@ -234,10 +243,35 @@ else:
 # Need to setup the moving input
 
 actual_angles = []
+number_of_slots = int(simtime / chunk)
+range_of_slots = np.arange(number_of_slots)
+slots_starts = np.ones((N_layer, number_of_slots)) * (range_of_slots * chunk)
+durations = np.ones((N_layer, number_of_slots)) * chunk
 
 if not args.testing:
     # TRAINING REGIME!
     # the following loads ALL of the spikes in Memory! This is expensive for long simulations
+    # if input_type == MNIST_STATIC:
+    #     on_rates = {}
+    #     off_rates = {}
+    #     for number in training_angles:
+    #         rates_on, rates_off = load_mnist_rates('mnist_input_rates/averaged/',
+    #                                                number,
+    #                                                # min_noise=f_mean / 4., max_noise=f_mean / 4.,
+    #                                                min_noise=0, max_noise=0,
+    #                                                mean_rate=f_mean)
+    #         rates_on = rates_on.reshape(rates_on.shape[0], N_layer).T
+    #         on_rates[number] = rates_on
+    #         rates_off = rates_off.reshape(rates_off.shape[0], N_layer).T
+    #         off_rates[number] = rates_off
+    #     randomised_testing_numbers = np.random.choice(training_angles, number_of_slots, replace=True)
+    # elif input_type == BAR_STATIC:
+    #     aa, final_on_gratings, final_off_gratings = \
+    #         generate_bar_input(no_iterations, chunk, N_layer,
+    #                            angles=training_angles)
+    #     actual_angles.append(aa)
+    #
+    # else:
     aa, final_on_gratings, final_off_gratings = \
         generate_bar_input(no_iterations, chunk, N_layer,
                            angles=training_angles)
@@ -851,7 +885,10 @@ np.savez_compressed(filename, pre_spikes=pre_spikes,
                     actual_angles=actual_angles,
 
                     topology=args.topology,
-                    training_angles=training_angles
+                    training_angles=training_angles,
+
+                    # is rewiring present
+                    rewiring=args.rew,
                     )
 
 print("Results in", filename)

@@ -61,6 +61,12 @@ if adjusted_name and os.path.isfile(adjusted_name) and not args.no_cache:
           "exists!")
     sys.exit()
 
+# Different input types
+RATE_INPUT = 1
+CS_INPUT = 2
+FLASHING_INPUT = 3
+
+input_type = args.input_type
 
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
@@ -128,9 +134,10 @@ sim_params = {'g_max': g_max,
               'tau_refrac': args.tau_refrac,
               'a_minus': a_minus,
               'a_plus': a_plus,
-              'input_type': args.input_type,
+              'input_type': input_type,
               'random_partner': args.random_partner,
-              'lesion': args.lesion
+              'lesion': args.lesion,
+              'argparser': vars(args),
               }
 # +-------------------------------------------------------------------+
 # | Initial network setup                                             |
@@ -442,21 +449,24 @@ else:
 if e:
     filename = "error_" + filename
 
-np.savez_compressed(filename,
-                    pre_spikes=pre_spikes,
-                    post_spikes=post_spikes,
-                    init_ff_connections=init_ff_connections,
-                    init_lat_connections=init_lat_connections,
-                    ff_connections=pre_weights,
-                    lat_connections=post_weights,
-                    final_pre_weights=pre_weights[-10:],
-                    final_post_weights=post_weights[-10:],
-                    simtime=simtime,
-                    sim_params=sim_params,
-                    total_time=total_time,
-                    testing_numbers=randomised_testing_numbers,
-                    testing_file=args.testing, random_input=args.random_input,
-                    exception=None)
+np.savez_compressed(
+    filename,
+    pre_spikes=pre_spikes,
+    post_spikes=post_spikes,
+    init_ff_connections=init_ff_connections,
+    init_lat_connections=init_lat_connections,
+    ff_connections=pre_weights,
+    lat_connections=post_weights,
+    final_pre_weights=pre_weights[-10:],
+    final_post_weights=post_weights[-10:],
+    simtime=simtime,
+    sim_params=sim_params,
+    total_time=total_time,
+    testing_numbers=randomised_testing_numbers,
+    testing_file=args.testing,
+    random_input=args.random_input,
+    exception=e
+)
 
 print("Results in", filename)
 print("Total time elapsed -- " + str(total_time))
