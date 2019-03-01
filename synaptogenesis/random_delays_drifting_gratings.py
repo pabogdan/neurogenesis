@@ -885,10 +885,7 @@ np.savez_compressed(filename, pre_spikes=pre_spikes,
                     actual_angles=actual_angles,
 
                     topology=args.topology,
-                    training_angles=training_angles,
-
-                    # is rewiring present
-                    rewiring=args.rew,
+                    training_angles=training_angles
                     )
 
 print("Results in", filename)
