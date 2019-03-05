@@ -476,6 +476,7 @@ def get_number_of_afferents_from_list(N_layer, ff_list, lat_list):
 
     return number_of_afferents
 
+
 # From spynnaker8.neo_convertor. Including here because otherwise one needs to install the whole tool-chain
 def convert_spikes(neo, run=0):
     """ Extracts the spikes for run one from a Neo Object
@@ -503,7 +504,36 @@ def convert_spiketrains(spiketrains):
 
     neurons = np.concatenate(
         list(map(lambda x: np.repeat(x.annotations['source_index'], len(x)),
-             spiketrains)))
+                 spiketrains)))
     spikes = np.concatenate(list(map(lambda x: x.magnitude, spiketrains)))
     return np.column_stack((neurons, spikes))
+
+
+def get_max_dsi(neuron_id, per_neuron_all_rates, angles, N_layer, look_at_specific_angles=None):
+    '''
+    Simple DSI search from the firing profile of a neuron
+    $DSI = (R_{pref} - R_{null}) / R_{pref}$, where
+    $R_{pref}$ is the response of a neuron in the preferred direction, and
+    $R_{null}$ is the response in the opposite direction
+    '''
+    current_neuron_response = get_omnidirectional_neural_response_for_neuron(
+        neuron_id, per_neuron_all_rates, angles, N_layer)
+    null_responses = np.roll(current_neuron_response, 180 // 5)
+    all_dsis = (current_neuron_response - null_responses) / current_neuron_response
+    if look_at_specific_angles:
+        nan_mask = np.ones(all_dsis.shape) * np.nan
+        nan_mask[look_at_specific_angles] = 1
+        masked_all_dsis = all_dsis * nan_mask
+        return np.nanmax(masked_all_dsis), np.nanargmax(masked_all_dsis) * 5
+    return np.nanmax(all_dsis), np.nanargmax(all_dsis) * 5
+
+
+def get_all_dsi(per_neuron_all_rates, angles, N_layer, look_at_specific_angles=None):
+    all_simple_dsis = []
+    for nid in range(N_layer):
+        max_dsi, argmax_dsi = get_max_dsi(nid, per_neuron_all_rates, angles, N_layer,
+                                          look_at_specific_angles=look_at_specific_angles)
+        # appending neuron id, angle for which DSI is maximum and the associated DSI
+        all_simple_dsis.append([nid, argmax_dsi, max_dsi])
+    return np.asarray(all_simple_dsis)
 
