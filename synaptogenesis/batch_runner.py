@@ -34,11 +34,12 @@ concurrently_active_processes = 0
 
 iterations = args.no_iterations  # trying to optimise fastest run
 
-sigma_form_ffs = np.arange(2, 10.5, .5)
+sigma_form_ffs = np.arange(2, 9, 1.)
 sigma_form_lats = np.copy(sigma_form_ffs)
 
 # Compute total number of runs
 total_runs = sigma_form_ffs.size * sigma_form_lats.size * len(PHASES)
+training_angles = "0 90 180 270"
 
 parameters_of_interest = {
     'sigma_form_ff': sigma_form_ffs,
@@ -54,7 +55,7 @@ for phase in PHASES:
                        "smax_{}_" \
                        "gmax_{}_" \
                        "sigmaformff_{}_" \
-                       "sigmaformlat_{}_" \
+                       "sigmaformlat_{}_NESW" \
                        "_@{}".format(S_MAX,
                                      G_MAX,
                                      sigma_form_ff,
@@ -72,7 +73,7 @@ for phase in PHASES:
                     '--no_iterations', str(iterations),
                     '--sigma_form_ff', str(sigma_form_ff),
                     '--sigma_form_lat', str(sigma_form_lat),
-                    '--all_angles'
+                    '--training_angles', training_angles
                     ]
             log_calls.append(call)
             if concurrently_active_processes % MAX_CONCURRENT_PROCESSES == 0 \
@@ -92,4 +93,5 @@ total_time = end_time - currrent_time
 np.savez_compressed("batch_{}".format(suffix),
                     parameters_of_interest=parameters_of_interest,
                     total_time=total_time,
-                    log_calls=log_calls)
+                    log_calls=log_calls,
+                    training_angles=training_angles)
