@@ -677,6 +677,8 @@ if args.record_exc_v:
 # if case == CASE_REW_NO_CORR:
 if args.record_source:
     source_pop.record()
+    source_pop_off.record()
+    noise_pop.record()
 
 if args.topology != 1 and args.record_inh:
     inh_pop.record()
@@ -686,6 +688,8 @@ if args.testing:
 
 # Run simulation
 pre_spikes = []
+pre_off_spikes = []
+pre_noise_spikes = []
 post_spikes = []
 inh_post_spikes = []
 
@@ -811,6 +815,8 @@ try:
 
     if args.record_source:
         pre_spikes = source_pop.getSpikes(compatible_output=True)
+        pre_off_spikes = source_pop_off.getSpikes(compatible_output=True)
+        pre_noise_spikes = noise_pop.getSpikes(compatible_output=True)
     else:
         pre_spikes = []
 
@@ -854,7 +860,13 @@ if e:
 # total_target_neuron_mean_spike_rate = \
 #     post_spikes.shape[0] / float(simtime) * 1000. / N_layer
 
-np.savez_compressed(filename, pre_spikes=pre_spikes,
+np.savez_compressed(filename,
+                    # Source Spike recordings
+                    pre_spikes=pre_spikes,
+                    pre_off_spikes=pre_off_spikes,
+                    pre_noise_spikes=pre_noise_spikes,
+
+                    # Post-synaptic (target population) Spike recordings
                     post_spikes=post_spikes,
                     inh_post_spikes=inh_post_spikes,
 
