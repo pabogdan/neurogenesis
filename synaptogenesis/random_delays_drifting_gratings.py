@@ -96,7 +96,6 @@ MNIST_STATIC = 4
 
 input_type = args.input_type
 
-
 # +-------------------------------------------------------------------+
 # | Rewiring Parameters                                               |
 # +-------------------------------------------------------------------+
@@ -132,7 +131,7 @@ t_record = args.t_record if args.t_record <= args.no_iterations else \
     args.no_iterations
 # ms
 
-local_connection_delay_dist = [1,3]
+local_connection_delay_dist = [1, 3]
 
 # STDP
 a_plus = 0.1
@@ -227,7 +226,8 @@ sim_params = {'g_max': g_max,
               'argparser': vars(args),
               'chunk': chunk,
               'no_off_polarity': args.no_off_polarity,
-              'coplanar': args.coplanar
+              'coplanar': args.coplanar,
+              'record_exc_v': args.record_exc_v
               }
 
 if args.input_type == GAUSSIAN_INPUT:
@@ -288,9 +288,9 @@ if not args.testing:
     if args.no_off_polarity:
         print("No off polarity will be injected into the system.")
         source_pop_off = sim.Population(N_layer,
-                                   sim.SpikeSourceArray,
-                                   {'spike_times': []},
-                                   label="(No) Moving grating off population")
+                                        sim.SpikeSourceArray,
+                                        {'spike_times': []},
+                                        label="(No) Moving grating off population")
     else:
         source_pop_off = sim.Population(N_layer,
                                         sim.SpikeSourceArray,
@@ -670,7 +670,8 @@ else:
 # +-------------------------------------------------------------------+
 
 # Record neurons' potentials
-# target_pop.record_v()
+if args.record_exc_v:
+    target_pop.record_v()
 
 # Record spikes
 # if case == CASE_REW_NO_CORR:
@@ -708,6 +709,8 @@ post_targets = []
 post_weights = []
 post_delays = []
 
+exc_v_recording = []
+
 # rates_history = np.zeros((16, 16, simtime // t_stim))
 e = None
 print("Starting the sim")
@@ -735,8 +738,6 @@ try:
         #             final_on_gratings, final_off_gratings)
         #     source_pop.tset("spike_times", final_on_gratings)
         #     source_pop_off.tset("spike_times", final_off_gratings)
-
-
 
     if not args.testing:
         pre_weights.append(
@@ -823,6 +824,8 @@ try:
     else:
         inh_post_spikes = []
     # End simulation on SpiNNaker
+    if args.record_exc_v:
+        exc_v_recording = target_pop.get_v(compatible_output=True)
     sim.end()
 except Exception as e:
     # print(e)
@@ -885,7 +888,9 @@ np.savez_compressed(filename, pre_spikes=pre_spikes,
                     actual_angles=actual_angles,
 
                     topology=args.topology,
-                    training_angles=training_angles
+                    training_angles=training_angles,
+
+                    exc_v_recording=exc_v_recording
                     )
 
 print("Results in", filename)
