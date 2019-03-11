@@ -21,7 +21,7 @@ At the time of writing, neurogenesis is not realised. However, extensive experim
 
 1.  Conference Proceedings
 
-	**Bogdan PA**, Pineda-García G, Davidson S, Hopkins M, James R and Furber SB \textit{in press} (2019), "Event-based computation: Unsupervised elementary motion decomposition". Proceedings of Emerging Technology Conference
+	**Bogdan PA**, Pineda-García G, Davidson S, Hopkins M, James R and Furber SB *in press* (2019), "Event-based computation: Unsupervised elementary motion decomposition". Proceedings of Emerging Technology Conference
   
 1.  Journal Articles
 
@@ -32,14 +32,14 @@ At the time of writing, neurogenesis is not realised. However, extensive experim
     
 1.  Data repositories
 
-	**Bogdan PA**, Rhodes O, Rowley AGD, Furber SB (2018) "Structural plasticity on the SpiNNaker many-core neuromorphic system", Mendeley Data, v1.\\ http://dx.doi.org/10.17632/xfp84r5hb7.1
+	**Bogdan PA**, Rhodes O, Rowley AGD, Furber SB (2018) "Structural plasticity on the SpiNNaker many-core neuromorphic system", Mendeley Data, v1. http://dx.doi.org/10.17632/xfp84r5hb7.1
 
-	**Bogdan PA**, Furber SB, Pineda-Garcia G, Hopkins M (2018) “Spiking Neural Networks for Computer Vision”, Mendeley Data, v1.\\ http://dx.doi.org/10.17632/84pvnm3rj3.1
+	**Bogdan PA**, Furber SB, Pineda-Garcia G, Hopkins M (2018) “Spiking Neural Networks for Computer Vision”, Mendeley Data, v1. http://dx.doi.org/10.17632/84pvnm3rj3.1
 
 	**Bogdan PA**, Pineda-García G, Davidson S, Hopkins M, James R and Furber SB (2019), "Supporting Data and Software for Event-based computation: Unsupervised elementary motion decomposition", Mendeley Data, v1 http://dx.doi.org/10.17632/wpzxh93vhx.1
   
 1.  Posters
 
-	**Bogdan PA**, Furber SB (2018) "Simulating synaptic rewiring on SpiNNaker". figshare. Poster.\\ https://doi.org/10.6084/m9.figshare.6025460.v1
+	**Bogdan PA**, Furber SB (2018) "Simulating synaptic rewiring on SpiNNaker". figshare. Poster. https://doi.org/10.6084/m9.figshare.6025460.v1
     
-    **Bogdan PA**, Furber SB (2018) "Structural plasticity for motion detection on SpiNNaker using PyNN". figshare. Poster.\\ https://doi.org/10.6084/m9.figshare.6949091.v1
+    **Bogdan PA**, Furber SB (2018) "Structural plasticity for motion detection on SpiNNaker using PyNN". figshare. Poster. https://doi.org/10.6084/m9.figshare.6949091.v1
