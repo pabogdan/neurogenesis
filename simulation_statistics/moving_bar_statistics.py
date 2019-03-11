@@ -119,7 +119,7 @@ for file in paths:
             f_rew = 10 ** 4  # Hz
             g_max = .2
 
-        input_grating_fname = "spiking_moving_bar_motif_bank_simtime_" \
+        input_grating_fname = "compressed_spiking_moving_bar_motif_bank_simtime_" \
                               "{}x{}_{}s.npz".format(n, n, int(simtime /
                                                                second))
 
@@ -364,6 +364,9 @@ for file in paths:
             inh_entropy = compute_per_neuron_entropy(inh_per_neuron_all_rates, angles, N_layer)
 
         else:
+            print("Simulation has been run before & Cached version of results exists!")
+            break
+
             print("Using cached data.")
             if ".npz" in filename:
                 cached_data = np.load(filename)
