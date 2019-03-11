@@ -521,10 +521,16 @@ def get_max_dsi(neuron_id, per_neuron_all_rates, angles, N_layer, look_at_specif
     null_responses = np.roll(current_neuron_response, 180 // 5)
     all_dsis = (current_neuron_response - null_responses) / current_neuron_response
     if look_at_specific_angles:
+        look_at_specific_angles = np.asarray(look_at_specific_angles)
+        look_at_specific_positions = look_at_specific_angles/5
         nan_mask = np.ones(all_dsis.shape) * np.nan
-        nan_mask[look_at_specific_angles] = 1
+        nan_mask[look_at_specific_positions] = 1
         masked_all_dsis = all_dsis * nan_mask
+        if np.all(np.isnan(masked_all_dsis)):
+            return np.nan, np.nan
         return np.nanmax(masked_all_dsis), np.nanargmax(masked_all_dsis) * 5
+    if np.all(np.isnan(all_dsis)):
+        return np.nan, np.nan
     return np.nanmax(all_dsis), np.nanargmax(all_dsis) * 5
 
 

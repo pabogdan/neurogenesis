@@ -166,6 +166,7 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
     testing_actual_classes = testing_data['actual_classes'].ravel()
     testing_target_readout_projection = testing_data['target_readout_projection']
 
+
     readout_sim_params = testing_data['readout_sim_params'].ravel()[0]
     w_max = readout_sim_params['argparser']['w_max']
     simtime = testing_data['simtime'] * ms
@@ -180,6 +181,9 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
     training_readout_spikes = training_data['readout_spikes']
     target_readout_projection = training_data['target_readout_projection']
     wta_projection = training_data['wta_projection']
+    training_sim_params = training_data['input_sim_params'].ravel()[0]
+
+    original_delays_are_constant = training_sim_params['constant_delay']
 
     suffix_test = generate_readout_suffix(training_actual_classes)
     suffix_test += "_" + training_type
@@ -187,7 +191,8 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
         suffix_test += extra_suffix
     if is_rewiring_enable:
         suffix_test += "_rewiring"
-
+    if original_delays_are_constant:
+        suffix_test += "_constant"
     print("="*45)
     print("{:45}".format("The suffix for this set of figures is "), ":",  suffix_test)
     print("{:45}".format("The training archive name is "), ":", training_fname)
@@ -282,7 +287,20 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
 
 if __name__ == "__main__":
     import sys
+    # Attempting readout of constant delay network
 
+    fname = "constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+
+    readout_neuron_analysis(fname, training_type="uns")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_rewiring_p_.0_smax_32_rew_wta")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_rewiring_p_.0_smax_32_20s_rew_wta")
+
+    sys.exit()
+
+    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_p_.2_b_1.1")  # perfect
+
+    # sys.exit()
 
     fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
     readout_neuron_analysis(fname, training_type="uns", extra_suffix="_rewiring_p_.1_b_1.2")

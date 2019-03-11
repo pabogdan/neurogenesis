@@ -381,6 +381,78 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     print("{:45}".format("Analysing a single experiment"), ":", archive)
     print("{:45}".format("Results appended the following suffix"), ":", suffix_test)
     # Begin the plotting
+    # Overlay the aligned excitatory connectivity and subtract the aligned inhibitory connectivity arriving at the
+    # excitatory population
+    conns = (ff_last, off_last, noise_last, lat_last, inh_to_exh_last)
+    weight_mask = (1, 1, 1, 1, -1)
+    assert len(conns) == len(weight_mask)
+
+    all_connectivity = np.zeros((N_layer, N_layer))
+    all_weights = np.zeros((N_layer, N_layer))
+    all_delays = np.zeros((N_layer, N_layer))
+    for conn_set_id, conn_set in np.ndenumerate(conns):
+        for connection in conn_set:
+            source = int(connection[0])
+            target = int(connection[1])
+            weight = connection[2]
+            delay = float(connection[3])
+            all_connectivity[source, target] += 1
+            all_weights[source, target] += (weight_mask[conn_set_id[0]] * weight)
+            all_delays[source, target] += delay
+
+    aligned_connectivity = np.zeros(N_layer)
+    aligned_weight = np.zeros(N_layer)
+    aligned_delays = np.zeros(N_layer)
+    for nid in range(N_layer):
+        aligned_connectivity += np.roll(all_connectivity[nid, :], (N_layer // 2 + n // 2) - nid)
+        aligned_weight += np.roll(all_weights[nid, :], (N_layer // 2 + n // 2) - nid)
+        aligned_delays += np.roll(all_delays[nid, :], (N_layer // 2 + n // 2) - nid)
+    aligned_delays = aligned_delays / aligned_connectivity
+    # Plot aligned connectivity
+    fig, (ax) = plt.subplots(1, 1, figsize=(10, 10), dpi=600)
+    i = ax.imshow(aligned_connectivity.reshape(grid[0], grid[1]), vmin=0, vmax=np.max(aligned_connectivity))
+    divider = make_axes_locatable(plt.gca())
+    cax = divider.append_axes("right", "5%", pad="3%")
+    cbar = plt.colorbar(i, cax=cax)
+    cbar.set_label("# of Connections")
+    ax.set_xlabel("Neuron ID")
+    ax.set_ylabel("Neuron ID")
+    plt.savefig(fig_folder + "aligned_connectivity{}.pdf".format(suffix_test), bbox_inches='tight')
+    plt.savefig(fig_folder + "aligned_connectivity{}.svg".format(suffix_test), bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    # Plot aligned weights
+    fig, (ax) = plt.subplots(1, 1, figsize=(10, 10), dpi=600)
+    i = ax.imshow(aligned_weight.reshape(grid[0], grid[1]), vmin=np.min(aligned_weight), vmax=np.max(aligned_weight))
+    divider = make_axes_locatable(plt.gca())
+    cax = divider.append_axes("right", "5%", pad="3%")
+    cbar = plt.colorbar(i, cax=cax)
+    cbar.set_label("Connection weight")
+    ax.set_xlabel("Neuron ID")
+    ax.set_ylabel("Neuron ID")
+    plt.savefig(fig_folder + "aligned_weights{}.pdf".format(suffix_test), bbox_inches='tight')
+    plt.savefig(fig_folder + "aligned_weights{}.svg".format(suffix_test), bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    # Plot aligned delays
+    fig, (ax) = plt.subplots(1, 1, figsize=(10, 10), dpi=600)
+    i = ax.imshow(aligned_delays.reshape(grid[0], grid[1]), vmin=0, vmax=np.max(aligned_delays))
+    divider = make_axes_locatable(plt.gca())
+    cax = divider.append_axes("right", "5%", pad="3%")
+    cbar = plt.colorbar(i, cax=cax)
+    cbar.set_label("Average Delay (ms)")
+    ax.set_xlabel("Neuron ID")
+    ax.set_ylabel("Neuron ID")
+    plt.savefig(fig_folder + "aligned_delays{}.pdf".format(suffix_test), bbox_inches='tight')
+    plt.savefig(fig_folder + "aligned_delays{}.svg".format(suffix_test), bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
     # response histograms
     fig = plt.figure(figsize=(16, 8), dpi=600)
     y, binEdges = np.histogram(angles, bins=angles.size)
@@ -1228,10 +1300,8 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
 
         for index, unique_aoi in np.ndenumerate(unique_angles_of_interest):
             i = int(index[0])
-            current_angle_responses = get_per_angle_responses(per_neuron_all_rates, unique_aoi, N_layer)
-            max_dsi_index = np.argmax(dsi_selective[dsi_selective[:, 1] == unique_aoi][:, -1])
-            dsi_selective_neuron_ids[i] = int(dsi_selective[max_dsi_index, 0])
-            dsi_selective_dsi_values[i] = dsi_selective[max_dsi_index, -1]
+            dsi_selective_neuron_ids[i] = int(dsi_selective[dsi_selective[:, 1] == unique_angles_of_interest[i]][0, 0])
+            dsi_selective_dsi_values[i] = dsi_selective[dsi_selective[:, 1] == unique_angles_of_interest[i]][0, 2]
             dsi_selective_firing_curves[i, :] = get_omnidirectional_neural_response_for_neuron(
                 dsi_selective_neuron_ids[i], per_neuron_all_rates, angles, N_layer)
 
@@ -1355,6 +1425,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     if show_plots:
         plt.show()
     plt.close(fig)
+
 
     return suffix_test, dsi_selective, dsi_not_selective
 
@@ -1906,7 +1977,7 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
     random_all_simple_dsis = get_all_dsi(random_per_neuron_all_rates, angles, N_layer,
                                          look_at_specific_angles=training_angles)
     constant_all_simple_dsis = get_all_dsi(constant_per_neuron_all_rates, angles, N_layer,
-                                         look_at_specific_angles=training_angles)
+                                           look_at_specific_angles=training_angles)
 
     # Selective
     random_all_simple_dsis_selective = random_all_simple_dsis[random_all_simple_dsis[:, 2] >= dsi_thresh]
@@ -1915,8 +1986,6 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
     # Not selective
     random_all_simple_dsis_not_selective = random_all_simple_dsis[random_all_simple_dsis[:, 2] < dsi_thresh]
     constant_all_simple_dsis_not_selective = constant_all_simple_dsis[constant_all_simple_dsis[:, 2] < dsi_thresh]
-    constant_all_simple_dsis = get_all_dsi(constant_per_neuron_all_rates, angles, N_layer,
-                                           look_at_specific_angles=training_angles)
     dsi_comparisons(random_all_simple_dsis_selective, random_all_simple_dsis_not_selective,
                     constant_all_simple_dsis_selective, constant_all_simple_dsis_not_selective,
                     random_max_average_responses_with_angle, constant_max_average_responses_with_angle,
@@ -1930,8 +1999,6 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
     random_dsi_selective = np.asarray(random_dsi_selective)
     random_dsi_not_selective = np.asarray(random_dsi_not_selective)
 
-    random_concatenated_dsis = get_concatenated_dsis(random_dsi_selective, random_dsi_not_selective)
-
     constant_all_average_responses_with_angle, _, _ = compute_all_average_responses_with_angle(
         constant_per_neuron_all_rates, angles, N_layer)
     constant_dsi_selective, constant_dsi_not_selective = get_filtered_dsi_per_neuron(
@@ -1944,333 +2011,6 @@ def comparison(archive_random, archive_constant, out_filename=None, extra_suffix
                     random_max_average_responses_with_angle, constant_max_average_responses_with_angle,
                     N_layer, grid, suffix, fig_folder,
                     dsi_thresh, custom_labels=custom_labels, extra_suffix="not_harsh")
-
-
-    # for nid in range(N_layer):
-    #     temp_dsi = 0
-    #     if random_dsi_selective.size > 0 and nid in random_dsi_selective[:, 0]:
-    #         temp_dsi = random_dsi_selective[random_dsi_selective[:, 0] == nid].ravel()[-1]
-    #         random_dsi_pref_angle[nid] = random_dsi_selective[random_dsi_selective[:, 0] == nid].ravel()[1]
-    #     elif random_dsi_not_selective.size > 0 and nid in random_dsi_not_selective[:, 0]:
-    #         temp_dsi = random_dsi_not_selective[random_dsi_not_selective[:, 0] == nid].ravel()[-1]
-    #     random_max_dsi[nid] = temp_dsi
-    #
-    #     temp_dsi = 0
-    #     if constant_dsi_selective.size > 0 and nid in constant_dsi_selective[:, 0]:
-    #         temp_dsi = constant_dsi_selective[constant_dsi_selective[:, 0] == nid].ravel()[-1]
-    #         constant_dsi_pref_angle[nid] = constant_dsi_selective[constant_dsi_selective[:, 0] == nid].ravel()[1]
-    #     elif constant_dsi_not_selective.size > 0 and nid in constant_dsi_not_selective[:, 0]:
-    #         temp_dsi = constant_dsi_not_selective[constant_dsi_not_selective[:, 0] == nid].ravel()[-1]
-    #     constant_max_dsi[nid] = temp_dsi
-    #
-    # fig = plt.figure(figsize=(15, 8), dpi=800)
-    # img_grid = ImageGrid(fig, 111,
-    #                      nrows_ncols=(1, 2),
-    #                      axes_pad=0.15,
-    #                      share_all=True,
-    #                      cbar_location="right",
-    #                      cbar_mode="single",
-    #                      cbar_size="7%",
-    #                      cbar_pad=0.15,
-    #                      )
-    #
-    # imgs = [random_max_dsi.reshape(grid[0], grid[1]),
-    #         constant_max_dsi.reshape(grid[0], grid[1])]
-    # angs = [random_dsi_pref_angle.reshape(grid[0], grid[1]),
-    #         constant_dsi_pref_angle.reshape(grid[0], grid[1])]
-    #
-    # dxs = [np.cos(random_dsi_pref_angle.reshape(grid[0], grid[1])),
-    #        np.cos(constant_dsi_pref_angle.reshape(grid[0], grid[1]))]
-    #
-    # dys = [np.sin(random_dsi_pref_angle.reshape(grid[0], grid[1])),
-    #        np.sin(constant_dsi_pref_angle.reshape(grid[0], grid[1]))]
-    # # Add data to image grid
-    #
-    # index = 0
-    # for ax in img_grid:
-    #     im = ax.imshow(imgs[index], vmin=0, vmax=1)
-    #     ax.quiver(dxs[index], dys[index], color='w', angles=angs[index],
-    #               pivot='mid')
-    #     index += 1
-    #
-    # # Colorbar
-    # ax.cax.colorbar(im)
-    # ax.cax.toggle_label(True)
-    # # ax.cax.set_label("DSI")
-    #
-    # img_grid[0].set_xlabel("Neuron ID\n{}".format(custom_labels[0]))
-    # img_grid[0].set_ylabel("Neuron ID")
-    # img_grid[1].set_xlabel("Neuron ID\n{}".format(custom_labels[1]))
-    #
-    # plt.savefig(
-    #     fig_folder + "comparison_per_angle_dsi_response{}.pdf".format(suffix_test), dpi=800,
-    #     bbox_inches='tight')  # pad_inches=1)
-    # plt.savefig(
-    #     fig_folder + "comparison_per_angle_dsi_response{}.svg".format(suffix_test), dpi=800,
-    #     bbox_inches='tight')  # , pad_inches=1)
-    # if show_plots:
-    #     plt.show()
-    # plt.close(fig)
-    #
-    # fig = plt.figure(figsize=(15, 8), dpi=800)
-    # img_grid = ImageGrid(fig, 111,
-    #                      nrows_ncols=(1, 2),
-    #                      axes_pad=0.15,
-    #                      share_all=True,
-    #                      cbar_location="right",
-    #                      cbar_mode="single",
-    #                      cbar_size="7%",
-    #                      cbar_pad=0.15,
-    #                      )
-    #
-    # imgs = [random_max_average_responses_with_angle.reshape(grid[0], grid[1]),
-    #         constant_max_average_responses_with_angle.reshape(grid[0], grid[1])]
-    # angs = [random_dsi_pref_angle.reshape(grid[0], grid[1]),
-    #         constant_dsi_pref_angle.reshape(grid[0], grid[1])]
-    #
-    # dxs = [np.cos(random_dsi_pref_angle.reshape(grid[0], grid[1])),
-    #        np.cos(constant_dsi_pref_angle.reshape(grid[0], grid[1]))]
-    #
-    # dys = [np.sin(random_dsi_pref_angle.reshape(grid[0], grid[1])),
-    #        np.sin(constant_dsi_pref_angle.reshape(grid[0], grid[1]))]
-    # # Add data to image grid
-    #
-    # index = 0
-    # for ax in img_grid:
-    #     im = ax.imshow(imgs[index], vmin=0, vmax=360, cmap=cyclic_viridis)
-    #     ax.quiver(dxs[index], dys[index], color='w', angles=angs[index],
-    #               pivot='mid')
-    #     index += 1
-    #
-    # # Colorbar
-    # ax.cax.colorbar(im, ticks=angles_of_interest)
-    # ax.cax.toggle_label(True)
-    # # ax.cax.set_label("DSI")
-    #
-    # img_grid[0].set_xlabel("Neuron ID\n{}".format(custom_labels[0]))
-    # img_grid[0].set_ylabel("Neuron ID")
-    # img_grid[1].set_xlabel("Neuron ID\n{}".format(custom_labels[1]))
-    #
-    # plt.savefig(
-    #     fig_folder + "comparison_angle_and_dsi_response{}.pdf".format(suffix_test), bbox_inches='tight')
-    # plt.savefig(
-    #     fig_folder + "comparison_angle_and_dsi_response{}.svg".format(suffix_test), bbox_inches='tight')
-    # if show_plots:
-    #     plt.show()
-    # plt.close(fig)
-    #
-    # # DSI histogram comparison together
-    #
-    # rand_hist_weights = np.ones_like(random_concatenated_dsis) / float(N_layer)
-    # const_hist_weights = np.ones_like(constant_concatenated_dsis) / float(N_layer)
-    # fig = plt.figure(figsize=(16, 8))
-    # plt.hist(random_concatenated_dsis, bins=np.linspace(0, 1, 21), color=viridis_cmap(1.), edgecolor='k',
-    #          weights=rand_hist_weights, alpha=.8, label=custom_labels[0])
-    # plt.hist(constant_concatenated_dsis, bins=np.linspace(0, 1, 21), color=viridis_cmap(.25), edgecolor='k',
-    #          weights=const_hist_weights, alpha=.8, label=custom_labels[1])
-    # plt.axvline(dsi_thresh, color='#b2dd2c', ls=":")
-    # plt.legend(loc='best')
-    # plt.xticks(np.linspace(0, 1, 11))
-    # plt.xlabel("DSI\n{4}$\,\, - \mu={0:3.2f},\quad\sigma={1:3.2f}$"
-    #            "\n{5}$ - \mu={2:3.2f},\quad\sigma={3:3.2f}$".format(
-    #     np.nanmean(random_concatenated_dsis), np.nanstd(random_concatenated_dsis),
-    #     np.nanmean(constant_concatenated_dsis), np.nanstd(constant_concatenated_dsis),
-    #     custom_labels[0], custom_labels[1]))
-    # plt.ylabel("Proportion of neurons")
-    # plt.savefig(
-    #     fig_folder + "comparison_dsi_histogram{}.pdf".format(suffix_test))
-    # plt.savefig(
-    #     fig_folder + "comparison_dsi_histogram{}.svg".format(suffix_test))
-    # if show_plots:
-    #     plt.show()
-    # plt.close(fig)
-
-    # random_all_simple_dsis = get_all_dsi(random_per_neuron_all_rates, angles, N_layer,
-    #                                      look_at_specific_angles=training_angles)
-    # random_simple_dsis = np.asarray(random_all_simple_dsis)[:, 2]
-    # print("{} - SIMPLE DSI".format(custom_labels[0]), suffix, "sees ",
-    #       np.count_nonzero(random_simple_dsis >= dsi_thresh), "selective neurons and",
-    #       np.count_nonzero(random_simple_dsis < dsi_thresh), "ones that are not selective to any angle")
-    # constant_all_simple_dsis = get_all_dsi(constant_per_neuron_all_rates, angles, N_layer,
-    #                                        look_at_specific_angles=training_angles)
-    # constant_simple_dsis = np.asarray(constant_all_simple_dsis)[:, 2]
-    # print("{} - SIMPLE DSI".format(custom_labels[1]), suffix, "sees ",
-    #       np.count_nonzero(constant_simple_dsis >= dsi_thresh), "selective neurons and",
-    #       np.count_nonzero(constant_simple_dsis < dsi_thresh), "ones that are not selective to any angle")
-    # simple_dsi_hist_ttest = stats.ttest_ind(random_simple_dsis, constant_simple_dsis, equal_var=False)
-    # print("{:45}".format("SIMPLE DSI ttest"), ":", simple_dsi_hist_ttest)
-    #
-    # simple_dsi_hist_kruskal = stats.kruskal(random_simple_dsis, constant_simple_dsis)
-    # print("{:45}".format("SIMPLE DSI Kruskal H-test"), ":", simple_dsi_hist_kruskal)
-    #
-    # rand_hist_weights = np.ones_like(random_simple_dsis) / float(N_layer)
-    # const_hist_weights = np.ones_like(constant_simple_dsis) / float(N_layer)
-    # fig = plt.figure(figsize=(16, 8))
-    # plt.hist(random_simple_dsis, bins=np.linspace(0, 1, 21), color=viridis_cmap(1.), edgecolor='k',
-    #          weights=rand_hist_weights, alpha=.8, label=custom_labels[0])
-    # plt.hist(constant_simple_dsis, bins=np.linspace(0, 1, 21), color=viridis_cmap(.25), edgecolor='k',
-    #          weights=const_hist_weights, alpha=.8, label=custom_labels[1])
-    # plt.axvline(dsi_thresh, color='#b2dd2c', ls=":")
-    # plt.legend(loc='best')
-    # plt.xticks(np.linspace(0, 1, 11))
-    # plt.xlabel("DSI\n${4}\,\, - \mu={0:3.2f},\quad\sigma={1:3.2f}$"
-    #            "\n${5} - \mu={2:3.2f},\quad\sigma={3:3.2f}$".format(
-    #     np.nanmean(random_simple_dsis), np.nanstd(random_simple_dsis),
-    #     np.nanmean(constant_simple_dsis), np.nanstd(constant_simple_dsis),
-    #     custom_labels[0], custom_labels[1]))
-    # plt.ylabel("Proportion of neurons")
-    # plt.savefig(
-    #     fig_folder + "comparison_simple_dsi_histogram{}.pdf".format(suffix))
-    # plt.savefig(
-    #     fig_folder + "comparison_simple_dsi_histogram{}.svg".format(suffix))
-    # if show_plots:
-    #     plt.show()
-    # plt.close(fig)
-
-    # DSI quiver comparison
-    # random_all_average_responses_with_angle, _, _ = compute_all_average_responses_with_angle(
-    #     random_per_neuron_all_rates, angles, N_layer)
-    # random_dsi_selective, random_dsi_not_selective = get_filtered_dsi_per_neuron(
-    #     random_all_average_responses_with_angle, N_layer, harsh=False)
-    # random_dsi_selective = np.asarray(random_dsi_selective)
-    # random_dsi_not_selective = np.asarray(random_dsi_not_selective)
-    #
-    # random_concatenated_dsis = get_concatenated_dsis(random_dsi_selective, random_dsi_not_selective)
-    #
-    # constant_all_average_responses_with_angle, _, _ = compute_all_average_responses_with_angle(
-    #     constant_per_neuron_all_rates, angles, N_layer)
-    # constant_dsi_selective, constant_dsi_not_selective = get_filtered_dsi_per_neuron(
-    #     constant_all_average_responses_with_angle, N_layer, harsh=False)
-    # constant_dsi_selective = np.asarray(constant_dsi_selective)
-    # constant_dsi_not_selective = np.asarray(constant_dsi_not_selective)
-    #
-    # constant_concatenated_dsis = get_concatenated_dsis(constant_dsi_selective, constant_dsi_not_selective)
-    #
-    # random_max_dsi = np.empty((N_layer))
-    # random_dsi_pref_angle = np.ones((N_layer)) * np.nan
-    # constant_max_dsi = np.empty((N_layer))
-    # constant_dsi_pref_angle = np.ones((N_layer)) * np.nan
-    #
-    # dsi_hist_ttest = stats.ttest_ind(random_concatenated_dsis, constant_concatenated_dsis, equal_var=False)
-    # print("{:45}".format("Not harsh DSI ttest"), ":", dsi_hist_ttest)
-    #
-    # dsi_hist_kruskal = stats.kruskal(random_concatenated_dsis, constant_concatenated_dsis)
-    # print("{:45}".format("Not harsh DSI Kruskal H-test"), ":", dsi_hist_kruskal)
-    #
-    # for nid in range(N_layer):
-    #     temp_dsi = 0
-    #     if random_dsi_selective.size > 0 and nid in random_dsi_selective[:, 0]:
-    #         temp_dsi = random_dsi_selective[random_dsi_selective[:, 0] == nid].ravel()[-1]
-    #         random_dsi_pref_angle[nid] = random_dsi_selective[random_dsi_selective[:, 0] == nid].ravel()[1]
-    #     elif random_dsi_not_selective.size > 0 and nid in random_dsi_not_selective[:, 0]:
-    #         temp_dsi = random_dsi_not_selective[random_dsi_not_selective[:, 0] == nid].ravel()[-1]
-    #     random_max_dsi[nid] = temp_dsi
-    #
-    #     temp_dsi = 0
-    #     if constant_dsi_selective.size > 0 and nid in constant_dsi_selective[:, 0]:
-    #         temp_dsi = constant_dsi_selective[constant_dsi_selective[:, 0] == nid].ravel()[-1]
-    #         constant_dsi_pref_angle[nid] = constant_dsi_selective[constant_dsi_selective[:, 0] == nid].ravel()[1]
-    #     elif constant_dsi_not_selective.size > 0 and nid in constant_dsi_not_selective[:, 0]:
-    #         temp_dsi = constant_dsi_not_selective[constant_dsi_not_selective[:, 0] == nid].ravel()[-1]
-    #     constant_max_dsi[nid] = temp_dsi
-    #
-    # fig = plt.figure(figsize=(15, 8), dpi=800)
-    # img_grid = ImageGrid(fig, 111,
-    #                      nrows_ncols=(1, 2),
-    #                      axes_pad=0.15,
-    #                      share_all=True,
-    #                      cbar_location="right",
-    #                      cbar_mode="single",
-    #                      cbar_size="7%",
-    #                      cbar_pad=0.15,
-    #                      )
-    #
-    # imgs = [random_max_dsi.reshape(grid[0], grid[1]),
-    #         constant_max_dsi.reshape(grid[0], grid[1])]
-    # angs = [random_dsi_pref_angle.reshape(grid[0], grid[1]),
-    #         constant_dsi_pref_angle.reshape(grid[0], grid[1])]
-    #
-    # dxs = [np.cos(random_dsi_pref_angle.reshape(grid[0], grid[1])),
-    #        np.cos(constant_dsi_pref_angle.reshape(grid[0], grid[1]))]
-    #
-    # dys = [np.sin(random_dsi_pref_angle.reshape(grid[0], grid[1])),
-    #        np.sin(constant_dsi_pref_angle.reshape(grid[0], grid[1]))]
-    # # Add data to image grid
-    #
-    # index = 0
-    # for ax in img_grid:
-    #     im = ax.imshow(imgs[index], vmin=0, vmax=1)
-    #     ax.quiver(dxs[index], dys[index], color='w', angles=angs[index],
-    #               pivot='mid')
-    #     index += 1
-    #
-    # # Colorbar
-    # ax.cax.colorbar(im)
-    # ax.cax.toggle_label(True)
-    # # ax.cax.set_label("DSI")
-    #
-    # img_grid[0].set_xlabel("Neuron ID\n{}".format(custom_labels[0]))
-    # img_grid[0].set_ylabel("Neuron ID")
-    # img_grid[1].set_xlabel("Neuron ID\n{}".format(custom_labels[1]))
-    #
-    # plt.savefig(
-    #     fig_folder + "comparison_per_angle_dsi_response_not_harsh{}.pdf".format(suffix), dpi=800,
-    #     bbox_inches='tight')  # pad_inches=1)
-    # plt.savefig(
-    #     fig_folder + "comparison_per_angle_dsi_response_not_harsh{}.svg".format(suffix), dpi=800,
-    #     bbox_inches='tight')  # , pad_inches=1)
-    # if show_plots:
-    #     plt.show()
-    # plt.close(fig)
-    #
-    # fig = plt.figure(figsize=(15, 8), dpi=800)
-    # img_grid = ImageGrid(fig, 111,
-    #                      nrows_ncols=(1, 2),
-    #                      axes_pad=0.15,
-    #                      share_all=True,
-    #                      cbar_location="right",
-    #                      cbar_mode="single",
-    #                      cbar_size="7%",
-    #                      cbar_pad=0.15,
-    #                      )
-    #
-    # imgs = [random_max_average_responses_with_angle.reshape(grid[0], grid[1]),
-    #         constant_max_average_responses_with_angle.reshape(grid[0], grid[1])]
-    # angs = [random_dsi_pref_angle.reshape(grid[0], grid[1]),
-    #         constant_dsi_pref_angle.reshape(grid[0], grid[1])]
-    #
-    # dxs = [np.cos(random_dsi_pref_angle.reshape(grid[0], grid[1])),
-    #        np.cos(constant_dsi_pref_angle.reshape(grid[0], grid[1]))]
-    #
-    # dys = [np.sin(random_dsi_pref_angle.reshape(grid[0], grid[1])),
-    #        np.sin(constant_dsi_pref_angle.reshape(grid[0], grid[1]))]
-    # # Add data to image grid
-    #
-    # index = 0
-    # for ax in img_grid:
-    #     im = ax.imshow(imgs[index], vmin=0, vmax=360, cmap=cyclic_viridis)
-    #     ax.quiver(dxs[index], dys[index], color='w', angles=angs[index],
-    #               pivot='mid')
-    #     index += 1
-    #
-    # # Colorbar
-    # ax.cax.colorbar(im, ticks=angles_of_interest)
-    # ax.cax.toggle_label(True)
-    # # ax.cax.set_label("DSI")
-    #
-    # img_grid[0].set_xlabel("Neuron ID\n{}".format(custom_labels[0]))
-    # img_grid[0].set_ylabel("Neuron ID")
-    # img_grid[1].set_xlabel("Neuron ID\n{}".format(custom_labels[1]))
-    #
-    # plt.savefig(
-    #     fig_folder + "comparison_angle_and_dsi_response_not_harsh{}.pdf".format(suffix), dpi=800,
-    #     bbox_inches='tight')  # pad_inches=1)
-    # plt.savefig(
-    #     fig_folder + "comparison_angle_and_dsi_response_not_harsh{}.svg".format(suffix), dpi=800,
-    #     bbox_inches='tight')  # , pad_inches=1)
-    # if show_plots:
-    #     plt.show()
-    # plt.close(fig)
 
     random_entropy = compute_per_neuron_entropy(random_per_neuron_all_rates, angles, N_layer)
     constant_entropy = compute_per_neuron_entropy(constant_per_neuron_all_rates, angles, N_layer)
@@ -3300,27 +3040,98 @@ def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_pl
 if __name__ == "__main__":
     import sys
 
-    # 0 vs 45
-    # diff_angles_custom_labels = ["noise", "test w/o noise"]
-    # fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
-    # fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo"
-    # comparison(fname1, fname2, extra_suffix="0_vs_45", custom_labels=diff_angles_custom_labels)
+
+    # 1 angle 45
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_cont"
+    comparison(fname1, fname2, extra_suffix="0_vs_45_continuous_test", custom_labels=["0", "45"])
+
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_2"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_cont"
+    comparison(fname1, fname2, extra_suffix="0_vs_45_v2_continuous_test", custom_labels=["0", "45"])
+    # sys.exit()
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_cont"
+    analyse_one(fname, extra_suffix="continuous_test")
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_cont"
+    analyse_one(fname, extra_suffix="constant_continuous_test")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test")
+
+    # sys.exit()
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_2"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
+    comparison(fname1, fname2, extra_suffix="v2_continuous_test")
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_2"
+    analyse_one(fname, extra_suffix="v2_continuous_test")
+
+
+
+    # sys.exit()
+
+
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_180_270_cont"
+    analyse_one(fname, extra_suffix="continuous_test")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_180_270_cont"
+    comparison(fname1, fname2, extra_suffix="0_90_vs_180_270_continuous_test", custom_labels=["0 & 90", "180 & 270"])
+
+    # Random partner experiments
+
+    # 1 angle 0
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_rand_partner_cont"
+    analyse_one(fname, extra_suffix="rand_partner_continuous_test_not_coplanar")
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_rand_partner_cont"
+    analyse_one(fname, extra_suffix="constant_rand_partner_continuous_test_not_coplanar")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_rand_partner_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_rand_partner_cont"
+    comparison(fname1, fname2, extra_suffix="rand_partner_continuous_test_not_coplanar")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_rand_partner_cont"
+    comparison(fname1, fname2, extra_suffix="rand_partner_vs_continuous_test_not_coplanar",
+               custom_labels=["Last to Spike", "Random partner"])
+
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_rand_partner_cont"
+    comparison(fname1, fname2, extra_suffix="rand_partner_vs_standard",
+               custom_labels=["Standard + L2S", "Random partner"])
+
+    # 2 angles 0 90
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_rand_partner_cont"
+    analyse_one(fname, extra_suffix="rand_partner_continuous_test_not_coplanar")
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_rand_partner_cont"
+    analyse_one(fname, extra_suffix="constant_rand_partner_continuous_test_not_coplanar")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_rand_partner_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_rand_partner_cont"
+    comparison(fname1, fname2, extra_suffix="rand_partner_continuous_test_not_coplanar")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_rand_partner_cont"
+    comparison(fname1, fname2, extra_suffix="rand_partner_vs_continuous_test_not_coplanar",
+               custom_labels=["Last to Spike", "Random partner"])
+
+
+    fname1 = args.preproc_folder + "results_for_retesting_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_rand_partner_cont"
+    comparison(fname1, fname2, extra_suffix="rand_partner_vs_standard",
+               custom_labels=["Standard + L2S", "Random partner"])
+
+    # sys.exit()
 
     fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
     fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
     comparison(fname1, fname2, extra_suffix="continuous_test")
-
-    sys.exit()
-
-    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
-    analyse_one(fname, extra_suffix="constant_continuous_test")
-
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
-    analyse_one(fname, extra_suffix="continuous_test")
-
-    sys.exit()
-
-    # sys.exit()
 
     fname1 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_coplanar"
     fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
@@ -3376,6 +3187,23 @@ if __name__ == "__main__":
 
     # sys.exit()
 
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
+    analyse_one(fname, extra_suffix="constant_continuous_test")
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
+    analyse_one(fname, extra_suffix="continuous_test")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar")
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="continuous_test_not_coplanar")
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="constant_continuous_test_not_coplanar")
+
     times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
              38400 * bunits.second,
              76800 * bunits.second
@@ -3389,6 +3217,8 @@ if __name__ == "__main__":
         "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_90_cont"
     ]
     evolution(filenames, times, path=args.preproc_folder, suffix="2_angles_0_90_continuous_test")
+
+    # sys.exit()
 
     fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_cont"
     fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_90_cont"
@@ -3420,16 +3250,6 @@ if __name__ == "__main__":
 
     # sys.exit()
 
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar")
-
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    analyse_one(fname, extra_suffix="continuous_test_not_coplanar")
-
-    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    analyse_one(fname, extra_suffix="constant_continuous_test_not_coplanar")
-
     fname1 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90"
     fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
     comparison(fname1, fname2, extra_suffix="constant_continuous_test_not_coplanar_vs_standard", custom_labels=["standard", "cont"])
@@ -3444,43 +3264,16 @@ if __name__ == "__main__":
     fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_2"
     comparison(fname1, fname2, extra_suffix="variation_check", custom_labels=["cont1", "cont2"])
 
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_cont"
-    analyse_one(fname, extra_suffix="continuous_test_not_coplanar")
-
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_cont"
     analyse_one(fname, extra_suffix="continuous_test_not_coplanar")
 
     # sys.exit()
 
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar_vs_standard", custom_labels=["standard", "continuous test"])
-
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_evo"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar_vs_standard", custom_labels=["standard", "continuous test"])
-
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar_vs_standard", custom_labels=["standard", "continuous test"])
-
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
     analyse_one(fname, extra_suffix="continuous_test_not_coplanar")
 
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar_vs_standard", custom_labels=["standard", "continuous test"])
-
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_not_coplanar"
     analyse_one(fname, extra_suffix="continuous_test_not_coplanar")
-
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_not_coplanar"
-    comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar_vs_standard", custom_labels=["standard", "continuous test"])
-
-    fname1 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
-    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
-    comparison(fname1, fname2, extra_suffix="constant_continuous_test", custom_labels=["constant", "continuous test"])
 
     # sys.exit()
     # Single experiment analysis
@@ -3742,6 +3535,31 @@ if __name__ == "__main__":
         fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_coplanar"
         comparison(fname1, fname2, extra_suffix="coplanar_vs_standard", custom_labels=["standard", "coplanar"])
 
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
+        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_not_coplanar"
+        comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar_vs_standard",
+                   custom_labels=["standard", "continuous test"])
+
+        fname1 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
+        fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
+        comparison(fname1, fname2, extra_suffix="constant_continuous_test_not_coplanar_vs_standard",
+                   custom_labels=["constant", "continuous test"])
+
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_evo"
+        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_cont"
+        comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar_vs_standard", custom_labels=["standard", "continuous test"])
+
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_evo"
+        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_135_cont"
+        comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar_vs_standard", custom_labels=["standard", "continuous test"])
+
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
+        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+        comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar_vs_standard", custom_labels=["standard", "continuous test"])
+
+        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
+        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
+        comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar_vs_standard", custom_labels=["standard", "continuous test"])
         # Noise experiments
 
         fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_evo"
