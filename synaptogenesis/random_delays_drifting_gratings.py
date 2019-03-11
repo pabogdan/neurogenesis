@@ -312,8 +312,8 @@ if not args.testing:
                                    label="Noise population")
 else:
     # TESTING REGIME!
-    input_grating_fname = "compressed_spiking_moving_bar_input/" \
-                          "spiking_moving_bar_motif_bank_simtime_" \
+    input_grating_fname = "spiking_moving_bar_input/" \
+                          "compressed_spiking_moving_bar_motif_bank_simtime_" \
                           "{}x{}_{}s.npz".format(n, n, no_iterations // 1000)
     data = np.load(input_grating_fname)
     try:
