@@ -17,7 +17,7 @@ At the time of writing, neurogenesis is not realised. However, extensive experim
 
 1.  Student Conference Proceedings
 
-	**Bogdan PA**, Furber SB (2017) "Neurogenesis on SpiNNaker". Proceedings of the 1st HBP Student Conference - Transdisciplinary Research Linking Neuroscience, Brain Medicine and Computer Science, 75-77, ISBN: 978-2-88945-421-1
+	**Bogdan PA**, Furber SB (2017) "Neurogenesis on SpiNNaker". Proceedings of the 1st HBP Student Conference - Transdisciplinary Research Linking Neuroscience, Brain Medicine and Computer Science, 75-77, ISBN: 978-2-88945-421-1 https://www.frontiersin.org/books/1st_HBP_Student_Conference_-_Transdisciplinary_Research_Linking_Neuroscience_Brain_Medicine_and_Com/1532
 
 1.  Conference Proceedings
 
@@ -25,10 +25,10 @@ At the time of writing, neurogenesis is not realised. However, extensive experim
   
 1.  Journal Articles
 
-	**Bogdan PA**, Rowley AGD, Rhodes O and Furber SB (2018) "Structural Plasticity on the SpiNNaker Many-Core Neuromorphic System". Front. Neurosci. 12:434. doi: 10.3389/fnins.2018.00434
+	**Bogdan PA**, Rowley AGD, Rhodes O and Furber SB (2018) "Structural Plasticity on the SpiNNaker Many-Core Neuromorphic System". Front. Neurosci. 12:434.  http://dx.doi.org/10.3389/fnins.2018.00434
 
 
-	Hopkins M, Pineda-García G, **Bogdan PA**, Furber SB (2018) "Spiking neural networks for computer vision". Interface Focus 8 20180007. doi: 10.1098/rsfs.2018.0007
+	Hopkins M, Pineda-García G, **Bogdan PA**, Furber SB (2018) "Spiking neural networks for computer vision". Interface Focus 8 20180007.  http://dx.doi.org/10.1098/rsfs.2018.0007
     
 1.  Data repositories
 
