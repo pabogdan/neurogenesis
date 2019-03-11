@@ -52,7 +52,7 @@ root_stats = args.root_stats
 root_syn = args.root_syn
 fig_folder = args.fig_folder
 testing_data = np.load(
-    os.path.join(root_syn, "spiking_moving_bar_input", "spiking_moving_bar_motif_bank_simtime_1200s.npz"))
+    os.path.join(root_syn, "spiking_moving_bar_input", "compressed_spiking_moving_bar_motif_bank_simtime_32x32_1200s.npz"))
 # check if the figures folder exist
 if not os.path.isdir(fig_folder) and not os.path.exists(fig_folder):
     os.mkdir(fig_folder)
