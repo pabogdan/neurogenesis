@@ -365,7 +365,7 @@ for file in paths:
 
         else:
             print("Simulation has been run before & Cached version of results exists!")
-            break
+            continue
 
             print("Using cached data.")
             if ".npz" in filename:
