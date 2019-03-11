@@ -6,6 +6,7 @@ http://hdl.handle.net/1842/3997
 # Imports
 import traceback
 
+from gari_function_definitions import *
 from function_definitions import *
 from argparser import *
 
@@ -24,7 +25,7 @@ sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
 sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
 sim.set_number_of_neurons_per_core("IF_cond_exp", 256 // 10)
 sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256 // 13)
-sim.set_number_of_neurons_per_core("SpikeSourcePoissonVariable", 256 // 16)
+sim.set_number_of_neurons_per_core("SpikeSourcePoissonVariable", 256 // 13)
 
 # +-------------------------------------------------------------------+
 # | General Parameters                                                |
@@ -37,7 +38,7 @@ model = sim.IF_cond_exp
 v_rest = -70  # mV
 e_ext = 0  # V
 v_thr = -54  # mV
-g_max = 0.2
+g_max = args.g_max
 tau_m = 20  # ms
 tau_ex = 5  # ms
 
@@ -66,13 +67,13 @@ S = (n, n)
 # S = (256, 1)
 grid = np.asarray(S)
 
-s_max = args.s_max // 2
+s_max = args.s_max
 sigma_form_forward = args.sigma_form_ff
 sigma_form_lateral = args.sigma_form_lat
 p_form_lateral = args.p_form_lateral
 p_form_forward = args.p_form_forward
-p_elim_dep = args.p_elim_dep
-p_elim_pot = args.p_elim_pot
+p_elim_dep = args.p_elim_dep * 10.
+p_elim_pot = args.p_elim_pot / 10.
 f_rew = args.f_rew  # 10 ** 4  # Hz
 
 # Inputs
@@ -81,7 +82,9 @@ f_base = 5  # Hz
 f_peak = args.f_peak  # 152.8  # Hz
 sigma_stim = args.sigma_stim  # 2
 t_stim = args.t_stim  # 20  # ms
-t_record = args.t_record  # ms
+t_record = args.t_record if args.t_record <= args.no_iterations else \
+    args.no_iterations
+# ms
 
 # STDP
 a_plus = 0.1
@@ -125,54 +128,97 @@ sim_params = {'g_max': g_max,
               }
 
 if args.input_type == GAUSSIAN_INPUT:
+    print("Drifting grating")
+    gen_rate = split_in_spikes
+else:
     print("Gaussian input")
     gen_rate = generate_gaussian_input_rates
-elif args.input_type == POINTY_INPUT:
-    print("Pointy input")
-    gen_rate = generate_rates
-elif args.input_type == SCALED_POINTY_INPUT:
-    print("Scaled pointy input")
-    gen_rate = generate_scaled_pointy_rates
-elif args.input_type == SQUARE_INPUT:
-    print("Square input")
-    gen_rate = generate_square_rates
 
 # +-------------------------------------------------------------------+
 # | Initial network setup                                             |
 # +-------------------------------------------------------------------+
 # Need to setup the moving input
 
-number_of_slots = int(simtime / t_stim)
-range_of_slots = np.arange(number_of_slots)
-slots_starts = np.ones((N_layer, number_of_slots)) * (range_of_slots * t_stim)
-durations = np.ones((N_layer, number_of_slots)) * t_stim
+fname = 'drifting_gratings/spikes_EAST_32x32_200fps.txt'
+if case == CASE_CORR_AND_REW:
+    size_bits = int(np.ceil(np.log2(n)))  # square => width==height
+    fps = 200.
+    dt_ms = int(1000. / fps)
+    print(n, n, fps, size_bits, dt_ms)
 
-if case == CASE_REW_NO_CORR:
-    rates = np.ones(grid) * f_mean
+    spikes = load_compressed_spikes(fname)
+
+    spk_on, spk_off = split_in_spikes(spikes, row_bits=size_bits,
+                                      col_bits=size_bits, chann_bits=1,
+                                      width=n)
+
+    one_cycle = xyp2ssa(spk_on, n, n)
+    all_gratings = []
+    cycle_end = 10000
+    for i in range(len(one_cycle)):
+        temp_times = np.asarray(one_cycle[i])
+        tiled_times = np.tile(temp_times, simtime // cycle_end)
+        if tiled_times.size > 0:
+            for another_i in range(tiled_times.size // temp_times.size):
+                tiled_times[temp_times.size * another_i:temp_times.size * (
+                        another_i + 1)] += cycle_end * another_i
+
+        noisy_times = tiled_times + np.random.randint(-1, 2,
+                                                      size=tiled_times.size)
+        all_gratings.append(noisy_times)
+
     source_pop = sim.Population(N_layer,
-                                sim.SpikeSourcePoisson,
-                                {'rate': rates.ravel(),
-                                 'start': 100,
-                                 'duration': simtime
-                                 }, label="Poisson spike source")
-elif case == CASE_CORR_AND_REW or case == CASE_CORR_NO_REW:
+                                sim.SpikeSourceArray,
+                                {'spike_times': all_gratings
+                                 }, label="Moving grating on")
 
-    rates = np.empty((grid[0], grid[1], number_of_slots))
-    for rate_id in range(number_of_slots):
-        r = gen_rate(np.random.randint(0, n, size=2),
-                     f_base=f_base,
-                     grid=grid,
-                     f_peak=args.f_peak,
-                     sigma_stim=sigma_stim)
-        rates[:, :, rate_id] = r
-    rates = rates.reshape(N_layer, number_of_slots)
+    one_cycle = xyp2ssa(spk_off, n, n)
+    all_gratings_off = []
+    cycle_end = 10000
+    for i in range(len(one_cycle)):
+        temp_times = np.asarray(one_cycle[i])
+        tiled_times = np.tile(temp_times, simtime // cycle_end)
+        if tiled_times.size > 0:
+            for another_i in range(tiled_times.size // temp_times.size):
+                tiled_times[temp_times.size * another_i:temp_times.size * (
+                        another_i + 1)] += cycle_end * another_i
 
-    source_pop = sim.Population(N_layer,
-                                sim.SpikeSourcePoissonVariable,
-                                {'rates': rates,
-                                 'starts': slots_starts,
-                                 'durations': durations
-                                 }, label="Variable-rate Poisson spike source")
+        noisy_times = tiled_times + np.random.randint(-1, 2,
+                                                      size=tiled_times.size)
+        all_gratings_off.append(noisy_times)
+
+    noise_pop = sim.Population(N_layer,
+                               sim.SpikeSourceArray,
+                               {'spike_times': all_gratings_off
+                                }, label="Moving grating off")
+    # rates = np.ones(grid) * f_mean
+    # source_pop = sim.Population(N_layer,
+    #                             sim.SpikeSourcePoisson,
+    #                             {'rate': rates.ravel(),
+    #                              'start': 100,
+    #                              'duration': simtime
+    #                              }, label="Poisson spike source")
+# elif case == CASE_CORR_AND_REW or case == CASE_CORR_NO_REW:
+#
+#     rates = np.empty((simtime // t_stim, grid[0], grid[1]))
+#     for rate_id in range(simtime // t_stim):
+#         r = gen_rate(np.random.randint(0, n, size=2),
+#                      f_base=f_base,
+#                      grid=grid,
+#                      f_peak=args.f_peak,
+#                      sigma_stim=sigma_stim)
+#         # assert np.isclose(np.average(r), f_mean, 0.1, 0.1), np.average(r)
+#
+#         rates[rate_id, :, :] = r
+#     rates = rates.reshape(simtime // t_stim, N_layer)
+#
+#     source_pop = sim.Population(N_layer,
+#                                 sim.SpikeSourcePoissonVariable,
+#                                 {'rate': rates,
+#                                  'start': 100,
+#                                  'duration': simtime,
+#                                  'rate_interval_duration': t_stim
+#                                  }, label="Variable-rate Poisson spike source")
 
 ff_s = np.zeros(N_layer, dtype=np.uint)
 lat_s = np.zeros(N_layer, dtype=np.uint)
@@ -180,37 +226,39 @@ lat_s = np.zeros(N_layer, dtype=np.uint)
 init_ff_connections = []
 init_lat_connections = []
 
-if args.initial_connectivity_file is None:
-    init_ff_connections = generate_initial_connectivity(
-        sigma_form_forward, p_form_forward,
-        "\nGenerating initial feedforward connectivity...",
-        N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=args.delay)
-    init_lat_connections = generate_initial_connectivity(
-        sigma_form_lateral, p_form_lateral,
-        "\nGenerating initial lateral connectivity...",
-        N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=args.delay)
-    print("\n")
-else:
-    if "npz" in args.initial_connectivity_file:
-        initial_connectivity = np.load(args.initial_connectivity_file)
-    else:
-        import scipy.io as io
-
-        initial_connectivity = io.loadmat(args.initial_connectivity_file)
-    conn = initial_connectivity['ConnPostToPre'] - 1
-    weight = initial_connectivity['WeightPostToPre']
-
-    for target in range(conn.shape[1]):
-        for index in range(conn.shape[0]):
-            if conn[index, target] >= 0:
-                if conn[index, target] < N_layer:
-                    init_ff_connections.append(
-                        (conn[index, target], target,
-                         weight[index, target], 1))
-                else:
-                    init_lat_connections.append(
-                        (conn[index, target] - N_layer, target,
-                         weight[index, target], 1))
+# if args.initial_connectivity_file is None:
+#     generate_initial_connectivity(
+#         ff_s, init_ff_connections,
+#         sigma_form_forward, p_form_forward,
+#         "\nGenerating initial feedforward connectivity...",
+#         N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=args.delay)
+#     generate_initial_connectivity(
+#         lat_s, init_lat_connections,
+#         sigma_form_lateral, p_form_lateral,
+#         "\nGenerating initial lateral connectivity...",
+#         N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=args.delay)
+#     print("\n")
+# else:
+#     if "npz" in args.initial_connectivity_file:
+#         initial_connectivity = np.load(args.initial_connectivity_file)
+#     else:
+#         import scipy.io as io
+#
+#         initial_connectivity = io.loadmat(args.initial_connectivity_file)
+#     conn = initial_connectivity['ConnPostToPre'] - 1
+#     weight = initial_connectivity['WeightPostToPre']
+#
+#     for target in range(conn.shape[1]):
+#         for index in range(conn.shape[0]):
+#             if conn[index, target] >= 0:
+#                 if conn[index, target] < N_layer:
+#                     init_ff_connections.append(
+#                         (conn[index, target], target,
+#                          weight[index, target], 1))
+#                 else:
+#                     init_lat_connections.append(
+#                         (conn[index, target] - N_layer, target,
+#                          weight[index, target], 1))
 
 # Neuron populations
 target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
@@ -231,8 +279,8 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
     structure_model_w_stdp = sim.StructuralMechanismSTDP(
         stdp_model=stdp_model,
         weight=g_max,
-        delay=args.delay,
-        s_max=s_max * 2,
+        delay=[1, 15],
+        s_max=s_max,
         grid=grid,
         f_rew=f_rew,
         lateral_inhibition=args.lateral_inhibition,
@@ -253,14 +301,24 @@ if not args.lesion:
     print("No insults")
     ff_projection = sim.Projection(
         source_pop, target_pop,
-        sim.FromListConnector(init_ff_connections),
+        sim.FixedProbabilityConnector(0.),
+        # sim.FromListConnector(init_ff_connections),
         synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
         label="plastic_ff_projection"
     )
 
+    noise_projection = sim.Projection(
+        noise_pop, target_pop,
+        sim.FixedProbabilityConnector(0.),
+        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+        label="ff_off_projection"
+    )
+
     lat_projection = sim.Projection(
         target_pop, target_pop,
-        sim.FromListConnector(init_lat_connections),
+
+        sim.FixedProbabilityConnector(0.),
+        # sim.FromListConnector(init_lat_connections),
         synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
         label="plastic_lat_projection",
         target="inhibitory" if args.lateral_inhibition else "excitatory"
@@ -380,6 +438,11 @@ pre_targets = []
 pre_weights = []
 pre_delays = []
 
+noise_sources = []
+noise_targets = []
+noise_weights = []
+noise_delays = []
+
 post_sources = []
 post_targets = []
 post_weights = []
@@ -404,6 +467,12 @@ try:
                     ff_projection._get_synaptic_data(True, 'target'),
                     ff_projection._get_synaptic_data(True, 'weight'),
                     ff_projection._get_synaptic_data(True, 'delay')]).T)
+            noise_weights.append(
+                np.array([
+                    noise_projection._get_synaptic_data(True, 'source'),
+                    noise_projection._get_synaptic_data(True, 'target'),
+                    noise_projection._get_synaptic_data(True, 'weight'),
+                    noise_projection._get_synaptic_data(True, 'delay')]).T)
             post_weights.append(
                 np.array([
                     lat_projection._get_synaptic_data(True, 'source'),
@@ -434,27 +503,27 @@ suffix = end_time.strftime("_%H%M%S_%d%m%Y")
 if args.filename:
     filename = args.filename
 else:
-    filename = "topographic_map_results" + str(suffix)
+    filename = "drifting_grating_topographic_map_results" + str(suffix)
 
 total_target_neuron_mean_spike_rate = \
     post_spikes.shape[0] / float(simtime) * 1000. / N_layer
 
-np.savez_compressed(
-    filename, pre_spikes=pre_spikes,
-    post_spikes=post_spikes,
-    init_ff_connections=init_ff_connections,
-    init_lat_connections=init_lat_connections,
-    ff_connections=pre_weights,
-    lat_connections=post_weights,
-    final_pre_weights=pre_weights[-1],
-    final_post_weights=post_weights[-1],
-    simtime=simtime,
-    sim_params=sim_params,
-    total_time=total_time,
-    mean_firing_rate=total_target_neuron_mean_spike_rate,
-    exception=e,
-    insult=args.lesion,
-    input_type=args.input_type)
+np.savez(filename, pre_spikes=pre_spikes,
+         post_spikes=post_spikes,
+         init_ff_connections=init_ff_connections,
+         init_lat_connections=init_lat_connections,
+         ff_connections=pre_weights,
+         lat_connections=post_weights,
+         noise_connections=noise_weights,
+         final_pre_weights=pre_weights[-1],
+         final_post_weights=post_weights[-1],
+         simtime=simtime,
+         sim_params=sim_params,
+         total_time=total_time,
+         mean_firing_rate=total_target_neuron_mean_spike_rate,
+         exception=e,
+         insult=args.lesion,
+         input_type=args.input_type)
 
 # Plotting
 if args.plot and e is None:

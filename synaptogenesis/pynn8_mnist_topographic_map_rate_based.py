@@ -1,20 +1,21 @@
 import numpy as np
 import traceback
 import pylab as plt
-import spynnaker7.pyNN as sim
+import spynnaker8 as sim
 from function_definitions import *
 from argparser import *
 import sys
+from spynnaker8.extra_models import SpikeSourcePoissonVariable
 
 # SpiNNaker setup
 start_time = plt.datetime.datetime.now()
 
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
-sim.set_number_of_neurons_per_core("IF_curr_exp", 50)
-sim.set_number_of_neurons_per_core("IF_cond_exp", 50)
-sim.set_number_of_neurons_per_core("SpikeSourcePoisson", 256)
-sim.set_number_of_neurons_per_core("SpikeSourcePoissonVariable", 128)
-sim.set_number_of_neurons_per_core("SpikeSourceArray", 256)
+sim.set_number_of_neurons_per_core(sim.IF_curr_exp, 50)
+sim.set_number_of_neurons_per_core(sim.IF_cond_exp, 50)
+sim.set_number_of_neurons_per_core(sim.SpikeSourcePoisson, 256)
+sim.set_number_of_neurons_per_core(SpikeSourcePoissonVariable, 128)
+sim.set_number_of_neurons_per_core(sim.SpikeSourceArray, 256)
 # +-------------------------------------------------------------------+
 # | General Parameters                                                |
 # +-------------------------------------------------------------------+
@@ -147,11 +148,8 @@ sim_params = {'g_max': g_max,
 # Connections
 
 stdp_model = sim.STDPMechanism(
-    timing_dependence=sim.SpikePairRule(tau_plus=tau_plus,
-                                        tau_minus=tau_minus),
-    weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=g_max,
-                                                   A_plus=a_plus,
-                                                   A_minus=a_minus)
+    timing_dependence=sim.SpikePairRule(tau_plus=tau_plus, tau_minus=tau_minus, A_plus=a_plus, A_minus=a_minus),
+    weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=g_max)
 )
 
 if args.case == CASE_CORR_AND_REW:
@@ -227,7 +225,7 @@ if not args.testing:
         source_column.append(
             sim.Population(
                 N_layer,
-                sim.SpikeSourcePoissonVariable,
+                SpikeSourcePoissonVariable,
                 {'rates': final_rates_on,
                  'starts': slots_starts,
                  'durations': durations
@@ -247,8 +245,7 @@ if not args.testing:
             sim.Projection(
                 source_column[number], target_column[number],
                 sim.FromListConnector(init_ff_connections),
-                synapse_dynamics=sim.SynapseDynamics(
-                    slow=structure_model_w_stdp),
+                synapse_type=structure_model_w_stdp,
                 label="plastic_ff_projection"
             )
         )
@@ -258,23 +255,11 @@ if not args.testing:
                 sim.Projection(
                     target_column[number], target_column[number],
                     sim.FromListConnector(init_lat_connections),
-                    synapse_dynamics=sim.SynapseDynamics(
-                        slow=structure_model_w_stdp),
+                    synapse_type=structure_model_w_stdp,
                     label="plastic_lat_projection",
-                    target="inhibitory" if args.lateral_inhibition
-                    else "excitatory"
+                    receptor_type="inhibitory" if args.lateral_inhibition else "excitatory"
                 )
             )
-    if args.lat_lat_conn:
-        for number_pre in range(10):
-            for number_post in range(10):
-                sim.Projection(
-                    target_column[number_pre], target_column[number_post],
-                    sim.OneToOneConnector(g_max, args.delay),
-                    label="lat_lat_projection"
-                          + str(number_pre) + "" + str(number_post),
-                    target="inhibitory"
-                )
 
 else:
     # Testing mode is activated.
@@ -326,7 +311,7 @@ else:
     if not args.random_input:
         source_pop = sim.Population(
             N_layer,
-            sim.SpikeSourcePoissonVariable,
+            SpikeSourcePoissonVariable,
             {
                 'rates': testing_rates.reshape(simtime // t_stim, N_layer).T,
                 'starts': slots_starts,
@@ -355,36 +340,27 @@ else:
             sim.Projection(
                 source_pop, target_column[number],
                 sim.FromListConnector(trained_ff_connectivity[number]),
-                label="ff_projection " + str(number)
+                label="ff_projection " + str(number),
+                # synapse_type=sim.StaticSynapse()
             )
         )
         if args.case != CASE_CORR_NO_REW:
             lat_connections.append(
                 sim.Projection(
                     target_column[number], target_column[number],
-                    sim.FromListConnector(
-                        trained_lat_connectivity[number]),
+                    sim.FromListConnector(trained_lat_connectivity[number]),
                     label="lat_projection " + str(number),
-                    target="inhibitory" if args.lateral_inhibition
-                    else "excitatory"
+                    receptor_type="inhibitory" if args.lateral_inhibition else "excitatory",
+                    # synapse_type=sim.StaticSynapse()
                 )
             )
-    if args.lat_lat_conn:
-        for number_pre in range(10):
-            for number_post in range(10):
-                sim.Projection(
-                    target_column[number_pre], target_column[number_post],
-                    sim.OneToOneConnector(g_max, args.delay),
-                    label="lat_lat_projection"
-                          + str(number_pre) + "" + str(number_post),
-                    target="inhibitory"
-                )
+
 
 if args.record_source:
     for source_pop in source_column:
-        source_pop.record()
+        source_pop.record(['spikes'])
 for target_pop in target_column:
-    target_pop.record()
+    target_pop.record(['spikes'])
 
 # Run simulation
 pre_spikes = []
@@ -423,9 +399,9 @@ try:
 
     if args.record_source:
         for source_pop in source_column:
-            pre_spikes.append(source_pop.getSpikes(compatible_output=True))
+            pre_spikes.append(source_pop.spinnaker_get_data('spikes'))
     for target_pop in target_column:
-        post_spikes.append(target_pop.getSpikes(compatible_output=True))
+        post_spikes.append(target_pop.spinnaker_get_data('spikes'))
     # End simulation on SpiNNaker
     sim.end()
 except Exception as e:

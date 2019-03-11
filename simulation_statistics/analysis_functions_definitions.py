@@ -1,10 +1,33 @@
 import numpy as np
+from scipy import stats
 
 
 def pol2cart(theta, rho):
     x = rho * np.cos(theta)
     y = rho * np.sin(theta)
     return x, y
+
+
+def cart2pol(x, y):
+    rho = np.sqrt(x ** 2 + y ** 2)
+    phi = np.arctan2(y, x)
+    return (rho, phi)
+
+
+def index_to_dist(i1, i2, grid):
+    return distance((i1 // grid[0], i1 % grid[1]), (i2 // grid[0], i2 % grid[1]), grid=grid, type='euclidian')
+
+
+def polar_connectivity(conn_list, grid):
+    polar_conn = []
+    for source, target, weight, delay in conn_list:
+        s_x = np.asarray((source // grid[0], source % grid[1]))
+        t_y = np.asarray((target // grid[0], target % grid[1]))
+        dif = s_x - t_y
+        s_p, t_p = cart2pol(dif[0], dif[1])
+        polar_conn.append((s_p, t_p, weight, delay,
+                           distance(s_x, t_y, grid=grid, type='euclidian')))
+    return polar_conn
 
 
 def radial_sample(in_matrix, samplenum):
@@ -28,27 +51,27 @@ def radial_sample(in_matrix, samplenum):
                 else:
                     sample = in_matrix[yceil + centre, xfloor + centre] * \
                              np.mod(tempx, 1) + in_matrix[
-                                                    yceil + centre, xceil + centre] * \
-                                                (1 - np.mod(tempx, 1))
+                                 yceil + centre, xceil + centre] * \
+                             (1 - np.mod(tempx, 1))
             else:
                 if xceil == xfloor:
                     sample = in_matrix[yfloor + centre, xceil + centre] * \
                              np.mod(tempy, 1) + in_matrix[
-                                                    yceil + centre, xceil + centre] * \
-                                                (1 - np.mod(tempy, 1))
+                                 yceil + centre, xceil + centre] * \
+                             (1 - np.mod(tempy, 1))
                 else:
                     yfloorsample = in_matrix[
                                        yfloor + centre, xfloor + centre] * \
                                    np.mod(tempx, 1) + in_matrix[
-                                                          yfloor + centre, xceil + centre] * \
-                                                      (1 - np.mod(tempx, 1))
+                                       yfloor + centre, xceil + centre] * \
+                                   (1 - np.mod(tempx, 1))
                     yceilsample = in_matrix[
                                       yceil + centre, xfloor + centre] * np.mod(
                         tempx, 1) + in_matrix[
-                                        yceil + centre, xceil + centre] * (
-                                        1 - np.mod(tempx, 1))
+                                      yceil + centre, xceil + centre] * (
+                                          1 - np.mod(tempx, 1))
                     sample = yfloorsample * np.mod(tempy, 1) + yceilsample * (
-                        1 - np.mod(tempy, 1))
+                            1 - np.mod(tempy, 1))
             out[int(dist)] = out[int(dist)] + sample
     return out / float(samplenum)
 
@@ -133,8 +156,6 @@ def centre_weights(in_star_all, n1d):
                 #                 print pos_x, pos_y
                 #                 print std_dev_x, std_dev_y
 
-
-
                 # reconstruct the coarsely centred receptive field
                 centred_coarse = np.copy(in_star_extended[
                                          n1d + pos_y - half_range:n1d + pos_y + half_range + 1,
@@ -157,13 +178,13 @@ def centre_weights(in_star_all, n1d):
                                                 n1d + pos_x - half_range:n1d + pos_x + half_range + 1])
                     # correct the edges of centred
                     temp_centred_fine[0, :] = temp_centred_fine[0, :] * (
-                        .5 - pos_fine)
+                            .5 - pos_fine)
                     temp_centred_fine[n1d, :] = temp_centred_fine[n1d, :] * (
-                        .5 + pos_fine)
+                            .5 + pos_fine)
                     temp_centred_fine[:, 0] = temp_centred_fine[:, 0] * (
-                        .5 - pos_fine)
+                            .5 - pos_fine)
                     temp_centred_fine[:, n1d] = temp_centred_fine[:, n1d] * (
-                        .5 + pos_fine)
+                            .5 + pos_fine)
 
                     # calculate the StdDev
                     centred_x = np.sum(temp_centred_fine, axis=0)
@@ -245,7 +266,7 @@ def centre_weights(in_star_all, n1d):
                                (n1d + 1 - X) * np.remainder(Y - 1, 2) - 1,
                 :] = [X + mean_x, Y + mean_y]
                 means_for_plot[(X - 1) * n1d + Y * np.remainder(X - 1, 2) + (
-                                                                            n1d + 1 - Y) * np.remainder(
+                        n1d + 1 - Y) * np.remainder(
                     X, 2) + n1d ** 2 - 1 - 1, :] = [X + mean_x, Y + mean_y]
                 #     return (mean_projection/(n1d**2), std_dev)
     mean_projection = mean_projection / (n1d ** 2.)
@@ -306,6 +327,10 @@ def weight_shuffle(conn, weights, area):
     return weights_copy
 
 
+def correct_smax_list_to_post_pre(ff_list, lat_list, s_max, N_layer):
+    return list_to_post_pre(ff_list, lat_list, int(s_max / 2), N_layer)
+
+
 def list_to_post_pre(ff_list, lat_list, s_max, N_layer):
     conn = np.ones((s_max * 2, N_layer)) * -1
     weight = np.zeros((s_max * 2, N_layer))
@@ -339,7 +364,7 @@ def odc(fan_in_mat, mode=None):
     for post_y in range(n1d):
         for post_x in range(n1d):
             fan_in_temp = fan_in_mat[post_y * n1d:(post_y + 1) * n1d,
-                        post_x * n1d:(post_x + 1) * n1d]
+                          post_x * n1d:(post_x + 1) * n1d]
             if mode and 'NORMALISE' in mode.upper():
                 temp = np.sum(np.sum(fan_in_temp * odc_mask)) / np.sum(
                     np.sum(np.logical(fan_in_temp * odc_mask))) / np.sum(
@@ -353,3 +378,168 @@ def odc(fan_in_mat, mode=None):
 
     output[np.where(np.isnan(output))] = .5
     return output
+
+
+def compute_all_average_responses_with_angle(per_neuron_all_rates, angles, N_layer):
+    all_average_responses_with_angle = np.empty((N_layer, angles.size, 2))
+    for angle in angles:
+        current_angle_responses = per_neuron_all_rates[angle // 5].reshape(
+            N_layer, per_neuron_all_rates[angle // 5].shape[0] // N_layer)
+        for i in range(N_layer):
+            current_response = current_angle_responses[i, :]
+            all_average_responses_with_angle[i, angle // 5, 0] = np.mean(
+                current_response)
+            all_average_responses_with_angle[i, angle // 5, 1] = stats.sem(
+                current_response)
+    max_average_responses_with_angle = np.empty((N_layer))
+    sem_responses_with_angle = np.empty((N_layer))
+    for i in range(N_layer):
+        max_average_responses_with_angle[i] = np.argmax(
+            all_average_responses_with_angle[i, :, 0]) * 5
+        sem_responses_with_angle[i] = all_average_responses_with_angle[
+            i, int(max_average_responses_with_angle[i] // 5), 1]
+    return all_average_responses_with_angle, max_average_responses_with_angle, sem_responses_with_angle
+
+
+def get_per_angle_responses(per_neuron_all_rates, angle, N_layer):
+    current_angle_responses = per_neuron_all_rates[angle // 5].reshape(
+        N_layer, per_neuron_all_rates[angle // 5].shape[0] // N_layer)
+    return current_angle_responses
+
+
+def get_omnidirectional_neural_response_for_neuron(neuron_id, per_neuron_all_rates, angles, N_layer):
+    neuron_id = int(neuron_id)
+    response_profile = np.empty(angles.size)
+    for angle in angles:
+        current_angle_responses = get_per_angle_responses(per_neuron_all_rates, angle, N_layer)
+        current_response = current_angle_responses[neuron_id, :]
+        response_profile[angle // 5] = np.mean(current_response)
+    return response_profile
+
+
+def get_concatenated_dsis(dsi_selective, dsi_not_selective):
+    if dsi_selective.size > 0 and dsi_not_selective.size > 0:
+        all_dsi = np.concatenate((dsi_selective[:, -1], dsi_not_selective[:, -1]))
+    elif dsi_selective.size == 0:
+        all_dsi = dsi_not_selective[:, -1]
+    else:
+        all_dsi = dsi_selective[:, -1]
+    return all_dsi
+
+
+def backward_compatibility_get_dsi(per_neuron_all_rates, angles, N_layer):
+    from gari_analysis_functions import get_filtered_dsi_per_neuron
+    all_average_responses_with_angle, _, _ = compute_all_average_responses_with_angle(per_neuron_all_rates,
+                                                                                      angles, N_layer)
+    dsi_selective, dsi_not_selective = get_filtered_dsi_per_neuron(all_average_responses_with_angle, N_layer)
+    dsi_selective = np.asarray(dsi_selective)
+    dsi_not_selective = np.asarray(dsi_not_selective)
+    return dsi_selective, dsi_not_selective
+
+
+def compute_per_neuron_entropy(per_neuron_all_rates, angles, N_layer):
+    entropy = np.empty((N_layer))
+    for nid in range(N_layer):
+        # Retrieve the firing profile of this neuron
+        profile = get_omnidirectional_neural_response_for_neuron(nid, per_neuron_all_rates, angles, N_layer)
+        normalised_profile = profile / np.sum(profile)
+        current_sum = 0
+        for normed_rate in normalised_profile:
+            if not np.less(normed_rate, 0.0001):
+                current_sum += (normed_rate * np.log2(normed_rate))
+        entropy[nid] = -current_sum
+    return entropy
+
+
+def get_max_entropy(angles):
+    return -np.log2(1. / angles.size)
+
+
+def get_number_of_afferents(N_layer, ff_num_network, lat_num_network):
+    number_of_afferents = np.empty(N_layer)
+    for index, value in np.ndenumerate(number_of_afferents):
+        number_of_afferents[index] = np.nansum(
+            ff_num_network[:, index[0]]) + np.nansum(
+            lat_num_network[:, index[0]])
+    return number_of_afferents
+
+
+def get_number_of_afferents_from_list(N_layer, ff_list, lat_list):
+    number_of_afferents = np.empty(N_layer)
+    for index, value in np.ndenumerate(number_of_afferents):
+        if len(lat_list) > 0:
+            lat_tmp = lat_list[lat_list[:, 1] == index]
+            lat_afferents = lat_tmp.shape[0] if lat_tmp.size > 0 else 0
+        else:
+            lat_afferents = 0
+        number_of_afferents[index] = ff_list[ff_list[:, 1] == index].shape[0] + lat_afferents
+
+    return number_of_afferents
+
+
+# From spynnaker8.neo_convertor. Including here because otherwise one needs to install the whole tool-chain
+def convert_spikes(neo, run=0):
+    """ Extracts the spikes for run one from a Neo Object
+
+    :param neo: neo Object including Spike Data
+    :param run: Zero based index of the run to extract data for
+    :type run: int
+    :rtype: nparray
+    """
+    if len(neo.segments) <= run:
+        raise ValueError(
+            "Data only contains {} so unable to run {}. Note run is the "
+            "zero based index.".format(len(neo.segments), run))
+    return convert_spiketrains(neo.segments[run].spiketrains)
+
+
+def convert_spiketrains(spiketrains):
+    """ Converts a list of spiketrains into spynakker7 format
+
+    :param spiketrains: List of SpikeTrains
+    :rtype: nparray
+    """
+    if len(spiketrains) == 0:
+        return np.empty(shape=(0, 2))
+
+    neurons = np.concatenate(
+        list(map(lambda x: np.repeat(x.annotations['source_index'], len(x)),
+                 spiketrains)))
+    spikes = np.concatenate(list(map(lambda x: x.magnitude, spiketrains)))
+    return np.column_stack((neurons, spikes))
+
+
+def get_max_dsi(neuron_id, per_neuron_all_rates, angles, N_layer, look_at_specific_angles=None):
+    '''
+    Simple DSI search from the firing profile of a neuron
+    $DSI = (R_{pref} - R_{null}) / R_{pref}$, where
+    $R_{pref}$ is the response of a neuron in the preferred direction, and
+    $R_{null}$ is the response in the opposite direction
+    '''
+    current_neuron_response = get_omnidirectional_neural_response_for_neuron(
+        neuron_id, per_neuron_all_rates, angles, N_layer)
+    null_responses = np.roll(current_neuron_response, 180 // 5)
+    all_dsis = (current_neuron_response - null_responses) / current_neuron_response
+    if look_at_specific_angles:
+        look_at_specific_angles = np.asarray(look_at_specific_angles)
+        look_at_specific_positions = look_at_specific_angles/5
+        nan_mask = np.ones(all_dsis.shape) * np.nan
+        nan_mask[look_at_specific_positions] = 1
+        masked_all_dsis = all_dsis * nan_mask
+        if np.all(np.isnan(masked_all_dsis)):
+            return np.nan, np.nan
+        return np.nanmax(masked_all_dsis), np.nanargmax(masked_all_dsis) * 5
+    if np.all(np.isnan(all_dsis)):
+        return np.nan, np.nan
+    return np.nanmax(all_dsis), np.nanargmax(all_dsis) * 5
+
+
+def get_all_dsi(per_neuron_all_rates, angles, N_layer, look_at_specific_angles=None):
+    all_simple_dsis = []
+    for nid in range(N_layer):
+        max_dsi, argmax_dsi = get_max_dsi(nid, per_neuron_all_rates, angles, N_layer,
+                                          look_at_specific_angles=look_at_specific_angles)
+        # appending neuron id, angle for which DSI is maximum and the associated DSI
+        all_simple_dsis.append([nid, argmax_dsi, max_dsi])
+    return np.asarray(all_simple_dsis)
+
