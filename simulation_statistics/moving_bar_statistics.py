@@ -335,14 +335,20 @@ for file in paths:
 
             # Incoming connections to target EXCITATORY population
             ff_last = connection_data['ff_connections'][0]
-            off_last = connection_data['ff_off_connections'][0]
+            off_last = connection_data['ff_off_connections']
+            if off_last.size > 0:
+                off_last = off_last[0]
             noise_last = connection_data['noise_connections'][0]
             lat_last = connection_data['lat_connections'][0]
             inh_to_exh_last = connection_data['inh_connections']
 
             # Incoming connections to target INHIBITORY population
-            inh_ff_last = connection_data['inh_connections'][0]
-            inh_off_last = connection_data['off_inh_connections'][0]
+            inh_ff_last = connection_data['inh_connections']
+            if inh_ff_last.size > 0:
+                inh_ff_last = inh_ff_last[0]
+            inh_off_last = connection_data['off_inh_connections']
+            if inh_off_last.size > 0:
+                inh_off_last = inh_off_last[0]
             inh_noise_last = connection_data['noise_inh_connections']
             inh_lat_last = connection_data['inh_inh_connections']
             exh_to_inh_last = connection_data['exh_connections']
