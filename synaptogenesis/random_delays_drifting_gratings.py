@@ -647,11 +647,18 @@ else:
             label="plastic_ff_inh_projection"
         )
 
-        ff_off_inh_projection = sim.Projection(
-            source_pop_off, inh_pop,
-            sim.FromListConnector(trained_off_inh_connectivity),
-            label="ff_off_inh_projection"
-        )
+        if trained_off_inh_connectivity.size == 0:
+            ff_off_inh_projection = sim.Projection(
+                source_pop_off, inh_pop,
+                sim.FixedProbabilityConnector(0),
+                label="ff_off_inh_projection"
+            )
+        else:
+            ff_off_inh_projection = sim.Projection(
+                source_pop_off, inh_pop,
+                sim.FromListConnector(trained_off_inh_connectivity),
+                label="ff_off_inh_projection"
+            )
         if trained_noise_inh_connectivity.size == 0:
             noise_inh_projection = sim.Projection(
                 noise_pop, inh_pop,
