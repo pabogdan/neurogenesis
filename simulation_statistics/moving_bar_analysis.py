@@ -391,14 +391,15 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     all_weights = np.zeros((N_layer, N_layer))
     all_delays = np.zeros((N_layer, N_layer))
     for conn_set_id, conn_set in np.ndenumerate(conns):
-        for connection in conn_set:
-            source = int(connection[0])
-            target = int(connection[1])
-            weight = connection[2]
-            delay = float(connection[3])
-            all_connectivity[source, target] += 1
-            all_weights[source, target] += (weight_mask[conn_set_id[0]] * weight)
-            all_delays[source, target] += delay
+        if conn_set.size > 0:
+            for connection in conn_set:
+                source = int(connection[0])
+                target = int(connection[1])
+                weight = connection[2]
+                delay = float(connection[3])
+                all_connectivity[source, target] += 1
+                all_weights[source, target] += (weight_mask[conn_set_id[0]] * weight)
+                all_delays[source, target] += delay
 
     aligned_connectivity = np.zeros(N_layer)
     aligned_weight = np.zeros(N_layer)
@@ -590,10 +591,12 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     # distribution of delays present in the network after training
     fig = plt.figure(figsize=(14, 8))
 
-    all_delays = np.concatenate((ff_last[:, -1], off_last[:, -1],
+
+    off_delays = off_last[:, -1] if off_last.size > 0 else []
+    all_delays = np.concatenate((ff_last[:, -1], off_delays,
                                  noise_last[:, -1], lat_last[:, -1],
                                  inh_to_exh_last[:, -1]))
-    y, binEdges = np.histogram(all_delays, bins=np.unique(all_delays).size)
+    y, binEdges = np.histogram(all_delays, bins=np.unique(all_delays).size, density=True)
     bincenters = 0.5 * (binEdges[1:] + binEdges[:-1])
     width = 1
     print("{:45}".format("Unique Delays present in network"), ":", np.unique(all_delays))
@@ -892,8 +895,12 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     print("{:45}".format("STD Synaptic capacity usage"), ":", np.std(number_of_afferents))
 
     # Connectivity info
-    conns = (ff_last, off_last, noise_last, lat_last, inh_to_exh_last)
-    conns_names = ["$ff_{on}$", "$ff_{off}$", "$ff_{noise}$", "$lat_{exc}$", "$lat_{inh}$"]
+    if off_last.size > 0:
+        conns = (ff_last, off_last, noise_last, lat_last, inh_to_exh_last)
+        conns_names = ["$ff_{on}$", "$ff_{off}$", "$ff_{noise}$", "$lat_{exc}$", "$lat_{inh}$"]
+    else:
+        conns = (ff_last, noise_last, lat_last, inh_to_exh_last)
+        conns_names = ["$ff_{on}$", "$ff_{noise}$", "$lat_{exc}$", "$lat_{inh}$"]
     pre_neurons = grid[0] * grid[1]
     percentage_conn = []
     all_conns = np.concatenate(conns)
@@ -908,24 +915,111 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     print("{:45}".format("Total connectivity"), ":", all_conns.shape[0], "or ", np.sum(
         percentage_conn), "% of the possible connectivity")
 
-    # weight histograms
-    fig, axes = plt.subplots(1, 5, figsize=(15, 7), sharey=True)
-    minimus = 0
-    maximus = 1
+    # weight histograms (weight proportion of realised connection)
+    fig, axes = plt.subplots(1, len(conns_names), figsize=(3*len(conns_names), 7), sharey=True)
     for index, ax in np.ndenumerate(axes):
         i = index[0]
-        ax.hist(conns[i][:, 2] / g_max, bins=20, color='#414C82',
-                edgecolor='k', normed=True)
+        current_conns = conns[i][:, 2] / g_max
+        hist_weights = np.ones_like(current_conns) / float(conns[i].shape[0])
+        ax.hist(current_conns, bins=20, color='#414C82',
+                edgecolor='k', weights=hist_weights)
         ax.set_title(conns_names[i])
-        ax.set_xlim([minimus, maximus])
+        ax.set_xlim([0, 1])
         ax.set_xticklabels(["0", "0.5", "1"])
         ax.set_xlabel("{0:,}\n{1:2.2f}%".format(conns[i].shape[0], percentage_conn[i]))
+        if i == 0:
+            ax.set_ylabel("Proportion of realised connections")
+    plt.ylim([0, 1])
     plt.tight_layout()
     plt.savefig(
         fig_folder + "weight_histograms{}.pdf".format(suffix_test),
         bbox_inches='tight')
     plt.savefig(
         fig_folder + "weight_histograms{}.svg".format(suffix_test),
+        bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    # connection number histograms
+    fig, axes = plt.subplots(1, len(conns_names), figsize=(3*len(conns_names), 7), sharey=True)
+    for index, ax in np.ndenumerate(axes):
+        i = index[0]
+        current_conns = conns[i][:, 2] / g_max
+        n, bins, patches = ax.hist(current_conns, bins=20, color='#414C82',
+                                   edgecolor='k')
+
+        assert np.sum(n) == current_conns.size, np.sum(n)
+        ax.set_title(conns_names[i])
+        ax.set_xlim([0, 1])
+        ax.set_xticklabels(["0", "0.5", "1"])
+        ax.set_xlabel("{0:,}\n{1:2.2f}%".format(conns[i].shape[0], percentage_conn[i]))
+        if i == 0:
+            ax.set_ylabel("Number of realised connections")
+
+    plt.tight_layout()
+    plt.savefig(
+        fig_folder + "no_connections_histograms{}.pdf".format(suffix_test),
+        bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "no_connections_histograms{}.svg".format(suffix_test),
+        bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    # weight histograms (normalised per number of neurons)
+    fig, axes = plt.subplots(1, len(conns_names), figsize=(3*len(conns_names), 7), sharey=True)
+    minimus = 0
+    maximus = -1
+    for index, ax in np.ndenumerate(axes):
+        i = index[0]
+        current_conns = conns[i][:, 2] / g_max
+        hist_weights = np.ones_like(current_conns) / float(N_layer)
+        ax.hist(current_conns, bins=20, color='#414C82',
+                edgecolor='k', weights=hist_weights)
+        ax.set_title(conns_names[i])
+        ax.set_xlim([0, 1])
+        ax.set_xticklabels(["0", "0.5", "1"])
+        ax.set_xlabel("{0:,}\n{1:2.2f}%".format(conns[i].shape[0], percentage_conn[i]))
+        if i == 0:
+            ax.set_ylabel("Avg. # of connection / neuron")
+    plt.tight_layout()
+    plt.savefig(
+        fig_folder + "avg_neuron_weight_histograms{}.pdf".format(suffix_test),
+        bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "avg_neuron_weight_histograms{}.svg".format(suffix_test),
+        bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    # delay histograms (delay proportion of realised connection)
+    fig, axes = plt.subplots(1, len(conns_names), figsize=(3*len(conns_names), 7), sharey=True)
+    for index, ax in np.ndenumerate(axes):
+        i = index[0]
+        curr_delays = conns[i][:, 3]
+        unique_delays = np.unique(curr_delays)
+        current_conns = curr_delays
+        hist_weights = np.ones_like(current_conns) / float(curr_delays.size)
+        width = 1
+        y, _ = np.histogram(curr_delays, bins=np.unique(all_delays).size, density=True)
+        ax.bar(np.unique(curr_delays), y, width=width,
+                color='#414C82', edgecolor='k')
+        # ax.hist(current_conns, bins=unique_delays.size, color='#414C82',
+        #         edgecolor='k', weights=hist_weights)
+        ax.set_title(conns_names[i])
+        ax.set_xticks(np.unique(all_delays))
+        ax.set_xlabel("{0:,}\n{1:2.2f}%".format(conns[i].shape[0], percentage_conn[i]))
+        if i == 0:
+            ax.set_ylabel("Proportion of realised connections")
+    plt.tight_layout()
+    plt.savefig(
+        fig_folder + "per_proj_delay_histograms{}.pdf".format(suffix_test),
+        bbox_inches='tight')
+    plt.savefig(
+        fig_folder + "per_proj_delay_histograms{}.svg".format(suffix_test),
         bbox_inches='tight')
     if show_plots:
         plt.show()
@@ -938,13 +1032,18 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
 
     # Gari's plots here --------------------------------------------------------
     # Get covariances for input connectivity
-    keys = ['ff_last', 'off_last', 'lat_last']
     dict_of_arrays = {
         'ff_last': ff_last,
         'off_last': off_last,
         'lat_last': lat_last
     }
-    fig = plt.figure(figsize=(len(keys) * 10, 10))
+
+    if off_last.size > 0:
+        keys = ['ff_last', 'off_last', 'lat_last']
+    else:
+        keys = ['ff_last',  'lat_last']
+
+    fig = plt.figure(figsize=(len(keys) * 7, 7))
 
     for nk, k in enumerate(keys):
         widths, heights, centres, angs = [], [], [], []
@@ -1056,7 +1155,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     min_dsi = 0.5
     ang_delta = 1
 
-    fig = plt.figure(figsize=(10, 10))
+    fig = plt.figure(figsize=(7.5, 8))
     ax = plt.subplot(1, 1, 1, projection='polar')
     angs = np.deg2rad(angles)
     angs = np.append(angs, angs[0])
@@ -3040,6 +3139,54 @@ def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_pl
 if __name__ == "__main__":
     import sys
 
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_cont"
+    analyse_one(fname, extra_suffix="continuous_test_not_coplanar_opposite_no_off")
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_cont"
+    analyse_one(fname, extra_suffix="constant_continuous_test_opposite_no_off")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_opposite_no_off")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_opposite_vs_opposite_no_off")
+
+    # sys.exit()
+
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="continuous_test_not_coplanar")
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="constant_continuous_test_not_coplanar")
+
+    sys.exit()
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar")
+
+
+    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+             38400 * bunits.second,
+             76800 * bunits.second
+             ]
+    filenames = [
+        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_90_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_90_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_90_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_90_cont"
+    ]
+    evolution(filenames, times, path=args.preproc_folder, suffix="2_angles_0_90_continuous_test")
+    sys.exit()
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_cont"
+    analyse_one(fname, extra_suffix="768k_continuous_test")
+    sys.exit()
 
     # 1 angle 45
     fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
@@ -3193,30 +3340,6 @@ if __name__ == "__main__":
 
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
     analyse_one(fname, extra_suffix="continuous_test")
-
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar")
-
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    analyse_one(fname, extra_suffix="continuous_test_not_coplanar")
-
-    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    analyse_one(fname, extra_suffix="constant_continuous_test_not_coplanar")
-
-    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
-             38400 * bunits.second,
-             76800 * bunits.second
-             ]
-    filenames = [
-        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_90_cont",
-        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_90_cont",
-        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_90_cont",
-        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont",
-        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_cont",
-        "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_90_cont"
-    ]
-    evolution(filenames, times, path=args.preproc_folder, suffix="2_angles_0_90_continuous_test")
 
     # sys.exit()
 
