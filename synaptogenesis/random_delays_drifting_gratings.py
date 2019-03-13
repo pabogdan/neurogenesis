@@ -588,7 +588,7 @@ else:
         label="plastic_ff_projection"
     )
 
-    if trained_noise_connectivity.size == 0:
+    if trained_ff_off_connectivity.size == 0:
         ff_off_projection = sim.Projection(
             source_pop_off, target_pop,
             sim.FixedProbabilityConnector(0),
