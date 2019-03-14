@@ -350,4 +350,7 @@ parser.add_argument('--mnist_input', help="input MNIST, not moving bars",
 parser.add_argument('--coplanar', help="Target layers are now coplanar. Affects delay between them",
                     action="store_true")
 
+parser.add_argument('--invert_polarities', help="flip polarities for moving bar",
+                    action="store_true")
+
 args = parser.parse_args()

@@ -281,6 +281,11 @@ if not args.testing:
     if args.jitter:
         final_on_gratings, final_off_gratings = jitter_the_input(
             final_on_gratings, final_off_gratings)
+
+    if args.invert_polarities:
+        tmp = final_on_gratings
+        final_on_gratings = final_off_gratings
+        final_off_gratings = tmp
     source_pop = sim.Population(N_layer,
                                 sim.SpikeSourceArray,
                                 {'spike_times': final_on_gratings
@@ -330,6 +335,11 @@ else:
     if args.jitter:
         final_on_gratings, final_off_gratings = jitter_the_input(
             on_spikes, off_spikes)
+
+    if args.invert_polarities:
+        tmp = final_on_gratings
+        final_on_gratings = final_off_gratings
+        final_off_gratings = tmp
 
     source_pop = sim.Population(N_layer,
                                 sim.SpikeSourceArray,
@@ -563,7 +573,7 @@ if not args.testing:
             label="noise_inh_projection"
         )
 
-else:
+else:  # testing begins here
     data_file_name = args.testing
     if ".npz" not in args.testing:
         data_file_name += ".npz"
