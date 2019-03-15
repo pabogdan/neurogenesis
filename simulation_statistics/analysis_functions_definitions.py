@@ -543,3 +543,31 @@ def get_all_dsi(per_neuron_all_rates, angles, N_layer, look_at_specific_angles=N
         all_simple_dsis.append([nid, argmax_dsi, max_dsi])
     return np.asarray(all_simple_dsis)
 
+def connectivity_stats_single_connection(conn_set, weight, N_layer, all_connectivity, all_weights, all_delays):
+    for connection in conn_set:
+        source = int(connection[0])
+        target = int(connection[1])
+        weight = connection[2]
+        delay = float(connection[3])
+        all_connectivity[source, target] += 1
+        all_weights[source, target] += (weight * weight)
+        all_delays[source, target] += delay
+
+
+
+def compute_connectivity_statistics(conns, weight_mask, N_layer):
+    if not weight_mask:
+        weight_mask = np.ones(conns.shape)
+
+    assert len(conns) == len(weight_mask)
+    all_connectivity = np.zeros((N_layer, N_layer))
+    all_weights = np.zeros((N_layer, N_layer))
+    all_delays = np.zeros((N_layer, N_layer))
+    for conn_set_id, conn_set in np.ndenumerate(conns):
+        if conn_set.size > 0:
+            connectivity_stats_single_connection(conn_set, weight_mask[conn_set_id[0]], N_layer,
+                                                 all_connectivity,
+                                                 all_weights,
+                                                 all_delays)
+
+    return all_connectivity, all_weights, all_delays

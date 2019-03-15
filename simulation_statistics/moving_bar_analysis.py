@@ -107,6 +107,74 @@ def generate_suffix(training_angles):
             suffix_test += "_" + str(ta)
     return suffix_test
 
+def connectivity_stats(all_connectivity, N_layer, grid, suffix, fig_folder,
+                       fig_title=None, extra_suffix="", show_plots=False):
+
+
+
+    # Plot number of contacts distribution
+    # https://matplotlib.org/examples/pylab_examples/broken_axis.html
+    non_zero_connectivity = all_connectivity[all_connectivity > 0].ravel().astype(int)
+    unique_no_contacts = np.unique(non_zero_connectivity)
+    y, binEdges = np.histogram(non_zero_connectivity, bins=unique_no_contacts)
+    sorted_y = np.sort(y)[::-1]
+    y_max = sorted_y[0]
+    y_second_max = sorted_y[1]
+
+    bincenters = 0.5 * (binEdges[1:] + binEdges[:-1])
+    width = 1
+
+    # print("{:45}".format("Bin edges"), ":", binEdges)
+    # print("{:45}".format("Bin centres"), ":", bincenters)
+    # print("{:45}".format("Bin values"), ":", y)
+
+    f, (ax, ax2) = plt.subplots(2, 1, figsize=(7, 8), sharex=True)
+    # ax.hist(non_zero_connectivity, bins=binEdges, color='#414C82', edgecolor='k')
+    # ax2.hist(non_zero_connectivity, bins=binEdges, color='#414C82', edgecolor='k')
+    ax.bar(bincenters, y, color='#414C82', edgecolor='k', width=width)
+    ax2.bar(bincenters, y, color='#414C82', edgecolor='k', width=width)
+
+    ax.set_ylim((y_second_max + y_max) / 2., 1.1 * y_max)  # outliers only
+    ax2.set_ylim(0, 1.1 * y_second_max)  # most of the data
+    plt.xticks(np.arange(np.max(unique_no_contacts)))
+    plt.xlabel("# of contacts")
+    if fig_title:
+        ax.set_title(fig_title)
+
+    # hide the spines between ax and ax2
+    ax.spines['bottom'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    ax.xaxis.tick_top()
+    ax.tick_params(labeltop='off')  # don't put tick labels at the top
+    ax2.xaxis.tick_bottom()
+    # This looks pretty good, and was fairly painless, but you can get that
+    # cut-out diagonal lines look with just a bit more work. The important
+    # thing to know here is that in axes coordinates, which are always
+    # between 0-1, spine endpoints are at these locations (0,0), (0,1),
+    # (1,0), and (1,1).  Thus, we just need to put the diagonals in the
+    # appropriate corners of each of our axes, and so long as we use the
+    # right transform and disable clipping.
+
+    d = .015  # how big to make the diagonal lines in axes coordinates
+    # arguments to pass to plot, just so we don't keep repeating them
+    kwargs = dict(transform=ax.transAxes, color='k', clip_on=False)
+    ax.plot((-d, +d), (-d, +d), **kwargs)  # top-left diagonal
+    ax.plot((1 - d, 1 + d), (-d, +d), **kwargs)  # top-right diagonal
+
+    kwargs.update(transform=ax2.transAxes)  # switch to the bottom axes
+    ax2.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
+    ax2.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)  # bottom-right diagonal
+
+    local_suffix = suffix
+    if extra_suffix != "":
+        local_suffix += "_" + extra_suffix
+
+    plt.savefig(fig_folder + "number_of_contacts{}.pdf".format(local_suffix))
+    plt.savefig(fig_folder + "number_of_contacts{}.svg".format(local_suffix))
+    if show_plots:
+        plt.show()
+    plt.close(f)
+
 
 def dsi_comparisons(
         random_dsi_selective, random_dsi_not_selective,
@@ -384,22 +452,30 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     # Overlay the aligned excitatory connectivity and subtract the aligned inhibitory connectivity arriving at the
     # excitatory population
     conns = (ff_last, off_last, noise_last, lat_last, inh_to_exh_last)
+    conns_names = ["$ff_{on}$", "$ff_{off}$", "$ff_{noise}$", "$lat_{exc}$", "$lat_{inh}$"]
+    file_friendly_name = ["ff_on", "ff_off", "ff_noise", "lat_exc", "lat_inh"]
     weight_mask = (1, 1, 1, 1, -1)
-    assert len(conns) == len(weight_mask)
 
-    all_connectivity = np.zeros((N_layer, N_layer))
-    all_weights = np.zeros((N_layer, N_layer))
-    all_delays = np.zeros((N_layer, N_layer))
+    all_connectivity, all_weights, all_delays = compute_connectivity_statistics(conns, weight_mask, N_layer)
+    # plot number of contacts
+    connectivity_stats(all_connectivity, N_layer, grid, suffix_test, fig_folder,
+                       fig_title="All connections", extra_suffix="all_conns", show_plots=show_plots)
+
+    # plot number of contacts for each projection
     for conn_set_id, conn_set in np.ndenumerate(conns):
         if conn_set.size > 0:
-            for connection in conn_set:
-                source = int(connection[0])
-                target = int(connection[1])
-                weight = connection[2]
-                delay = float(connection[3])
-                all_connectivity[source, target] += 1
-                all_weights[source, target] += (weight_mask[conn_set_id[0]] * weight)
-                all_delays[source, target] += delay
+            all_connectivity = np.zeros((N_layer, N_layer))
+            all_weights = np.zeros((N_layer, N_layer))
+            all_delays = np.zeros((N_layer, N_layer))
+            connectivity_stats_single_connection(conn_set, 1, N_layer,
+                                                 all_connectivity,
+                                                 all_weights,
+                                                 all_delays)
+            connectivity_stats(all_connectivity, N_layer, grid, suffix_test, fig_folder,
+                               fig_title=conns_names[conn_set_id[0]],
+                               extra_suffix=file_friendly_name[conn_set_id[0]],
+                               show_plots=show_plots)
+
 
     aligned_connectivity = np.zeros(N_layer)
     aligned_weight = np.zeros(N_layer)
@@ -409,6 +485,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
         aligned_weight += np.roll(all_weights[nid, :], (N_layer // 2 + n // 2) - nid)
         aligned_delays += np.roll(all_delays[nid, :], (N_layer // 2 + n // 2) - nid)
     aligned_delays = aligned_delays / aligned_connectivity
+
     # Plot aligned connectivity
     fig, (ax) = plt.subplots(1, 1, figsize=(10, 10), dpi=600)
     i = ax.imshow(aligned_connectivity.reshape(grid[0], grid[1]), vmin=0, vmax=np.max(aligned_connectivity))
@@ -453,6 +530,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     if show_plots:
         plt.show()
     plt.close(fig)
+
 
     # response histograms
     fig = plt.figure(figsize=(16, 8), dpi=600)
@@ -590,7 +668,6 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
 
     # distribution of delays present in the network after training
     fig = plt.figure(figsize=(14, 8))
-
 
     off_delays = off_last[:, -1] if off_last.size > 0 else []
     all_delays = np.concatenate((ff_last[:, -1], off_delays,
@@ -906,7 +983,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     all_conns = np.concatenate(conns)
     for index, ax in np.ndenumerate(conns):
         i = index[0]
-        percentage_conn.append((conns[i].shape[0] * 100.) / pre_neurons ** 2)
+        percentage_conn.append((conns[i].shape[0] * 100.) / all_conns.shape[0])
         print("{:>10} has a total of ".format(conns_names[i]), conns[i].shape[
             0], " connections. This is ", percentage_conn[
                   i], "% of the possible connectivity (this number includes "
@@ -916,7 +993,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
         percentage_conn), "% of the possible connectivity")
 
     # weight histograms (weight proportion of realised connection)
-    fig, axes = plt.subplots(1, len(conns_names), figsize=(3*len(conns_names), 7), sharey=True)
+    fig, axes = plt.subplots(1, len(conns_names), figsize=(3 * len(conns_names), 7), sharey=True)
     for index, ax in np.ndenumerate(axes):
         i = index[0]
         current_conns = conns[i][:, 2] / g_max
@@ -942,7 +1019,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     plt.close(fig)
 
     # connection number histograms
-    fig, axes = plt.subplots(1, len(conns_names), figsize=(3*len(conns_names), 7), sharey=True)
+    fig, axes = plt.subplots(1, len(conns_names), figsize=(3 * len(conns_names), 7), sharey=True)
     for index, ax in np.ndenumerate(axes):
         i = index[0]
         current_conns = conns[i][:, 2] / g_max
@@ -969,7 +1046,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     plt.close(fig)
 
     # weight histograms (normalised per number of neurons)
-    fig, axes = plt.subplots(1, len(conns_names), figsize=(3*len(conns_names), 7), sharey=True)
+    fig, axes = plt.subplots(1, len(conns_names), figsize=(3 * len(conns_names), 7), sharey=True)
     minimus = 0
     maximus = -1
     for index, ax in np.ndenumerate(axes):
@@ -996,7 +1073,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     plt.close(fig)
 
     # delay histograms (delay proportion of realised connection)
-    fig, axes = plt.subplots(1, len(conns_names), figsize=(3*len(conns_names), 7), sharey=True)
+    fig, axes = plt.subplots(1, len(conns_names), figsize=(3 * len(conns_names), 7), sharey=True)
     for index, ax in np.ndenumerate(axes):
         i = index[0]
         curr_delays = conns[i][:, 3]
@@ -1004,9 +1081,10 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
         current_conns = curr_delays
         hist_weights = np.ones_like(current_conns) / float(curr_delays.size)
         width = 1
-        y, _ = np.histogram(curr_delays, bins=np.unique(all_delays).size, density=True)
-        ax.bar(np.unique(curr_delays), y, width=width,
-                color='#414C82', edgecolor='k')
+        y, bin_edge = np.histogram(curr_delays, bins=np.unique(all_delays).size, density=True)
+        bincenters = 0.5 * (bin_edge[1:] + bin_edge[:-1])
+        ax.bar(bincenters, y, width=width,
+               color='#414C82', edgecolor='k')
         # ax.hist(current_conns, bins=unique_delays.size, color='#414C82',
         #         edgecolor='k', weights=hist_weights)
         ax.set_title(conns_names[i])
@@ -1041,7 +1119,7 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     if off_last.size > 0:
         keys = ['ff_last', 'off_last', 'lat_last']
     else:
-        keys = ['ff_last',  'lat_last']
+        keys = ['ff_last', 'lat_last']
 
     fig = plt.figure(figsize=(len(keys) * 7, 7))
 
@@ -1524,7 +1602,6 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     if show_plots:
         plt.show()
     plt.close(fig)
-
 
     return suffix_test, dsi_selective, dsi_not_selective
 
@@ -3139,6 +3216,80 @@ def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_pl
 if __name__ == "__main__":
     import sys
 
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="continuous_test_not_coplanar")
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="constant_continuous_test_not_coplanar")
+
+    sys.exit()
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
+    analyse_one(fname, extra_suffix="continuous_test_jitter")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_jitter", custom_labels=["no jitter", "jitter"])
+
+    sys.exit()
+
+    fname = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="training_and_testing_without_noise")
+
+    fname = args.preproc_folder + "results_for_testing_training_without_noise_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="constant_training_and_testing_without_noise")
+
+
+    fname1 = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_training_without_noise_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    comparison(fname1, fname2, extra_suffix="training_and_testing_without_noise")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    comparison(fname1, fname2, extra_suffix="training_and_testing_without_noise_vs_cont", custom_labels=["trained w/ noise", "no noise"])
+
+    sys.exit()
+
+    fname = args.preproc_folder + "results_for_testing_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="training_with_noise_testing_without_noise")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    comparison(fname1, fname2, extra_suffix="training_with_noise_testing_without_noise_vs_cont", custom_labels=["trained w/ noise", "no noise"])
+
+    fname = args.preproc_folder + "results_for_testing_without_noise_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="constant_training_with_noise_testing_without_noise")
+
+    fname1 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_without_noise_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    comparison(fname1, fname2, extra_suffix="constant_training_with_noise_testing_without_noise_vs_cont", custom_labels=["trained w/ noise", "no noise"])
+
+
+    fname = args.preproc_folder + "results_for_testing_with_noise_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
+    analyse_one(fname, extra_suffix="training_without_noise_testing_with_noise")
+
+    fname1 = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
+    fname2 = args.preproc_folder + \
+             "results_for_testing_with_noise_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
+    comparison(fname1, fname2, extra_suffix="training_without_noise_testing_with_noise",
+               custom_labels=["trained w/o noise", "trained w/o noise tested w/"])
+
+    fname = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
+    analyse_one(fname, extra_suffix="training_and_testing_without_noise")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
+    fname2 = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
+    comparison(fname1, fname2, extra_suffix="training_and_testing_without_noise", custom_labels=["trained w/ noise", "no noise"])
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_fbase_20_cont"
+    analyse_one(fname, extra_suffix="continuous_test_fnoise_20")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_fbase_20_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_fnoise_20", custom_labels=["5 Hz", "20 Hz"])
+
+    sys.exit()
+
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_cont"
     analyse_one(fname, extra_suffix="continuous_test_not_coplanar_opposite_no_off")
 
@@ -3155,19 +3306,9 @@ if __name__ == "__main__":
 
     # sys.exit()
 
-
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    analyse_one(fname, extra_suffix="continuous_test_not_coplanar")
-
-    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    analyse_one(fname, extra_suffix="constant_continuous_test_not_coplanar")
-
-    sys.exit()
-
     fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
     fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
     comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar")
-
 
     times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
              38400 * bunits.second,
@@ -3193,7 +3334,6 @@ if __name__ == "__main__":
     fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_cont"
     comparison(fname1, fname2, extra_suffix="0_vs_45_continuous_test", custom_labels=["0", "45"])
 
-
     fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_2"
     fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_45_cont"
     comparison(fname1, fname2, extra_suffix="0_vs_45_v2_continuous_test", custom_labels=["0", "45"])
@@ -3217,11 +3357,7 @@ if __name__ == "__main__":
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_2"
     analyse_one(fname, extra_suffix="v2_continuous_test")
 
-
-
     # sys.exit()
-
-
 
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_180_270_cont"
     analyse_one(fname, extra_suffix="continuous_test")
@@ -3247,7 +3383,6 @@ if __name__ == "__main__":
     comparison(fname1, fname2, extra_suffix="rand_partner_vs_continuous_test_not_coplanar",
                custom_labels=["Last to Spike", "Random partner"])
 
-
     fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0"
     fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_rand_partner_cont"
     comparison(fname1, fname2, extra_suffix="rand_partner_vs_standard",
@@ -3267,7 +3402,6 @@ if __name__ == "__main__":
     fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_rand_partner_cont"
     comparison(fname1, fname2, extra_suffix="rand_partner_vs_continuous_test_not_coplanar",
                custom_labels=["Last to Spike", "Random partner"])
-
 
     fname1 = args.preproc_folder + "results_for_retesting_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_evo"
     fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_rand_partner_cont"
@@ -3290,36 +3424,6 @@ if __name__ == "__main__":
 
     # sys.exit()
 
-    fname = args.preproc_folder + "results_for_testing_with_noise_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
-    analyse_one(fname, extra_suffix="training_without_noise_testing_with_noise")
-
-    fname1 = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
-    fname2 = args.preproc_folder + \
-             "results_for_testing_with_noise_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
-    comparison(fname1, fname2, extra_suffix="training_without_noise_testing_with_noise",
-               custom_labels=["trained w/o noise", "trained w/o noise tested w/"])
-
-    fname = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
-    analyse_one(fname, extra_suffix="training_and_testing_without_noise")
-
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
-    fname2 = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
-    comparison(fname1, fname2, extra_suffix="training_and_testing_without_noise", custom_labels=["trained w/ noise", "no noise"])
-
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
-    analyse_one(fname, extra_suffix="continuous_test_jitter")
-
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_jitter", custom_labels=["no jitter", "jitter"])
-
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_fbase_20_cont"
-    analyse_one(fname, extra_suffix="continuous_test_fnoise_20")
-
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_fbase_20_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_fnoise_20", custom_labels=["5 Hz", "20 Hz"])
-
     fname1 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
     fname2 = args.preproc_folder + "results_for_retesting_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_evo"
     comparison(fname1, fname2, extra_suffix="constant_retest", custom_labels=["original", "re-test"])
@@ -3333,7 +3437,6 @@ if __name__ == "__main__":
     comparison(fname1, fname2, extra_suffix="retest", custom_labels=["original", "re-test"])
 
     # sys.exit()
-
 
     fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
     analyse_one(fname, extra_suffix="constant_continuous_test")
