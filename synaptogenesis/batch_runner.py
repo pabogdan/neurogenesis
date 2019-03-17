@@ -39,7 +39,7 @@ sigma_form_lats = np.copy(sigma_form_ffs)
 
 # Compute total number of runs
 total_runs = sigma_form_ffs.size * sigma_form_lats.size * len(PHASES)
-training_angles = "0 90 180 270"
+training_angles = "0 90"
 
 parameters_of_interest = {
     'sigma_form_ff': sigma_form_ffs,
@@ -55,7 +55,7 @@ for phase in PHASES:
                        "smax_{}_" \
                        "gmax_{}_" \
                        "sigmaformff_{}_" \
-                       "sigmaformlat_{}_NESW" \
+                       "sigmaformlat_{}_0_90" \
                        "_@{}".format(S_MAX,
                                      G_MAX,
                                      sigma_form_ff,
