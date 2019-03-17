@@ -73,7 +73,7 @@ for phase in PHASES:
                     '--no_iterations', str(iterations),
                     '--sigma_form_ff', str(sigma_form_ff),
                     '--sigma_form_lat', str(sigma_form_lat),
-                    '--training_angles', training_angles
+                    '--training_angles {}'.format(training_angles)
                     ]
             log_calls.append(call)
             if concurrently_active_processes % MAX_CONCURRENT_PROCESSES == 0 \
