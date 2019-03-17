@@ -79,8 +79,8 @@ for phase in PHASES:
             if concurrently_active_processes % MAX_CONCURRENT_PROCESSES == 0 \
                     or concurrently_active_processes == total_runs:
                 # Blocking
-                subprocess.call(call,
-                                stdout=null, stderr=null)
+                subprocess.call(call) #,
+                                # stdout=null, stderr=null)
                 print("{} sims done".format(concurrently_active_processes))
             else:
                 # Non-blocking
