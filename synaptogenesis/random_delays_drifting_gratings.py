@@ -47,7 +47,7 @@ cell_params = {'cm': 20.0,  # nF
                'tau_m': 20.0,
                'tau_refrac': args.tau_refrac,
                'tau_syn_E': 5.0,
-               'tau_syn_I': 5.0,
+               'tau_syn_I': args.tau_syn_i,
                'v_reset': -70.0,
                'v_rest': -70.0,
                'v_thresh': -50.0,
@@ -228,7 +228,8 @@ sim_params = {'g_max': g_max,
               'chunk': chunk,
               'no_off_polarity': args.no_off_polarity,
               'coplanar': args.coplanar,
-              'record_exc_v': args.record_exc_v
+              'record_exc_v': args.record_exc_v,
+              'tau_syn_i':args.tau_syn_i
               }
 
 if args.input_type == GAUSSIAN_INPUT:

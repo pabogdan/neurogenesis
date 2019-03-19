@@ -14,6 +14,7 @@ SSP = 1
 SSA = 2
 
 DEFAULT_TAU_REFRAC = 5.0
+DEFAULT_TAU_SYN_I = 5.0
 DEFAULT_F_PEAK = 152.8
 DEFAULT_F_BASE = 5
 DEFAULT_NO_ITERATIONS = 2400000
@@ -128,6 +129,11 @@ parser.add_argument('--tau_refract', type=float,
                     default=DEFAULT_TAU_REFRAC, dest='tau_refrac',
                     help='refractory time constant (ms)'
                          ' -- [default {}]'.format(DEFAULT_TAU_REFRAC))
+
+parser.add_argument('--tau_syn_i', type=float,
+                    default=DEFAULT_TAU_SYN_I, dest='tau_syn_i',
+                    help='inhibitory current time constant (ms)'
+                         ' -- [default {}]'.format(DEFAULT_TAU_SYN_I))
 
 parser.add_argument('--sigma_stim', type=float,
                     default=DEFAULT_SIGMA_STIM, dest='sigma_stim',
