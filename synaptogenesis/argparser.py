@@ -68,6 +68,8 @@ DEFAULT_CHUNK_SIZE = 200  # ms
 
 DEFAULT_JITTER = False
 
+DEFAULT_COPLANAR_UPPER_DELAY = 3  # ms, exclusive
+
 parser = argparse.ArgumentParser(
     description='Test for topographic map formation using STDP and '
                 'synaptic rewiring on SpiNNaker.',
@@ -347,8 +349,10 @@ parser.add_argument('--stationary_input', help="disable off polarity for moving 
 parser.add_argument('--mnist_input', help="input MNIST, not moving bars",
                     action="store_true")
 
-parser.add_argument('--coplanar', help="Target layers are now coplanar. Affects delay between them",
-                    action="store_true")
+parser.add_argument('--coplanar',
+                    help="Target layers are now coplanar. Affects delay between them"
+                    " -- [default {}]".format(None),
+                    type=int, default=None)
 
 parser.add_argument('--invert_polarities', help="flip polarities for moving bar",
                     action="store_true")

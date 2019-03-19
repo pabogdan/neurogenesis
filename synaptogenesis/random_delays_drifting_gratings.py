@@ -131,7 +131,8 @@ t_record = args.t_record if args.t_record <= args.no_iterations else \
     args.no_iterations
 # ms
 
-local_connection_delay_dist = [1, 3]
+cop_upper_delay = DEFAULT_COPLANAR_UPPER_DELAY if not args.coplanar else args.coplanar
+local_connection_delay_dist = [1, cop_upper_delay]
 
 # STDP
 a_plus = 0.1
