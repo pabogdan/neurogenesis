@@ -68,6 +68,11 @@ class DenselyConnectedAssociativeMatrix(object):
         selected_reponse[selection_mask] = 1
         return selected_reponse
 
+    def neuron_reborn(self, n_id):
+        # make sure n_id (single item or iterable) consists only of ints
+        column_ids = np.asarray(n_id).astype(int)
+        self.memory[:, column_ids] = 0
+
 
 if __name__ == "__main__":
     n_in = 10

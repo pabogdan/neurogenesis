@@ -117,6 +117,9 @@ def connectivity_stats(all_connectivity, N_layer, grid, suffix, fig_folder,
     non_zero_connectivity = all_connectivity[all_connectivity > 0].ravel().astype(int)
     unique_no_contacts = np.unique(non_zero_connectivity)
     y, binEdges = np.histogram(non_zero_connectivity, bins=unique_no_contacts)
+    if y.size <= 1:
+        print("{:45}".format("Cannont generate a histogram from this connectivity"), ":", extra_suffix)
+        return
     sorted_y = np.sort(y)[::-1]
     y_max = sorted_y[0]
     y_second_max = sorted_y[1]
@@ -451,6 +454,58 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     # Begin the plotting
     # Overlay the aligned excitatory connectivity and subtract the aligned inhibitory connectivity arriving at the
     # excitatory population
+
+    # Lateral connectivity only
+    conns = (lat_last, inh_to_exh_last)
+    conns_names = ["$lat_{exc}$", "$lat_{inh}$"]
+    file_friendly_name = ["lat_exc", "lat_inh"]
+    weight_mask = (1, -1)
+
+    all_connectivity, all_weights, all_delays = compute_connectivity_statistics(conns, weight_mask, N_layer)
+    # plot number of contacts
+    connectivity_stats(all_connectivity, N_layer, grid, suffix_test, fig_folder,
+                       fig_title="All connections", extra_suffix="all_conns", show_plots=show_plots)
+    aligned_connectivity = np.zeros(N_layer)
+    aligned_weight = np.zeros(N_layer)
+    aligned_delays = np.zeros(N_layer)
+    for nid in range(N_layer):
+        aligned_connectivity += np.roll(all_connectivity[nid, :], (N_layer // 2 + n // 2) - nid)
+        aligned_weight += np.roll(all_weights[nid, :], (N_layer // 2 + n // 2) - nid)
+        aligned_delays += np.roll(all_delays[nid, :], (N_layer // 2 + n // 2) - nid)
+    aligned_delays = aligned_delays / aligned_connectivity
+
+    # Plot aligned connectivity
+    fig, (ax) = plt.subplots(1, 1, figsize=(10, 10), dpi=600)
+    i = ax.imshow(aligned_connectivity.reshape(grid[0], grid[1]), vmin=0, vmax=np.max(aligned_connectivity))
+    divider = make_axes_locatable(plt.gca())
+    cax = divider.append_axes("right", "5%", pad="3%")
+    cbar = plt.colorbar(i, cax=cax)
+    cbar.set_label("# of Connections")
+    ax.set_xlabel("Neuron ID")
+    ax.set_ylabel("Neuron ID")
+    plt.savefig(fig_folder + "aligned_lateral_connectivity{}.pdf".format(suffix_test), bbox_inches='tight')
+    plt.savefig(fig_folder + "aligned_lateral_connectivity{}.svg".format(suffix_test), bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    # Plot aligned weights
+    fig, (ax) = plt.subplots(1, 1, figsize=(10, 10), dpi=600)
+    i = ax.imshow(aligned_weight.reshape(grid[0], grid[1]), vmin=np.min(aligned_weight), vmax=np.max(aligned_weight))
+    divider = make_axes_locatable(plt.gca())
+    cax = divider.append_axes("right", "5%", pad="3%")
+    cbar = plt.colorbar(i, cax=cax)
+    cbar.set_label("Connection weight")
+    ax.set_xlabel("Neuron ID")
+    ax.set_ylabel("Neuron ID")
+    plt.savefig(fig_folder + "aligned_lateral_weights{}.pdf".format(suffix_test), bbox_inches='tight')
+    plt.savefig(fig_folder + "aligned_lateral_weights{}.svg".format(suffix_test), bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    # All connectivity
+
     conns = (ff_last, off_last, noise_last, lat_last, inh_to_exh_last)
     conns_names = ["$ff_{on}$", "$ff_{off}$", "$ff_{noise}$", "$lat_{exc}$", "$lat_{inh}$"]
     file_friendly_name = ["ff_on", "ff_off", "ff_noise", "lat_exc", "lat_inh"]
@@ -3216,6 +3271,54 @@ def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_pl
 if __name__ == "__main__":
     import sys
 
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_coplanar"
+    analyse_one(fname, extra_suffix="coplanar")
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_coplanar"
+    analyse_one(fname, extra_suffix="constant_coplanar")
+
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_coplanar"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_coplanar"
+    comparison(fname1, fname2, extra_suffix="coplanar")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_coplanar"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_vs_coplanar", custom_labels=["coplanar", "continuous test"])
+
+
+
+    fname1 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_coplanar"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    comparison(fname1, fname2, extra_suffix="constant_continuous_test_vs_coplanar", custom_labels=["coplanar", "continuous test"])
+
+    sys.exit()
+
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont_retest"
+    analyse_one(fname, extra_suffix="continuous_test_jitter")
+
+
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont_retest"
+    comparison(fname1, fname2, extra_suffix="jitter_retest_variation_check")
+
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont_retest"
+    comparison(fname1, fname2, extra_suffix="continuous_test_vs_jitter", custom_labels=["no jitter", "jitter"])
+    sys.exit()
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_2"
+    analyse_one(fname, extra_suffix="v2_continuous_test")
+
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
+    analyse_one(fname, extra_suffix="constant_continuous_test")
+
+    sys.exit()
+
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
     analyse_one(fname, extra_suffix="continuous_test_not_coplanar")
 
@@ -3224,14 +3327,18 @@ if __name__ == "__main__":
 
     sys.exit()
 
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
-    analyse_one(fname, extra_suffix="continuous_test_jitter")
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_fbase_20_cont"
+    analyse_one(fname, extra_suffix="continuous_test_fnoise_20")
 
     fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_jitter", custom_labels=["no jitter", "jitter"])
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_fbase_20_cont"
+    comparison(fname1, fname2, extra_suffix="fnoise_20_vs_cont", custom_labels=["5 Hz", "20 Hz"])
 
-    sys.exit()
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_fbase_20_cont"
+    fname2 = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    comparison(fname1, fname2, extra_suffix="fnoise_20_vs_fnoise_0", custom_labels=["20 Hz", "0 Hz"])
+
 
     fname = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
     analyse_one(fname, extra_suffix="training_and_testing_without_noise")
@@ -3248,7 +3355,47 @@ if __name__ == "__main__":
     fname2 = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
     comparison(fname1, fname2, extra_suffix="training_and_testing_without_noise_vs_cont", custom_labels=["trained w/ noise", "no noise"])
 
+
     sys.exit()
+
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
+    analyse_one(fname, extra_suffix="continuous_test_jitter")
+
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
+    analyse_one(fname, extra_suffix="constant_continuous_test_jitter")
+
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_jitter")
+
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_vs_jitter", custom_labels=["no jitter", "jitter"])
+
+    sys.exit()
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_pol_inversion_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_vs_opp_polarity")
+
+    fname = args.preproc_folder + "results_for_trained_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="continuous_test_tested_opp_polarity")
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_pol_inversion_cont"
+    analyse_one(fname, extra_suffix="continuous_test_opp_polarity")
+
+
+    # fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
+    # fname2 = args.preproc_folder + "results_for_trained_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    # comparison(fname1, fname2, extra_suffix="continuous_test")
+
+    sys.exit()
+
+
 
     fname = args.preproc_folder + "results_for_testing_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
     analyse_one(fname, extra_suffix="training_with_noise_testing_without_noise")
@@ -3280,13 +3427,6 @@ if __name__ == "__main__":
     fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
     fname2 = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
     comparison(fname1, fname2, extra_suffix="training_and_testing_without_noise", custom_labels=["trained w/ noise", "no noise"])
-
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_fbase_20_cont"
-    analyse_one(fname, extra_suffix="continuous_test_fnoise_20")
-
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_fbase_20_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_fnoise_20", custom_labels=["5 Hz", "20 Hz"])
 
     sys.exit()
 
@@ -3354,8 +3494,6 @@ if __name__ == "__main__":
     fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
     comparison(fname1, fname2, extra_suffix="v2_continuous_test")
 
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_2"
-    analyse_one(fname, extra_suffix="v2_continuous_test")
 
     # sys.exit()
 
@@ -3728,9 +3866,6 @@ if __name__ == "__main__":
         fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
         comparison(fname1, fname2, extra_suffix="coplanar_vs_continuous_test", custom_labels=["coplanar", "continuous test"])
 
-        fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_coplanar"
-        fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-        comparison(fname1, fname2, extra_suffix="continuous_test_vs_coplanar", custom_labels=["coplanar", "continuous test"])
 
         fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_coplanar"
         fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"

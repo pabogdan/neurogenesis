@@ -229,20 +229,20 @@ stdp_model = sim.STDPMechanism(
 )
 if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
     structure_model_w_stdp = sim.StructuralMechanismSTDP(
-        stdp_model=stdp_model,
-        weight=g_max,
-        delay=args.delay,
-        s_max=s_max * 2,
-        grid=grid,
-        f_rew=f_rew,
-        lateral_inhibition=args.lateral_inhibition,
-        random_partner=args.random_partner,
-        p_elim_dep=p_elim_dep,
-        p_elim_pot=p_elim_pot,
-        sigma_form_forward=sigma_form_forward,
-        sigma_form_lateral=sigma_form_lateral,
-        p_form_forward=p_form_forward,
-        p_form_lateral=p_form_lateral
+        stdp_model=stdp_model,  # wrap around the STDP model to use
+        weight=g_max,  # initial weight
+        delay=args.delay,  # synaptic delay
+        s_max=s_max * 2,  # synaptic capacity
+        grid=grid,  # grid description
+        f_rew=f_rew,  # rate of rewiring
+        lateral_inhibition=args.lateral_inhibition,  # lateral connections are always inhibitory
+        random_partner=args.random_partner,  # form connections to a random partner, not L2S
+        p_elim_dep=p_elim_dep,  # probability of eliminating a depressed synapse
+        p_elim_pot=p_elim_pot,  # probability of eliminating a potentiated synapse
+        sigma_form_forward=sigma_form_forward,  # spread of feadforward receptive field
+        sigma_form_lateral=sigma_form_lateral,  # spread of lateral receptive field
+        p_form_forward=p_form_forward,  # feedforward formation probability
+        p_form_lateral=p_form_lateral  # lateral formation probability
     )
 elif case == CASE_CORR_NO_REW:
     structure_model_w_stdp = stdp_model
