@@ -136,7 +136,7 @@ def plot_spikes(spikes, title, classes, filename, chunk=200, end_time=1800):
             recast_spikes.append(spikes[spikes[:, 0] == index[0]][:, 1])
         fig, ax1 = plt.subplots(1, 1, figsize=(15, 6), dpi=600)
         ax1.set_xlim((0, end_time))
-        ax1.eventplot(recast_spikes, linelengths=.8, colors=['#414C82', '#414C82'])
+        ax1.eventplot(recast_spikes, linelengths=.8, colors=['#414C82'] * classes.size)
         ax1.set_xlabel('Time/ms')
         ax1.set_ylabel('Class neuron')
         ax1.set_title(title)
@@ -288,6 +288,12 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
 if __name__ == "__main__":
     import sys
     # Attempting readout of constant delay network
+
+    fname="random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_NESW")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_NESW_80s")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_rewiring_NESW_rew_p_0")
+    sys.exit()
 
     fname = "constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
 
