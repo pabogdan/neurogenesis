@@ -199,15 +199,17 @@ if not args.testing:
     target_column = []
     lat_connections = []
 
-    init_ff_connections = [(i, j, g_max, args.delay) for i in
-                           range(N_layer)
-                           for j in range(N_layer) if
-                           np.random.rand() < .01]
-
-    init_lat_connections = [(i, j, g_max, args.delay) for i in
-                            range(N_layer)
-                            for j in range(N_layer) if
-                            np.random.rand() < .01]
+    # init_ff_connections = [(i, j, g_max, args.delay) for i in
+    #                        range(N_layer)
+    #                        for j in range(N_layer) if
+    #                        np.random.rand() < .01]
+    #
+    # init_lat_connections = [(i, j, g_max, args.delay) for i in
+    #                         range(N_layer)
+    #                         for j in range(N_layer) if
+    #                         np.random.rand() < .01]
+    init_ff_connections = []
+    init_lat_connections = []
 
     for number in range(10):
         # TODO Make input folder variable so that you can swap between averaged and CS
@@ -244,7 +246,8 @@ if not args.testing:
         ff_connections.append(
             sim.Projection(
                 source_column[number], target_column[number],
-                sim.FromListConnector(init_ff_connections),
+                # sim.FromListConnector(init_ff_connections),
+                sim.FixedProbabilityConnector(0.),
                 synapse_type=structure_model_w_stdp,
                 label="plastic_ff_projection"
             )
@@ -254,7 +257,8 @@ if not args.testing:
             lat_connections.append(
                 sim.Projection(
                     target_column[number], target_column[number],
-                    sim.FromListConnector(init_lat_connections),
+                    # sim.FromListConnector(init_lat_connections),
+                    sim.FixedProbabilityConnector(0.),
                     synapse_type=structure_model_w_stdp,
                     label="plastic_lat_projection",
                     receptor_type="inhibitory" if args.lateral_inhibition else "excitatory"
