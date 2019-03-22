@@ -686,20 +686,20 @@ else:  # testing begins here
 
 # Record neurons' potentials
 if args.record_exc_v:
-    target_pop.record_v()
+    target_pop.record(['v'])
 
 # Record spikes
 # if case == CASE_REW_NO_CORR:
 if args.record_source:
-    source_pop.record()
-    source_pop_off.record()
-    noise_pop.record()
+    source_pop.record(['spikes'])
+    source_pop_off.record(['spikes'])
+    noise_pop.record(['spikes'])
 
 if args.topology != 1 and args.record_inh:
-    inh_pop.record()
+    inh_pop.record(['spikes'])
 
 if args.testing:
-    target_pop.record()
+    target_pop.record(['spikes'])
 
 # Run simulation
 pre_spikes = []
