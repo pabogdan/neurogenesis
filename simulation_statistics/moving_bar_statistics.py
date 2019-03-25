@@ -359,12 +359,24 @@ for file in paths:
             dsi_selective = np.asarray(dsi_selective)
             dsi_not_selective = np.asarray(dsi_not_selective)
 
+            dsi_not_harsh_selective, dsi_not_harsh_not_selective = \
+                get_filtered_dsi_per_neuron(all_average_responses_with_angle,
+                                            N_layer, harsh=False)
+            dsi_not_harsh_selective = np.asarray(dsi_not_harsh_selective)
+            dsi_not_harsh_not_selective = np.asarray(dsi_not_harsh_not_selective)
+
             inh_all_average_responses_with_angle, _, _ = compute_all_average_responses_with_angle(
                 inh_per_neuron_all_rates, angles, N_layer)
             inh_dsi_selective, inh_dsi_not_selective = get_filtered_dsi_per_neuron(all_average_responses_with_angle,
                                                                                N_layer)
             inh_dsi_selective = np.asarray(inh_dsi_selective)
             inh_dsi_not_selective = np.asarray(inh_dsi_not_selective)
+
+            inh_dsi_not_harsh_selective, inh_dsi_not_harsh_not_selective = \
+                get_filtered_dsi_per_neuron(all_average_responses_with_angle,
+                                            N_layer, harsh=False)
+            inh_dsi_not_harsh_selective = np.asarray(inh_dsi_not_harsh_selective)
+            inh_dsi_not_harsh_not_selective = np.asarray(inh_dsi_not_harsh_not_selective)
 
             exc_entropy = compute_per_neuron_entropy(per_neuron_all_rates, angles, N_layer)
             inh_entropy = compute_per_neuron_entropy(inh_per_neuron_all_rates, angles, N_layer)
@@ -506,8 +518,18 @@ for file in paths:
                 ff_num_network=ff_num_network,
 
                 # direction selectivity indices
-                dsi_selective=dsi_selective, dsi_not_selective=dsi_not_selective,
-                inh_dsi_selective=inh_dsi_selective, inh_dsi_not_selective=inh_dsi_not_selective,
+                dsi_selective=dsi_selective,
+                dsi_not_selective=dsi_not_selective,
+                inh_dsi_selective=inh_dsi_selective,
+                inh_dsi_not_selective=inh_dsi_not_selective,
+
+                # direction selectivity indices (not harsh)
+
+                dsi_not_harsh_selective=dsi_not_harsh_selective,
+                dsi_not_harsh_not_selective=dsi_not_harsh_not_selective,
+                inh_dsi_not_harsh_selective=inh_dsi_not_harsh_selective,
+                inh_dsi_not_harsh_not_selective=inh_dsi_not_harsh_not_selective,
+
                 # entropy
                 exc_entropy=exc_entropy, inh_entropy=inh_entropy,
 
@@ -536,6 +558,10 @@ for file in paths:
                 "dsi_not_selective": np.copy(dsi_not_selective),
                 "inh_dsi_selective": np.copy(inh_dsi_selective),
                 "inh_dsi_not_selective": np.copy(inh_dsi_not_selective),
+                "dsi_not_harsh_selective": np.copy(dsi_not_harsh_selective),
+                "dsi_not_harsh_not_selective": np.copy(dsi_not_harsh_not_selective),
+                "inh_dsi_not_harsh_selective": np.copy(inh_dsi_not_harsh_selective),
+                "inh_dsi_not_harsh_not_selective": np.copy(inh_dsi_not_harsh_not_selective),
                 "inh_to_exh_last": np.copy(inh_to_exh_last),
                 "exh_to_inh_last": np.copy(exh_to_inh_last),
                 "inh_ff_last": np.copy(inh_ff_last),
