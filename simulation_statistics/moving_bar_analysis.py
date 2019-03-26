@@ -2484,8 +2484,16 @@ def evolution(filenames, times, suffix, path=None, show_plots=False):
     plt.close(fig)
     print("=" * 45, "\n\n")
 
+def _add_batch_labels_to(ax, batch_parameters, value_list):
+    ax.set_ylabel(batch_parameters.keys()[0])
+    ax.set_yticks(np.arange(value_list[0].size))
+    ax.set_yticklabels(value_list[0])
+    ax.set_xlabel(batch_parameters.keys()[1])
+    ax.set_xticks(np.arange(value_list[1].size))
+    ax.set_xticklabels(value_list[1], rotation='vertical')
 
-def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plots=False):
+def batch_analyser(batch_data_file, batch_info_file,
+                   extra_suffix=None, show_plots=False):
     # Read the archives
     # batch_data = np.load(root_stats + batch_data_file + ".npz")
     # batch_info = np.load(root_stats + batch_info_file + ".npz")
@@ -2550,6 +2558,7 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     exp_shape_layer.append(N_layer)
 
     all_dsis = np.ones(exp_shape_layer) * np.nan
+    inh_all_dsis = np.ones(exp_shape_layer) * np.nan
     all_exc_entropies = np.ones(exp_shape_layer) * np.nan
     all_inh_entropies = np.ones(exp_shape_layer) * np.nan
     mean_exc_entropy = np.empty(dsi_comparison.shape)
@@ -2567,10 +2576,19 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
         rate_means = current_results['rate_means']
         dsi_selective = np.asarray(dsi_selective)
         dsi_not_selective = np.asarray(dsi_not_selective)
-        all_dsi = get_concatenated_dsis(dsi_selective, dsi_not_selective)
+        all_dsi = get_concatenated_dsis(dsi_selective, dsi_not_selective, order_by_id=True)
+
+        inh_dsi_selective = current_results['inh_dsi_selective']
+        inh_dsi_not_selective = current_results['inh_dsi_not_selective']
+        inh_dsi_selective=np.asarray(inh_dsi_selective)
+        inh_dsi_not_selective=np.asarray(inh_dsi_not_selective)
+        inh_all_dsi = get_concatenated_dsis(inh_dsi_selective, inh_dsi_not_selective, order_by_id=True)
+
+
         average_dsi = np.nanmean(all_dsi)
         dsi_comparison[file_index] = average_dsi
         all_dsis[file_index] = all_dsi
+        inh_all_dsis[file_index] = inh_all_dsi
         all_mean_rates[file_index] = rate_means
         all_exc_entropies[file_index] = current_results['exc_entropy']
         all_inh_entropies[file_index] = current_results['inh_entropy']
@@ -2581,6 +2599,23 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     # dsi_description = stats.describe(all_dsis.reshape(file_matrix.size, N_layer), axis=1)
     # print("{:45}".format("Describe exh entropy"), ":", exc_entropy_description)
     # print("{:45}".format("Describe DSI"), ":", dsi_description)
+    fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8), dpi=800)
+    i = ax1.matshow(np.mean(all_mean_rates, axis=2))
+    ax1.grid(visible=False)
+    _add_batch_labels_to(ax1, batch_parameters, value_list)
+    divider = make_axes_locatable(plt.gca())
+    cax = divider.append_axes("right", "5%", pad="3%")
+    cbar = plt.colorbar(i, cax=cax)
+    cbar.set_label("Mean firing rate")
+    plt.savefig(
+        fig_folder + "batch_mean_firing_rate{}.pdf".format(
+            suffix_test))
+    plt.savefig(
+        fig_folder + "batch_mean_firing_rate{}.svg".format(
+            suffix_test))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
 
     # covariance matrix between exc and inh Entropy
     # TODO I need to check how normal the input distributions are
@@ -2588,7 +2623,7 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     exc_inh_entropy_covariance = np.corrcoef(all_exc_entropies.reshape(file_matrix.size, N_layer),
                                              all_inh_entropies.reshape(file_matrix.size, N_layer))
 
-    print("{:45}".format("Mean exh inh covariance coeff"), ":", np.mean(exc_inh_entropy_covariance))
+    print("{:45}".format("Mean exh inh covariance coeff"), ":", np.nanmean(exc_inh_entropy_covariance))
 
     fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8), dpi=800)
     i = ax1.matshow(exc_inh_entropy_covariance, vmin=-1, vmax=1)
@@ -2598,10 +2633,10 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     cbar = plt.colorbar(i, cax=cax)
     cbar.set_label("Covariance")
     plt.savefig(
-        fig_folder + "exc_inh_entropy_covariance{}.pdf".format(
+        fig_folder + "batch_exc_inh_entropy_covariance{}.pdf".format(
             suffix_test))
     plt.savefig(
-        fig_folder + "exc_inh_entropy_covariance{}.svg".format(
+        fig_folder + "batch_exc_inh_entropy_covariance{}.svg".format(
             suffix_test))
     if show_plots:
         plt.show()
@@ -2618,7 +2653,7 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     #     dsi_entropy_covariance[index], dsi_entropy_pearson_p[index] = stats.pearsonr(
     #         all_exc_entropies[index],
     #         all_dsis[index])
-    print("{:45}".format("Mean entropy dsi covariance coeff"), ":", np.mean(dsi_entropy_covariance))
+    print("{:45}".format("Mean entropy dsi covariance coeff"), ":", np.nanmean(dsi_entropy_covariance))
     # create a significance mask where insignificant results get multiplied by nan
     # 2 sigma?
     # p_threshold = 0.01
@@ -2633,10 +2668,10 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     cbar = plt.colorbar(i, cax=cax)
     cbar.set_label("Covariance")
     plt.savefig(
-        fig_folder + "dsi_entropy_covariance{}.pdf".format(
+        fig_folder + "batch_dsi_entropy_covariance{}.pdf".format(
             suffix_test))
     plt.savefig(
-        fig_folder + "dsi_entropy_covariance{}.svg".format(
+        fig_folder + "batch_dsi_entropy_covariance{}.svg".format(
             suffix_test))
     if show_plots:
         plt.show()
@@ -2657,10 +2692,10 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     cbar = plt.colorbar(i, cax=cax)
     cbar.set_label("DSI")
     plt.savefig(
-        fig_folder + "dsi_comparison{}.pdf".format(
+        fig_folder + "batch_dsi_comparison{}.pdf".format(
             suffix_test))
     plt.savefig(
-        fig_folder + "dsi_comparison{}.svg".format(
+        fig_folder + "batch_dsi_comparison{}.svg".format(
             suffix_test))
     if show_plots:
         plt.show()
@@ -2682,13 +2717,35 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
                          edgecolor='k', weights=hist_weights)
             curr_ax.axvline(dsi_thresh, color='#b2dd2c', ls=":")
             curr_ax.set_xticks(np.linspace(0, 1, 11))
-    # plt.xlabel("DSI")
-    # plt.ylabel("% of neurons")
     plt.savefig(
-        fig_folder + "dsi_histograms_comparison{}.pdf".format(
+        fig_folder + "batch_dsi_histograms_comparison{}.pdf".format(
             suffix_test))
     plt.savefig(
-        fig_folder + "dsi_histograms_comparison{}.svg".format(
+        fig_folder + "batch_dsi_histograms_comparison{}.svg".format(
+            suffix_test))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+
+    # Plot INH DSI histograms
+    fig, axes = plt.subplots(value_list[0].size, value_list[1].size, figsize=(value_list[0].size * size_scale,
+                                                                              value_list[1].size * size_scale))
+
+    for y_axis in np.arange(inh_all_dsis.shape[0]):
+        for x_axis in np.arange(inh_all_dsis.shape[0]):
+            curent_all_dsi = inh_all_dsis[y_axis, x_axis]
+            hist_weights = np.ones_like(curent_all_dsi) / float(N_layer)
+            curr_ax = axes[y_axis, x_axis]
+            curr_ax.hist(curent_all_dsi, bins=np.linspace(0, 1, 21), color='#414C82',
+                         edgecolor='k', weights=hist_weights)
+            curr_ax.axvline(dsi_thresh, color='#b2dd2c', ls=":")
+            curr_ax.set_xticks(np.linspace(0, 1, 11))
+    plt.savefig(
+        fig_folder + "batch_inh_dsi_histograms_comparison{}.pdf".format(
+            suffix_test))
+    plt.savefig(
+        fig_folder + "batch_inh_dsi_histograms_comparison{}.svg".format(
             suffix_test))
     if show_plots:
         plt.show()
@@ -2710,10 +2767,10 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
                          edgecolor='k', weights=hist_weights)
             curr_ax.set_xticks(np.linspace(0, 1, 11))
     plt.savefig(
-        fig_folder + "entropy_histograms_comparison{}.pdf".format(
+        fig_folder + "batch_entropy_histograms_comparison{}.pdf".format(
             suffix_test))
     plt.savefig(
-        fig_folder + "entropy_histograms_comparison{}.svg".format(
+        fig_folder + "batch_entropy_histograms_comparison{}.svg".format(
             suffix_test))
     if show_plots:
         plt.show()
@@ -2731,10 +2788,10 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
             curr_ax.fill(radians, curent_mean_rate, fill=False, edgecolor='#228b8d',
                          lw=2, alpha=.8, label="Mean response")
     plt.savefig(
-        fig_folder + "rate_means_comparison{}.pdf".format(suffix_test),
+        fig_folder + "batch_rate_means_comparison{}.pdf".format(suffix_test),
         bbox_inches='tight')
     plt.savefig(
-        fig_folder + "rate_means_comparison{}.svg".format(suffix_test),
+        fig_folder + "batch_rate_means_comparison{}.svg".format(suffix_test),
         bbox_inches='tight')
     if show_plots:
         plt.show()
@@ -2758,10 +2815,10 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     cbar = plt.colorbar(i, cax=cax)
     cbar.set_label("Entropy")
     plt.savefig(
-        fig_folder + "entropy_comparison{}.pdf".format(
+        fig_folder + "batch_entropy_comparison{}.pdf".format(
             suffix_test))
     plt.savefig(
-        fig_folder + "entropy_comparison{}.svg".format(
+        fig_folder + "batch_entropy_comparison{}.svg".format(
             suffix_test))
     if show_plots:
         plt.show()
@@ -2783,10 +2840,10 @@ def batch_analyser(batch_data_file, batch_info_file, extra_suffix=None, show_plo
     cbar = plt.colorbar(i, cax=cax)
     cbar.set_label("Entropy")
     plt.savefig(
-        fig_folder + "inh_entropy_comparison{}.pdf".format(
+        fig_folder + "batch_inh_entropy_comparison{}.pdf".format(
             suffix_test))
     plt.savefig(
-        fig_folder + "inh_entropy_comparison{}.svg".format(
+        fig_folder + "batch_inh_entropy_comparison{}.svg".format(
             suffix_test))
     if show_plots:
         plt.show()
@@ -3271,6 +3328,117 @@ def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_pl
 if __name__ == "__main__":
     import sys
 
+    fname = args.preproc_folder + "motion_batch_analysis_001118_26032019"
+    info_fname = args.preproc_folder + "batch_3f01fccb37e1f90a137ed0e9dd27fdda"
+    batch_analyser(fname, info_fname, extra_suffix="2_angles_0_90")
+
+    sys.exit()
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_tau_syn_i_20"
+    analyse_one(fname, extra_suffix="tau_syn_i_20")
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_tau_syn_i_20"
+    analyse_one(fname, extra_suffix="constant_tau_syn_i_20")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_tau_syn_i_20"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_tau_syn_i_20"
+    comparison(fname1, fname2, extra_suffix="tau_syn_i_20")
+
+    sys.exit()
+
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_master_pynn8"
+    analyse_one(fname, extra_suffix="pynn8")
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_master_pynn8"
+    analyse_one(fname, extra_suffix="constant_pynn8")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_master_pynn8"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_master_pynn8"
+    comparison(fname1, fname2, extra_suffix="pynn8")
+
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_2"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_master_pynn8"
+    comparison(fname1, fname2, extra_suffix="pynn8_vs_cont", custom_labels=["cont", "pynn8"])
+
+
+    fname1 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_master_pynn8"
+    comparison(fname1, fname2, extra_suffix="constant_pynn8_vs_cont", custom_labels=["cont", "pynn8"])
+
+    sys.exit()
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_pol_inversion_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_vs_opp_polarity")
+
+    fname = args.preproc_folder + "results_for_trained_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="continuous_test_tested_opp_polarity")
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_pol_inversion_cont"
+    analyse_one(fname, extra_suffix="continuous_test_opp_polarity")
+
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_cont"
+    analyse_one(fname, extra_suffix="continuous_test_not_coplanar_opposite_no_off")
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_cont"
+    analyse_one(fname, extra_suffix="constant_continuous_test_opposite_no_off")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_opposite_no_off")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_opposite_vs_opposite_no_off")
+
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
+    analyse_one(fname, extra_suffix="continuous_test_not_coplanar_opposite")
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
+    analyse_one(fname, extra_suffix="constant_continuous_test_not_coplanar_opposite")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar_opposite")
+
+    sys.exit()
+
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_cont"
+    analyse_one(fname, extra_suffix="continuous_test_not_coplanar_768k")
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_cont"
+    analyse_one(fname, extra_suffix="constant_continuous_test_not_coplanar_768k")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar_768k")
+
+
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_coplanar_7"
+    analyse_one(fname, extra_suffix="coplanar_7")
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_coplanar_7"
+    analyse_one(fname, extra_suffix="constant_coplanar_7")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_coplanar_7"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_coplanar_7"
+    comparison(fname1, fname2, extra_suffix="coplanar_7")
+
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_coplanar_16"
+    analyse_one(fname, extra_suffix="constant_coplanar_16")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_coplanar_16"
+    comparison(fname1, fname2, extra_suffix="coplanar_16_vs_continuous_test")
+    sys.exit()
+
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_coplanar"
     analyse_one(fname, extra_suffix="coplanar")
 
@@ -3378,15 +3546,6 @@ if __name__ == "__main__":
 
     sys.exit()
 
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_pol_inversion_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_vs_opp_polarity")
-
-    fname = args.preproc_folder + "results_for_trained_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    analyse_one(fname, extra_suffix="continuous_test_tested_opp_polarity")
-
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_pol_inversion_cont"
-    analyse_one(fname, extra_suffix="continuous_test_opp_polarity")
 
 
     # fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
@@ -3430,19 +3589,6 @@ if __name__ == "__main__":
 
     sys.exit()
 
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_cont"
-    analyse_one(fname, extra_suffix="continuous_test_not_coplanar_opposite_no_off")
-
-    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_cont"
-    analyse_one(fname, extra_suffix="constant_continuous_test_opposite_no_off")
-
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_cont"
-    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_opposite_no_off")
-
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_opposite_vs_opposite_no_off")
 
     # sys.exit()
 
@@ -3602,15 +3748,6 @@ if __name__ == "__main__":
 
     # sys.exit()
 
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
-    analyse_one(fname, extra_suffix="continuous_test_not_coplanar_opposite")
-
-    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
-    analyse_one(fname, extra_suffix="constant_continuous_test_not_coplanar_opposite")
-
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
-    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar_opposite")
 
     # sys.exit()
 

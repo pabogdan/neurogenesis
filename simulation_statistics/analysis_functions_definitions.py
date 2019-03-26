@@ -417,13 +417,19 @@ def get_omnidirectional_neural_response_for_neuron(neuron_id, per_neuron_all_rat
     return response_profile
 
 
-def get_concatenated_dsis(dsi_selective, dsi_not_selective):
+def get_concatenated_dsis(dsi_selective, dsi_not_selective, order_by_id=False):
     if dsi_selective.size > 0 and dsi_not_selective.size > 0:
         all_dsi = np.concatenate((dsi_selective[:, -1], dsi_not_selective[:, -1]))
+        all_ids = np.concatenate((dsi_selective[:, 0], dsi_not_selective[:, 0]))
     elif dsi_selective.size == 0:
         all_dsi = dsi_not_selective[:, -1]
+        all_ids = dsi_not_selective[:, 0]
     else:
         all_dsi = dsi_selective[:, -1]
+        all_ids = dsi_selective[:, 0]
+    if order_by_id:
+        argsorter = np.argsort(all_ids)
+        all_dsi = all_dsi[argsorter]
     return all_dsi
 
 
