@@ -448,20 +448,35 @@ for file in paths:
 
             inh_all_average_responses_with_angle, _, _ = compute_all_average_responses_with_angle(
                 inh_per_neuron_all_rates, angles, N_layer)
+
+            dsi_not_harsh_selective, dsi_not_harsh_not_selective = \
+                get_filtered_dsi_per_neuron(all_average_responses_with_angle,
+                                            N_layer, harsh=False)
+            dsi_not_harsh_selective = np.asarray(dsi_not_harsh_selective)
+            dsi_not_harsh_not_selective = np.asarray(dsi_not_harsh_not_selective)
+
+            inh_all_average_responses_with_angle, _, _ = compute_all_average_responses_with_angle(
+                inh_per_neuron_all_rates, angles, N_layer)
             inh_dsi_selective, inh_dsi_not_selective = get_filtered_dsi_per_neuron(all_average_responses_with_angle,
-                                                                               N_layer)
+                                                                                   N_layer)
+            inh_dsi_selective = np.asarray(inh_dsi_selective)
+            inh_dsi_not_selective = np.asarray(inh_dsi_not_selective)
+
+            inh_dsi_not_harsh_selective, inh_dsi_not_harsh_not_selective = \
+                get_filtered_dsi_per_neuron(all_average_responses_with_angle,
+                                            N_layer, harsh=False)
+            inh_dsi_not_harsh_selective = np.asarray(inh_dsi_not_harsh_selective)
+            inh_dsi_not_harsh_not_selective = np.asarray(inh_dsi_not_harsh_not_selective)
             inh_dsi_selective = np.asarray(inh_dsi_selective)
             inh_dsi_not_selective = np.asarray(inh_dsi_not_selective)
 
             exc_entropy = compute_per_neuron_entropy(per_neuron_all_rates, angles, N_layer)
             inh_entropy = compute_per_neuron_entropy(inh_per_neuron_all_rates, angles, N_layer)
 
-            inh_dsi_selective = cached_data['inh_dsi_selective']
-            inh_dsi_not_selective = cached_data['inh_dsi_not_selective']
-            dsi_not_harsh_selective = cached_data['dsi_not_harsh_selective']
-            dsi_not_harsh_not_selective = cached_data['dsi_not_harsh_not_selective']
-            inh_dsi_not_harsh_selective = cached_data['inh_dsi_not_harsh_selective']
-            inh_dsi_not_harsh_not_selective = cached_data['inh_dsi_not_harsh_not_selective']
+            dsi_not_harsh_selective = np.asarray(dsi_not_harsh_selective)
+            dsi_not_harsh_not_selective = np.asarray(dsi_not_harsh_not_selective)
+            inh_dsi_not_harsh_selective = np.asarray(inh_dsi_not_harsh_selective)
+            inh_dsi_not_harsh_not_selective = np.asarray(inh_dsi_not_harsh_not_selective)
 
 
         print()
