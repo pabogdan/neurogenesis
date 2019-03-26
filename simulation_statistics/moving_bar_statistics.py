@@ -382,8 +382,8 @@ for file in paths:
             inh_entropy = compute_per_neuron_entropy(inh_per_neuron_all_rates, angles, N_layer)
 
         else:
-            print("Simulation has been run before & Cached version of results exists!")
-            continue
+            # print("Simulation has been run before & Cached version of results exists!")
+            # continue
 
             print("Using cached data.")
             if ".npz" in filename:
@@ -455,6 +455,14 @@ for file in paths:
 
             exc_entropy = compute_per_neuron_entropy(per_neuron_all_rates, angles, N_layer)
             inh_entropy = compute_per_neuron_entropy(inh_per_neuron_all_rates, angles, N_layer)
+
+            inh_dsi_selective = cached_data['inh_dsi_selective']
+            inh_dsi_not_selective = cached_data['inh_dsi_not_selective']
+            dsi_not_harsh_selective = cached_data['dsi_not_harsh_selective']
+            dsi_not_harsh_not_selective = cached_data['dsi_not_harsh_not_selective']
+            inh_dsi_not_harsh_selective = cached_data['inh_dsi_not_harsh_selective']
+            inh_dsi_not_harsh_not_selective = cached_data['inh_dsi_not_harsh_not_selective']
+
 
         print()
         pp(sim_params)
