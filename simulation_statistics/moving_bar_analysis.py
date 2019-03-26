@@ -19,12 +19,13 @@ from gari_analysis_functions import *
 from synaptogenesis.function_definitions import generate_equivalent_connectivity
 from gari_analysis_functions import get_filtered_dsi_per_neuron
 import copy
-# imports related to Elephant analysis
-from elephant import statistics, spade, spike_train_correlation, spike_train_dissimilarity, conversion
-import elephant.cell_assembly_detection as cad
 import neo
 from datetime import datetime
 from quantities import s, ms, Hz
+import statsmodels.api as sm
+import statsmodels.graphics.api as smg
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 
 # ensure we use viridis as the default cmap
 plt.viridis()
@@ -2484,16 +2485,16 @@ def evolution(filenames, times, suffix, path=None, show_plots=False):
     plt.close(fig)
     print("=" * 45, "\n\n")
 
-def _add_batch_labels_to(ax, batch_parameters, value_list):
-    ax.set_ylabel(batch_parameters.keys()[0])
+def _add_batch_labels_to(ax, custom_labels, value_list):
+    ax.set_ylabel(custom_labels[0])
     ax.set_yticks(np.arange(value_list[0].size))
     ax.set_yticklabels(value_list[0])
-    ax.set_xlabel(batch_parameters.keys()[1])
+    ax.set_xlabel(custom_labels[1])
     ax.set_xticks(np.arange(value_list[1].size))
     ax.set_xticklabels(value_list[1], rotation='vertical')
 
 def batch_analyser(batch_data_file, batch_info_file,
-                   extra_suffix=None, show_plots=False):
+                   extra_suffix=None, show_plots=False, custom_labels=None):
     # Read the archives
     # batch_data = np.load(root_stats + batch_data_file + ".npz")
     # batch_info = np.load(root_stats + batch_info_file + ".npz")
@@ -2522,6 +2523,7 @@ def batch_analyser(batch_data_file, batch_info_file,
     if extra_suffix:
         suffix_test += "_" + extra_suffix
     value_list = np.asarray(value_list)
+
     file_matrix = np.empty(file_shape, dtype="S200")
     # for index, value in np.ndenumerate(file_matrix):
     #     print(index, value)
@@ -2536,6 +2538,8 @@ def batch_analyser(batch_data_file, batch_info_file,
         file_matrix[position_to_fill] = file_info
 
     # Print some information
+    if not custom_labels:
+        custom_labels = batch_parameters.keys()
     print("=" * 45, "\n\n")
     print("{:45}".format("Batch Data Archive"), ":", batch_data_file)
     print("{:45}".format("Batch Info Archive"), ":", batch_info_file)
@@ -2546,6 +2550,7 @@ def batch_analyser(batch_data_file, batch_info_file,
     print("{:45}".format("files in batch_data.files"), ":", "files" in batch_data.files)
     print("{:45}".format("Batch completed in"), ":", batch_info['total_time'])
     print("{:45}".format("Batch focused on the following params"), ":", batch_parameters.keys())
+    print("{:45}".format("custom labels"), ":", custom_labels)
     print("{:45}".format("Shape of result matrices"), ":", file_shape)
     print("{:45}".format("Suffix for generated figures"), ":", suffix_test)
     # print("<File matrix>", "-" * 50)
@@ -2602,7 +2607,7 @@ def batch_analyser(batch_data_file, batch_info_file,
     fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8), dpi=800)
     i = ax1.matshow(np.mean(all_mean_rates, axis=2))
     ax1.grid(visible=False)
-    _add_batch_labels_to(ax1, batch_parameters, value_list)
+    _add_batch_labels_to(ax1, custom_labels, value_list)
     divider = make_axes_locatable(plt.gca())
     cax = divider.append_axes("right", "5%", pad="3%")
     cbar = plt.colorbar(i, cax=cax)
@@ -2646,6 +2651,11 @@ def batch_analyser(batch_data_file, batch_info_file,
     # TODO switch to scipy pearsonr (need to manually to an all to all comparison)
     dsi_entropy_covariance = np.corrcoef(all_exc_entropies.reshape(file_matrix.size, N_layer),
                                          all_dsis.reshape(file_matrix.size, N_layer))
+
+
+    # dsi_entropy_covariance = np.cov(all_exc_entropies.reshape(file_matrix.size, N_layer),
+    #                                      all_dsis.reshape(file_matrix.size, N_layer))
+
     # dsi_entropy_covariance = np.empty(file_shape)
     # dsi_entropy_pearson_p = np.empty(file_shape)
     # for index, _ in np.ndenumerate(dsi_entropy_covariance):
@@ -2653,7 +2663,7 @@ def batch_analyser(batch_data_file, batch_info_file,
     #     dsi_entropy_covariance[index], dsi_entropy_pearson_p[index] = stats.pearsonr(
     #         all_exc_entropies[index],
     #         all_dsis[index])
-    print("{:45}".format("Mean entropy dsi covariance coeff"), ":", np.nanmean(dsi_entropy_covariance))
+    print("{:45}".format("Mean entropy dsi correlation  coeff"), ":", np.nanmean(dsi_entropy_covariance))
     # create a significance mask where insignificant results get multiplied by nan
     # 2 sigma?
     # p_threshold = 0.01
@@ -2668,10 +2678,19 @@ def batch_analyser(batch_data_file, batch_info_file,
     cbar = plt.colorbar(i, cax=cax)
     cbar.set_label("Covariance")
     plt.savefig(
-        fig_folder + "batch_dsi_entropy_covariance{}.pdf".format(
+        fig_folder + "batch_dsi_entropy_corr_coef{}.pdf".format(
             suffix_test))
     plt.savefig(
-        fig_folder + "batch_dsi_entropy_covariance{}.svg".format(
+        fig_folder + "batch_dsi_entropy_corr_coef{}.svg".format(
+            suffix_test))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    fig = smg.plot_corr(dsi_entropy_covariance)
+    plt.savefig(fig_folder + "batch_statsmodel_dsi_entropy_corr_coef{}.pdf".format(
+            suffix_test))
+    plt.savefig(fig_folder + "batch_statsmodel_dsi_entropy_corr_coef{}.svg".format(
             suffix_test))
     if show_plots:
         plt.show()
@@ -2680,11 +2699,7 @@ def batch_analyser(batch_data_file, batch_info_file,
     # Mean DSI comparison
     fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8), dpi=800)
     i = ax1.matshow(dsi_comparison)
-    ax1.set_ylabel(batch_parameters.keys()[0])
-    ax1.set_yticks(np.arange(value_list[0].size))
-    ax1.set_yticklabels(value_list[0])
-    ax1.set_xlabel(batch_parameters.keys()[1])
-    ax1.set_xticks(np.arange(value_list[1].size))
+    _add_batch_labels_to(ax1, custom_labels, value_list)
     ax1.set_xticklabels(value_list[1], rotation='vertical')
     ax1.grid(visible=False)
     divider = make_axes_locatable(plt.gca())
@@ -2703,7 +2718,7 @@ def batch_analyser(batch_data_file, batch_info_file,
 
     # Plot DSI histograms
     dsi_thresh = 0.5
-    size_scale = 8
+    size_scale = 7
     fig, axes = plt.subplots(value_list[0].size, value_list[1].size, figsize=(value_list[0].size * size_scale,
                                                                               value_list[1].size * size_scale))
 
@@ -2716,7 +2731,13 @@ def batch_analyser(batch_data_file, batch_info_file,
             curr_ax.hist(curent_all_dsi, bins=np.linspace(0, 1, 21), color='#414C82',
                          edgecolor='k', weights=hist_weights)
             curr_ax.axvline(dsi_thresh, color='#b2dd2c', ls=":")
-            curr_ax.set_xticks(np.linspace(0, 1, 11))
+            curr_ax.set_xticks(np.linspace(0, 1, 5), minor=False)
+            curr_ax.set_xlabel("DSI - $\mu={0:3.2f},\quad\sigma={1:3.2f}$".format(
+                np.nanmean(curent_all_dsi), np.nanstd(curent_all_dsi)))
+            if x_axis == 0:
+                curr_ax.set_ylabel(r"$\sigma_{form-ff}=$"+"{}".format(value_list[0][y_axis]))
+            if y_axis == 0:
+                curr_ax.set_title(r"$\sigma_{form-lat}=$"+"{}".format(value_list[1][x_axis]))
     plt.savefig(
         fig_folder + "batch_dsi_histograms_comparison{}.pdf".format(
             suffix_test))
@@ -2752,7 +2773,6 @@ def batch_analyser(batch_data_file, batch_info_file,
     plt.close(fig)
 
     # Plot Entropy histograms
-    size_scale = 8
     fig, axes = plt.subplots(value_list[0].size, value_list[1].size, figsize=(value_list[0].size * size_scale,
                                                                               value_list[1].size * size_scale))
 
@@ -2765,7 +2785,13 @@ def batch_analyser(batch_data_file, batch_info_file,
             curr_ax = axes[y_axis, x_axis]
             curr_ax.hist(normalised_entropy, bins=np.linspace(0, 1, 21), color='#414C82',
                          edgecolor='k', weights=hist_weights)
-            curr_ax.set_xticks(np.linspace(0, 1, 11))
+            curr_ax.set_xticks(np.linspace(0, 1, 5), minor=False)
+            curr_ax.set_xlabel("Entropy - $\mu={0:3.2f},\quad\sigma={1:3.2f}$".format(
+                np.nanmean(normalised_entropy), np.nanstd(normalised_entropy)))
+            if x_axis == 0:
+                curr_ax.set_ylabel(r"$\sigma_{form-ff}=$"+"{}".format(value_list[0][y_axis]))
+            if y_axis == 0:
+                curr_ax.set_title(r"$\sigma_{form-lat}=$"+"{}".format(value_list[1][x_axis]))
     plt.savefig(
         fig_folder + "batch_entropy_histograms_comparison{}.pdf".format(
             suffix_test))
@@ -2803,12 +2829,7 @@ def batch_analyser(batch_data_file, batch_info_file,
     # Mean Entropy comparison
     fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8), dpi=800)
     i = ax1.matshow(mean_exc_entropy)
-    ax1.set_ylabel(batch_parameters.keys()[0])
-    ax1.set_yticks(np.arange(value_list[0].size))
-    ax1.set_yticklabels(value_list[0])
-    ax1.set_xlabel(batch_parameters.keys()[1])
-    ax1.set_xticks(np.arange(value_list[1].size))
-    ax1.set_xticklabels(value_list[1], rotation='vertical')
+    _add_batch_labels_to(ax1, custom_labels, value_list)
     ax1.grid(visible=False)
     divider = make_axes_locatable(plt.gca())
     cax = divider.append_axes("right", "5%", pad="3%")
@@ -2828,12 +2849,7 @@ def batch_analyser(batch_data_file, batch_info_file,
 
     fig, (ax1) = plt.subplots(1, 1, figsize=(8, 8), dpi=800)
     i = ax1.matshow(mean_inh_entropy)
-    ax1.set_ylabel(batch_parameters.keys()[0])
-    ax1.set_yticks(np.arange(value_list[0].size))
-    ax1.set_yticklabels(value_list[0])
-    ax1.set_xlabel(batch_parameters.keys()[1])
-    ax1.set_xticks(np.arange(value_list[1].size))
-    ax1.set_xticklabels(value_list[1], rotation='vertical')
+    _add_batch_labels_to(ax1, custom_labels, value_list)
     ax1.grid(visible=False)
     divider = make_axes_locatable(plt.gca())
     cax = divider.append_axes("right", "5%", pad="3%")
@@ -3030,6 +3046,9 @@ def package_neo_block(spikes, label, N_layer, simtime, archive_name):
 
 
 def elephant_analysis(archive, extra_suffix=None, show_plots=False, time_to_waste=False):
+    # imports related to Elephant analysis
+    from elephant import statistics, spade, spike_train_correlation, spike_train_dissimilarity, conversion
+    import elephant.cell_assembly_detection as cad
     # Pass in a testing file name. This file needs to have spikes in the raw format
     # data = np.load(root_syn + archive + ".npz")
     data = np.load(root_syn + archive + ".npz")
@@ -3328,11 +3347,55 @@ def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_pl
 if __name__ == "__main__":
     import sys
 
-    fname = args.preproc_folder + "motion_batch_analysis_001118_26032019"
+    fname = args.preproc_folder + "motion_batch_analysis_085402_26032019"
     info_fname = args.preproc_folder + "batch_3f01fccb37e1f90a137ed0e9dd27fdda"
-    batch_analyser(fname, info_fname, extra_suffix="2_angles_0_90")
+    batch_analyser(fname, info_fname, extra_suffix="2_angles_0_90",
+                   custom_labels=['$\sigma_{form-ff}$', '$\sigma_{form-lat}$'])
 
     sys.exit()
+
+    fname = args.preproc_folder + "results_for_testing_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="just_testing_with_opposite_polarities")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    comparison(fname1, fname2, extra_suffix="cont_vs_just_testing_with_opposite_polarities", custom_labels=['Reference','Opposite polarity'])
+
+    fname = args.preproc_folder + "results_for_testing_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
+    analyse_one(fname, extra_suffix="just_testing_with_opposite_polarities")
+
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
+    fname2 = args.preproc_folder + "results_for_testing_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
+    comparison(fname1, fname2, extra_suffix="cont_vs_just_testing_with_opposite_polarities", custom_labels=['Reference','Opposite polarity'])
+
+    sys.exit()
+
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_fbase_2.5_cont"
+    analyse_one(fname, extra_suffix="norm_noise_continuous_test_not_coplanar_opposite_no_off")
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_fbase_2.5_cont"
+    analyse_one(fname, extra_suffix="constant_norm_noise_continuous_test_opposite_no_off")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_fbase_2.5_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_fbase_2.5_cont"
+    comparison(fname1, fname2, extra_suffix="norm_noise_continuous_test_opposite_no_off")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_fbase_2.5_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_opposite_vs_norm_noise_opposite_no_off", custom_labels=['On & Off', 'On'])
+
+
+    sys.exit()
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="continuous_test_not_coplanar")
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="constant_continuous_test_not_coplanar")
+
+
 
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_tau_syn_i_20"
     analyse_one(fname, extra_suffix="tau_syn_i_20")
@@ -3487,11 +3550,6 @@ if __name__ == "__main__":
 
     sys.exit()
 
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    analyse_one(fname, extra_suffix="continuous_test_not_coplanar")
-
-    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    analyse_one(fname, extra_suffix="constant_continuous_test_not_coplanar")
 
     sys.exit()
 
