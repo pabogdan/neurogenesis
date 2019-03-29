@@ -91,6 +91,8 @@ for path in args.path:
                 wta_snapshots = wta_snapshots.ravel()[0]
                 snap_keys = target_snapshots.keys()
                 snapshot_no = 1 if not snapshots_present else len(snap_keys)
+            else:
+                snapshot_no = 1
             start_time = plt.datetime.datetime.now()
 
             target_snapshots = {}
