@@ -93,6 +93,7 @@ for path in args.path:
                 snapshot_no = 1 if not snapshots_present else len(snap_keys)
             else:
                 snapshot_no = 1
+                snap_keys = [0]
             start_time = plt.datetime.datetime.now()
 
             target_snapshots = {}
