@@ -11,6 +11,7 @@ DEFAULT_CLASSES = [0, 90]
 DEFAULT_NO_ITERATIONS = DEFAULT_CHUNK_SIZE * (100 * len(DEFAULT_CLASSES))
 DEFAULT_T_RECORD = 200000
 DEFAULT_P_CONNECT = .1  # 10%
+DEFAULT_RUNS = 1
 
 DEFAULT_B = 1.3
 DEFAULT_TAU_MINUS = 60  # ms
@@ -39,6 +40,9 @@ DEFAULT_F_REW = 10 ** 4
 DEFAULT_REWIRING_FLAG = False
 DEFAULT_MNIST_FLAG = False
 DEFAULT_LATERAL_INHIBITION = False
+# Organise things into folders
+
+DEFAULT_SIM_FOLDER = "./"
 
 # Argument parser
 parser = argparse.ArgumentParser(
@@ -169,6 +173,17 @@ parser.add_argument('--t_record', type=int,
                     help='time between retrieval of recordings (ms)'
                          ' -- [default {}]'.format(DEFAULT_T_RECORD))
 
+
+parser.add_argument('--runs', type=int,
+                    default=DEFAULT_RUNS,
+                    help='how many times to run the training + testing '
+                         'experiments -- [default {}]'.format(DEFAULT_RUNS))
+
+parser.add_argument('--sim_dir', type=str,
+                    default=DEFAULT_SIM_FOLDER,
+                    help='folder in which to save simulation results'
+                         ' -- [default {}]'.format(DEFAULT_SIM_FOLDER))
+
 # Rewiring arguments
 parser.add_argument('--s_max', type=int,
                     default=DEFAULT_S_MAX, dest='s_max',
@@ -210,6 +225,5 @@ parser.add_argument('--p_elim_dep', type=float,
 parser.add_argument('--f_rew', type=float,
                     default=DEFAULT_F_REW, dest='f_rew',
                     help='frequency of rewire attempts (Hz)')
-
 
 args = parser.parse_args()
