@@ -71,7 +71,8 @@ for path in args.path:
     simtime = args.no_iterations
     current_training_file = None
     current_error = None
-    snapshot_no = None
+    snapshot_no = 1
+    snap_keys = [0]
     for run in np.arange(args.runs):
         print("Run ", run)
         for phase in PHASES:
@@ -91,9 +92,6 @@ for path in args.path:
                 wta_snapshots = wta_snapshots.ravel()[0]
                 snap_keys = target_snapshots.keys()
                 snapshot_no = 1 if not snapshots_present else len(snap_keys)
-            else:
-                snapshot_no = 1
-                snap_keys = [0]
             start_time = plt.datetime.datetime.now()
 
             target_snapshots = {}
