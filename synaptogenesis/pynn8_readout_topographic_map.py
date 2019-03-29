@@ -88,6 +88,7 @@ for path in args.path:
                 readout_training_data = np.load(
                     os.path.join(sim_dir, current_training_file + ".npz"))
                 snapshots_present = readout_training_data['snapshots_present']
+                target_snapshots = readout_training_data['target_snapshots']
                 target_snapshots = target_snapshots.ravel()[0]
                 wta_snapshots = wta_snapshots.ravel()[0]
                 snap_keys = target_snapshots.keys()
