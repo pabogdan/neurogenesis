@@ -511,7 +511,7 @@ for path in args.path:
                                         wta_projection._get_synaptic_data(True, 'target'),
                                         wta_projection._get_synaptic_data(True, 'weight'),
                                         wta_projection._get_synaptic_data(True, 'delay')]).T)
-                                wta_snapshots[current_run * run_duration] = target_weights[-1]
+                                wta_snapshots[current_run * run_duration] = wta_weights[-1]
 
                     # Retrieve recordings
                     target_spikes = target_pop.spinnaker_get_data('spikes')
