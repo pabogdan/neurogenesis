@@ -142,15 +142,18 @@ for path in args.path:
                 actual_classes = []
                 if not args.mnist:
                     # Generate equal number of instances of classes
-                    actual_classes = np.tile(args.classes, testing_no_iterations_per_class)
-                    # shuffle actual_classes in place
-                    np.random.shuffle(actual_classes)
+                    if phase == TESTING_PHASE:
+                        actual_classes = np.repeat(args.classes, testing_no_iterations_per_class)
+                        # shuffle actual_classes in place
+                        np.random.shuffle(actual_classes)
+                    else:
+                        actual_classes = None
                     aa, final_on_gratings, final_off_gratings = \
-                        generate_bar_input(args.no_iterations, chunk, N_layer,
+                        generate_bar_input(simtime, chunk, N_layer,
                                            angles=args.classes,
                                            actual_angles=actual_classes)
                     aa = np.asarray(aa)
-                    assert np.all(aa==actual_classes)
+                    actual_classes = aa
                 # actual_classes = np.asarray(actual_classes)
                 # TODO if the network has snapshots and run this for every simulation
                 # Begin all the simulation stuff
