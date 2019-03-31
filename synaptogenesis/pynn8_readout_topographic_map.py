@@ -15,7 +15,7 @@ import os
 import ntpath
 
 import spynnaker8 as sim
-from spynnaker8.extra_models import SpikeSourcePoissonVariable
+# from spynnaker8.extra_models import SpikeSourcePoissonVariable
 
 # SpiNNaker setup
 TRAINING_PHASE = 0
@@ -97,7 +97,7 @@ for path in args.path:
         raise AttributeError("What chunk to use for the specified grid size?")
     simtime = args.no_iterations
     testing_no_iterations_per_class = args.testing_no_iterations_per_class
-    testing_simtime = testing_no_iterations_per_class * args.classes * chunk
+    testing_simtime = testing_no_iterations_per_class * len(args.classes) * chunk
     current_training_file = None
     current_error = None
     snapshot_no = 1
@@ -158,7 +158,7 @@ for path in args.path:
                 sim.set_number_of_neurons_per_core(sim.IF_curr_exp, 50)
                 sim.set_number_of_neurons_per_core(sim.IF_cond_exp, 256 // 10)
                 sim.set_number_of_neurons_per_core(sim.SpikeSourcePoisson, 256 // 13)
-                sim.set_number_of_neurons_per_core(SpikeSourcePoissonVariable, 256 // 16)
+                # sim.set_number_of_neurons_per_core(SpikeSourcePoissonVariable, 256 // 16)
 
                 # +-------------------------------------------------------------------+
                 # | General Parameters                                                |
