@@ -35,6 +35,33 @@ if len(args.path) == 0:
     raise AttributeError("Testing setup insufficiently defined! "
                          "Please specify connectivity npz file.")
 
+def generate_readout_filename(path, phase, args, run, e):
+    # need to retrieve name of the file (not the entire path)
+    prefix = "training_readout_for_"
+    if phase == TESTING_PHASE:
+        prefix = "testing_readout_for_"
+    if args.min_supervised:
+        prefix += "min_"
+    elif args.max_supervised:
+        prefix += "max_"
+    elif args.unsupervised:
+        prefix += "uns_"
+    filename = prefix + str(ntpath.basename(path))
+    if ".npz" in filename:
+        filename = filename[:-4]
+
+    filename += "_run_" + str(run)
+
+    if e:
+        filename = "error_" + filename
+
+    if args.rewiring:
+        filename += "_rewiring"
+
+    if args.suffix:
+        filename += "_" + args.suffix
+    return filename
+
 # check if the figures folder exist
 sim_dir = args.sim_dir
 if not os.path.isdir(sim_dir) and not os.path.exists(sim_dir):
@@ -69,6 +96,8 @@ for path in args.path:
     else:
         raise AttributeError("What chunk to use for the specified grid size?")
     simtime = args.no_iterations
+    testing_no_iterations_per_class = args.testing_no_iterations_per_class
+    testing_simtime = testing_no_iterations_per_class * args.classes * chunk
     current_training_file = None
     current_error = None
     snapshot_no = 1
@@ -77,6 +106,18 @@ for path in args.path:
         print("Run ", run)
         for phase in PHASES:
             print("Phase ", PHASES_NAMES[phase])
+            target_snapshots = {}
+            wta_snapshots = {}
+            readout_spikes_snapshots = {}
+            target_spikes_snapshots = {}
+            inhibitory_spikes_snapshots = {}
+            if phase == TRAINING_PHASE:
+                mock_filename = generate_readout_filename(path, phase, args, run, None)
+                if mock_filename and os.path.isfile(mock_filename + ".npz") and not args.no_cache:
+                    print("Simulation has been run before & Cached version of results "
+                          "exists!")
+                    current_training_file = mock_filename
+                    continue
             if current_error:
                 print("Something broke... aborting this run!")
                 break
@@ -84,34 +125,33 @@ for path in args.path:
                 if current_training_file is None:
                     raise AttributeError(
                         "Training failed or something else went wrong")
-
                 readout_training_data = np.load(
                     os.path.join(sim_dir, current_training_file + ".npz"))
                 snapshots_present = readout_training_data['snapshots_present']
-                target_snapshots = readout_training_data['target_snapshots']
-                wta_snapshots = readout_training_data['wta_snapshots']
-                target_snapshots = target_snapshots.ravel()[0]
-                wta_snapshots = wta_snapshots.ravel()[0]
+                target_snapshots = readout_training_data['target_snapshots'].ravel()[0]
+                wta_snapshots = readout_training_data['wta_snapshots'].ravel()[0]
                 snap_keys = target_snapshots.keys()
                 snapshot_no = 1 if not snapshots_present else len(snap_keys)
+                simtime = testing_simtime
             start_time = plt.datetime.datetime.now()
 
-            target_snapshots = {}
-            wta_snapshots = {}
 
-            readout_spikes_snapshots = {}
-            target_spikes_snapshots = {}
-            inhibitory_spikes_snapshots = {}
 
             for snap in range(snapshot_no):
                 # Generate the input (Moving bar or MNIST)
                 actual_classes = []
                 if not args.mnist:
+                    # Generate equal number of instances of classes
+                    actual_classes = np.tile(args.classes, testing_no_iterations_per_class)
+                    # shuffle actual_classes in place
+                    np.random.shuffle(actual_classes)
                     aa, final_on_gratings, final_off_gratings = \
                         generate_bar_input(args.no_iterations, chunk, N_layer,
-                                           angles=args.classes)
-                    actual_classes.append(aa)
-                actual_classes = np.asarray(actual_classes)
+                                           angles=args.classes,
+                                           actual_angles=actual_classes)
+                    aa = np.asarray(aa)
+                    assert np.all(aa==actual_classes)
+                # actual_classes = np.asarray(actual_classes)
                 # TODO if the network has snapshots and run this for every simulation
                 # Begin all the simulation stuff
                 sim.setup(timestep=1.0, min_delay=1.0, max_delay=15)
@@ -323,41 +363,41 @@ for path in args.path:
                                 receptor_type="excitatory"
                             )
 
-                    if args.unsupervised:
-                        # Sample from target_pop with initial weight of w_max
-                        # because there is no extra signal that can cause readout
-                        # neurons to fire
-                        target_readout_projection = sim.Projection(
-                            target_pop, readout_pop,
-                            sim.FixedProbabilityConnector(p_connect=p_connect),
-                            synapse_type=structure_model_w_stdp if args.rewiring else stdp_model,
-                            label="unsupervised_readout_sampling",
-                            receptor_type="excitatory")
+                        if args.unsupervised:
+                            # Sample from target_pop with initial weight of w_max
+                            # because there is no extra signal that can cause readout
+                            # neurons to fire
+                            target_readout_projection = sim.Projection(
+                                target_pop, readout_pop,
+                                sim.FixedProbabilityConnector(p_connect=p_connect),
+                                synapse_type=structure_model_w_stdp if args.rewiring else stdp_model,
+                                label="unsupervised_readout_sampling",
+                                receptor_type="excitatory")
 
-                    # Setup lateral connections between readout neurons
-                    if args.wta_readout or args.unsupervised:
-                        # Create a strong inhibitory projection between the readout
-                        # neurons
-                        # AllToAll connector is behaving weirdly
-                        all_to_all_connections = []
-                        for i in range(classes.size):
-                            for j in range(classes.size):
-                                all_to_all_connections.append(
-                                    (i, j, inhibition_weight_multiplier*w_max, 1))
+                        # Setup lateral connections between readout neurons
+                        if args.wta_readout or args.unsupervised:
+                            # Create a strong inhibitory projection between the readout
+                            # neurons
+                            # AllToAll connector is behaving weirdly
+                            all_to_all_connections = []
+                            for i in range(classes.size):
+                                for j in range(classes.size):
+                                    all_to_all_connections.append(
+                                        (i, j, inhibition_weight_multiplier*w_max, 1))
 
-                        if args.rewiring:
-                            wta_projection = sim.Projection(
-                                readout_pop, readout_pop,
-                                sim.FixedProbabilityConnector(0.),
-                                synapse_type=structure_model_w_stdp,
-                                label="wta_strong_inhibition_readout_rewired",
-                                receptor_type="inhibitory")
-                        else:
-                            wta_projection = sim.Projection(
-                                readout_pop, readout_pop,
-                                sim.FromListConnector(all_to_all_connections),
-                                label="wta_strong_inhibition_readout",
-                                receptor_type="inhibitory")
+                            if args.rewiring:
+                                wta_projection = sim.Projection(
+                                    readout_pop, readout_pop,
+                                    sim.FixedProbabilityConnector(0.),
+                                    synapse_type=structure_model_w_stdp,
+                                    label="wta_strong_inhibition_readout_rewired",
+                                    receptor_type="inhibitory")
+                            else:
+                                wta_projection = sim.Projection(
+                                    readout_pop, readout_pop,
+                                    sim.FromListConnector(all_to_all_connections),
+                                    label="wta_strong_inhibition_readout",
+                                    receptor_type="inhibitory")
 
                 elif phase == TESTING_PHASE:
                     # Extract static connectivity from the training phase
@@ -487,9 +527,13 @@ for path in args.path:
                 inhibitory_spikes = []
                 e = None
                 print("Starting the sim")
+                if phase == TRAINING_PHASE:
+                    t_record = args.t_record
+                else:
+                    t_record = args.testing_t_record
 
-                no_runs = simtime // args.t_record
-                run_duration = args.t_record
+                no_runs = simtime // t_record
+                run_duration = t_record
                 if no_runs == 0:
                     no_runs = 1
                     run_duration = simtime
@@ -540,31 +584,10 @@ for path in args.path:
             target_weights = np.asarray(target_weights)
             wta_weights = np.asarray(wta_weights)
 
-            # need to retrieve name of the file (not the entire path)
-            prefix = "training_readout_for_"
-            if phase == TESTING_PHASE:
-                prefix = "testing_readout_for_"
-            if args.min_supervised:
-                prefix += "min_"
-            elif args.max_supervised:
-                prefix += "max_"
-            elif args.unsupervised:
-                prefix += "uns_"
-            filename = prefix + str(ntpath.basename(path))
-            if ".npz" in filename:
-                filename = filename[:-4]
-
-            filename += "_run_" + str(run)
-
             if e:
-                filename = "error_" + filename
                 current_error = e
 
-            if args.rewiring:
-                filename += "_rewiring"
-
-            if args.suffix:
-                filename += "_" + args.suffix
+            filename = generate_readout_filename(path, phase, args, run, e)
 
             # This has to be set after all the filename adjustments
             if phase == TRAINING_PHASE:

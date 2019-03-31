@@ -12,6 +12,7 @@ DEFAULT_NO_ITERATIONS = DEFAULT_CHUNK_SIZE * (100 * len(DEFAULT_CLASSES))
 DEFAULT_T_RECORD = 200000
 DEFAULT_P_CONNECT = .1  # 10%
 DEFAULT_RUNS = 1
+DEFAULT_TESTING_NO_ITERATIONS_PER_CLASS = 200
 
 DEFAULT_B = 1.3
 DEFAULT_TAU_MINUS = 60  # ms
@@ -160,6 +161,13 @@ parser.add_argument('--no_iterations', type=int,
                          'the simulation (technically, ms)'
                          ' -- [default {}]'.format(DEFAULT_NO_ITERATIONS))
 
+parser.add_argument('--no_iterations_per_class', type=int,
+                    default=DEFAULT_TESTING_NO_ITERATIONS_PER_CLASS,
+                    dest='testing_no_iterations_per_class',
+                    help='total number of iterations (pattern presentations) for '
+                         'each class'
+                         ' -- [default {}]'.format(DEFAULT_TESTING_NO_ITERATIONS_PER_CLASS))
+
 parser.add_argument('--classes',
                     help="[App: Motion detection] Network will be trained "
                          "using a random succession of these classes"
@@ -169,6 +177,11 @@ parser.add_argument('--classes',
                     )
 
 parser.add_argument('--t_record', type=int,
+                    default=DEFAULT_T_RECORD, dest='t_record',
+                    help='time between retrieval of recordings (ms)'
+                         ' -- [default {}]'.format(DEFAULT_T_RECORD))
+
+parser.add_argument('--testing_t_record', type=int,
                     default=DEFAULT_T_RECORD, dest='t_record',
                     help='time between retrieval of recordings (ms)'
                          ' -- [default {}]'.format(DEFAULT_T_RECORD))
@@ -225,5 +238,12 @@ parser.add_argument('--p_elim_dep', type=float,
 parser.add_argument('--f_rew', type=float,
                     default=DEFAULT_F_REW, dest='f_rew',
                     help='frequency of rewire attempts (Hz)')
+
+parser.add_argument('--no-cache',
+                    help="force simulation re-run without "
+                         "using cached "
+                         "information"
+                         " -- [default {}]".format(False),
+                    action="store_true", dest="no_cache")
 
 args = parser.parse_args()

@@ -356,9 +356,11 @@ def tile_grating_times(one_cycle, simtime):
 
 
 def generate_bar_input(simtime, chunk, N_layer, angles=np.arange(0, 360, 5),
-                       in_folder="spiking_moving_bar_input", offset=0):
+                       in_folder="spiking_moving_bar_input", offset=0,
+                       actual_angles = None):
     n = int(np.sqrt(N_layer))
-    actual_angles = np.random.choice(angles, int(simtime / chunk))
+    if actual_angles is None:
+        actual_angles = np.random.choice(angles, int(simtime / chunk))
     spike_times = []
     for _ in range(N_layer):
         spike_times.append([])
