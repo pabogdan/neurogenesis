@@ -182,7 +182,7 @@ parser.add_argument('--t_record', type=int,
                          ' -- [default {}]'.format(DEFAULT_T_RECORD))
 
 parser.add_argument('--testing_t_record', type=int,
-                    default=DEFAULT_T_RECORD, dest='t_record',
+                    default=DEFAULT_T_RECORD, dest='testing_t_record',
                     help='time between retrieval of recordings (ms)'
                          ' -- [default {}]'.format(DEFAULT_T_RECORD))
 
