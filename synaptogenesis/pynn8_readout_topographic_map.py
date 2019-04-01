@@ -99,11 +99,11 @@ for path in args.path:
     testing_no_iterations_per_class = args.testing_no_iterations_per_class
     testing_simtime = testing_no_iterations_per_class * len(args.classes) * chunk
     current_training_file = None
-    current_error = None
     snapshot_no = 1
     snap_keys = [0]
     for run in np.arange(args.runs):
         print("Run ", run)
+        current_error = None
         for phase in PHASES:
             print("Phase ", PHASES_NAMES[phase])
             target_snapshots = {}
@@ -136,8 +136,7 @@ for path in args.path:
                 simtime = testing_simtime
             start_time = plt.datetime.datetime.now()
 
-
-
+            # if the network has snapshots and run this for every simulation
             for snap in range(snapshot_no):
                 # Generate the input (Moving bar or MNIST)
                 actual_classes = []
@@ -156,7 +155,6 @@ for path in args.path:
                     aa = np.asarray(aa)
                     actual_classes = aa
                 # actual_classes = np.asarray(actual_classes)
-                # TODO if the network has snapshots and run this for every simulation
                 # Begin all the simulation stuff
                 sim.setup(timestep=1.0, min_delay=1.0, max_delay=15)
                 sim.set_number_of_neurons_per_core(sim.IF_curr_exp, 50)
@@ -570,6 +568,14 @@ for path in args.path:
                     readout_spikes = readout_pop.spinnaker_get_data('spikes')
                     sim.end()
 
+                    target_spikes = np.asarray(target_spikes)
+                    inhibitory_spikes = np.asarray(inhibitory_spikes)
+                    readout_spikes = np.asarray(readout_spikes)
+
+                    target_spikes_snapshots[snap_keys[snap]] = target_spikes
+                    inhibitory_spikes_snapshots[snap_keys[snap]] = inhibitory_spikes
+                    readout_spikes_snapshots[snap_keys[snap]] = readout_spikes
+
                 except Exception as e:
                     # Print exception traceback
                     traceback.print_exc()
@@ -577,13 +583,6 @@ for path in args.path:
             total_time = end_time - start_time
             print("Total time elapsed -- " + str(total_time))
 
-            target_spikes = np.asarray(target_spikes)
-            inhibitory_spikes = np.asarray(inhibitory_spikes)
-            readout_spikes = np.asarray(readout_spikes)
-
-            target_spikes_snapshots[snap_keys[snap]] = target_spikes
-            inhibitory_spikes_snapshots[snap_keys[snap]] = inhibitory_spikes
-            readout_spikes_snapshots[snap_keys[snap]] = readout_spikes
 
             target_weights = np.asarray(target_weights)
             wta_weights = np.asarray(wta_weights)
