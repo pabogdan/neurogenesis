@@ -13,6 +13,7 @@ import numpy as np
 import pylab as plt
 import os
 import ntpath
+import copy
 
 import spynnaker8 as sim
 # from spynnaker8.extra_models import SpikeSourcePoissonVariable
@@ -551,7 +552,8 @@ for path in args.path:
                                     target_readout_projection._get_synaptic_data(True, 'target'),
                                     target_readout_projection._get_synaptic_data(True, 'weight'),
                                     target_readout_projection._get_synaptic_data(True, 'delay')]).T)
-                            target_snapshots[current_run * run_duration] = target_weights[-1]
+                            target_snapshots[current_run * run_duration] = \
+                                np.copy(np.asarray(target_weights[-1]))
                             if args.wta_readout or args.unsupervised:
                                 wta_weights.append(
                                     np.array([
@@ -559,7 +561,8 @@ for path in args.path:
                                         wta_projection._get_synaptic_data(True, 'target'),
                                         wta_projection._get_synaptic_data(True, 'weight'),
                                         wta_projection._get_synaptic_data(True, 'delay')]).T)
-                                wta_snapshots[current_run * run_duration] = wta_weights[-1]
+                                wta_snapshots[current_run * run_duration] = \
+                                    np.copy(np.asarray(wta_weights[-1]))
 
                     # Retrieve recordings
                     target_spikes = target_pop.spinnaker_get_data('spikes')
@@ -572,9 +575,9 @@ for path in args.path:
                     inhibitory_spikes = np.asarray(inhibitory_spikes)
                     readout_spikes = np.asarray(readout_spikes)
 
-                    target_spikes_snapshots[snap_keys[snap]] = target_spikes
-                    inhibitory_spikes_snapshots[snap_keys[snap]] = inhibitory_spikes
-                    readout_spikes_snapshots[snap_keys[snap]] = readout_spikes
+                    target_spikes_snapshots[snap_keys[snap]] = np.copy(target_spikes)
+                    inhibitory_spikes_snapshots[snap_keys[snap]] = np.copy(inhibitory_spikes)
+                    readout_spikes_snapshots[snap_keys[snap]] = np.copy(readout_spikes)
 
                 except Exception as e:
                     # Print exception traceback
