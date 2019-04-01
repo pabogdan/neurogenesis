@@ -113,11 +113,12 @@ for path in args.path:
             inhibitory_spikes_snapshots = {}
             if phase == TRAINING_PHASE:
                 mock_filename = generate_readout_filename(path, phase, args, run, None)
-                if mock_filename and os.path.isfile(mock_filename + ".npz") and not args.no_cache:
-                    print("Simulation has been run before & Cached version of results "
-                          "exists!")
-                    current_training_file = mock_filename
-                    continue
+
+            if mock_filename and os.path.isfile(mock_filename + ".npz") and not args.no_cache:
+                print("Simulation has been run before & Cached version of results "
+                      "exists!")
+                current_training_file = mock_filename
+                continue
             if current_error:
                 print("Something broke... aborting this run!")
                 break
@@ -366,41 +367,41 @@ for path in args.path:
                                 receptor_type="excitatory"
                             )
 
-                        if args.unsupervised:
-                            # Sample from target_pop with initial weight of w_max
-                            # because there is no extra signal that can cause readout
-                            # neurons to fire
-                            target_readout_projection = sim.Projection(
-                                target_pop, readout_pop,
-                                sim.FixedProbabilityConnector(p_connect=p_connect),
-                                synapse_type=structure_model_w_stdp if args.rewiring else stdp_model,
-                                label="unsupervised_readout_sampling",
-                                receptor_type="excitatory")
+                    if args.unsupervised:
+                        # Sample from target_pop with initial weight of w_max
+                        # because there is no extra signal that can cause readout
+                        # neurons to fire
+                        target_readout_projection = sim.Projection(
+                            target_pop, readout_pop,
+                            sim.FixedProbabilityConnector(p_connect=p_connect),
+                            synapse_type=structure_model_w_stdp if args.rewiring else stdp_model,
+                            label="unsupervised_readout_sampling",
+                            receptor_type="excitatory")
 
-                        # Setup lateral connections between readout neurons
-                        if args.wta_readout or args.unsupervised:
-                            # Create a strong inhibitory projection between the readout
-                            # neurons
-                            # AllToAll connector is behaving weirdly
-                            all_to_all_connections = []
-                            for i in range(classes.size):
-                                for j in range(classes.size):
-                                    all_to_all_connections.append(
-                                        (i, j, inhibition_weight_multiplier*w_max, 1))
+                    # Setup lateral connections between readout neurons
+                    if args.wta_readout or args.unsupervised:
+                        # Create a strong inhibitory projection between the readout
+                        # neurons
+                        # AllToAll connector is behaving weirdly
+                        all_to_all_connections = []
+                        for i in range(classes.size):
+                            for j in range(classes.size):
+                                all_to_all_connections.append(
+                                    (i, j, inhibition_weight_multiplier*w_max, 1))
 
-                            if args.rewiring:
-                                wta_projection = sim.Projection(
-                                    readout_pop, readout_pop,
-                                    sim.FixedProbabilityConnector(0.),
-                                    synapse_type=structure_model_w_stdp,
-                                    label="wta_strong_inhibition_readout_rewired",
-                                    receptor_type="inhibitory")
-                            else:
-                                wta_projection = sim.Projection(
-                                    readout_pop, readout_pop,
-                                    sim.FromListConnector(all_to_all_connections),
-                                    label="wta_strong_inhibition_readout",
-                                    receptor_type="inhibitory")
+                        if args.rewiring:
+                            wta_projection = sim.Projection(
+                                readout_pop, readout_pop,
+                                sim.FixedProbabilityConnector(0.),
+                                synapse_type=structure_model_w_stdp,
+                                label="wta_strong_inhibition_readout_rewired",
+                                receptor_type="inhibitory")
+                        else:
+                            wta_projection = sim.Projection(
+                                readout_pop, readout_pop,
+                                sim.FromListConnector(all_to_all_connections),
+                                label="wta_strong_inhibition_readout",
+                                receptor_type="inhibitory")
 
                 elif phase == TESTING_PHASE:
                     # Extract static connectivity from the training phase
