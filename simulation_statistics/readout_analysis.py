@@ -18,9 +18,11 @@ import sklearn.metrics as metrics
 import itertools
 from argparser import *
 import os
+from collections import Iterable
 
 # ensure we use viridis as the default cmap
 plt.viridis()
+viridis_cmap = mlib.cm.get_cmap('viridis')
 
 # ensure we use the same rc parameters for all matplotlib outputs
 mlib.rcParams.update({'font.size': 24})
@@ -91,18 +93,26 @@ def class_assignment(spikes, classes, actual_classes, training_type,
                 wta_max_acc = acc_score
                 wta_likely_classes = perm
 
-            acc_score = metrics.accuracy_score(actual_classes.ravel(), perm[first_to_spike.astype(int)].ravel())
+            first_perm = first_to_spike.astype(int).ravel()
+            construct_first_responses = []
+            for f in first_perm:
+                if f != -1:
+                    construct_first_responses.append(perm[f])
+                else:
+                    construct_first_responses.append(f)
+            construct_first_responses = np.asarray(construct_first_responses)
+            acc_score = metrics.accuracy_score(actual_classes.ravel(), construct_first_responses)
             if acc_score > rank_order_max_acc:
                 print("ro_", acc_score)
                 rank_order_max_acc = acc_score
                 rank_order_likely_classes = perm
 
             rmse = np.sqrt(
-                np.mean(((actual_classes.ravel() - perm[first_to_spike.astype(int)].astype(float).ravel()) ** 2)))
+                np.mean(((actual_classes.ravel() - construct_first_responses.astype(float).ravel()) ** 2)))
             if rmse < min_rmse:
                 print("rmse_", acc_score)
-                min_rmse = acc_score
-                rmse_classes = perm
+                min_rmse = rmse
+                rmse_classes = np.copy(perm)
         wta_predictions = what_network_thinks.astype(int).ravel()
         rank_order_predictions = first_to_spike.astype(int).ravel()
         return wta_predictions, rank_order_predictions, wta_likely_classes, rank_order_likely_classes, rmse_classes
@@ -166,7 +176,6 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
     testing_actual_classes = testing_data['actual_classes'].ravel()
     testing_target_readout_projection = testing_data['target_readout_projection']
 
-
     readout_sim_params = testing_data['readout_sim_params'].ravel()[0]
     w_max = readout_sim_params['argparser']['w_max']
     simtime = testing_data['simtime'] * ms
@@ -193,8 +202,8 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
         suffix_test += "_rewiring"
     if original_delays_are_constant:
         suffix_test += "_constant"
-    print("="*45)
-    print("{:45}".format("The suffix for this set of figures is "), ":",  suffix_test)
+    print("=" * 45)
+    print("{:45}".format("The suffix for this set of figures is "), ":", suffix_test)
     print("{:45}".format("The training archive name is "), ":", training_fname)
     print("{:45}".format("The testing archive name is "), ":", testing_fname)
 
@@ -282,14 +291,111 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
     if show_plots:
         plt.show()
     plt.close(fig)
-    print("="*45,"\n\n")
+    print("=" * 45, "\n\n")
+
+
+def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", show_plots=False):
+    if isinstance(runs, Iterable):
+        run_nos = runs
+    else:
+        run_nos = np.arange(runs)
+    number_of_runs = run_nos.size
+    # Create structure to hold the results for each simulation and their snapshots
+
+    # a dictionary whose keys are the run being analysed
+    # the values of these dicts should also be {} based on snapshots
+    wta_predicted_classes = {}
+    wta_predictions = {}
+    ro_predicted_classes = {}
+    ro_predictions = {}
+    actual_classes = {}
+    readout_spikes = {}
+    readout_connecitvity = {}
+    inter_readout_connectivity  = {}
+
+    # Iterate over simulations and the snapshots in testing archives
+    for run in run_nos:
+        training_fname = "training_readout_for_" + training_type + "_" + fname + "_run_" + str(run) + extra_suffix
+        testing_fname = "testing_readout_for_" + training_type + "_" + fname + "_run_" + str(run) + extra_suffix
+        training_data = np.load(root_syn + training_fname + ".npz")
+        testing_data = np.load(root_syn + testing_fname + ".npz")
+        print("{:45}".format("The training archive name is "), ":", training_fname)
+        print("{:45}".format("The testing archive name is "), ":", testing_fname)
+
+        # Retreive data from testing data
+        testing_readout_spikes = testing_data['readout_spikes']
+        testing_actual_classes = testing_data['actual_classes'].ravel()
+        testing_target_readout_projection = testing_data['target_readout_projection']
+        snapshots_present = training_data['snapshots_present'].ravel()[0]
+        target_snapshots = training_data['target_snapshots'].ravel()[0]
+        wta_snapshots = training_data['wta_snapshots'].ravel()[0]
+
+        readout_spikes_snapshots = testing_data['readout_spikes_snapshots'].ravel()[0]
+
+
+
+        readout_sim_params = testing_data['readout_sim_params'].ravel()[0]
+        break
+        w_max = readout_sim_params['argparser']['w_max']
+        simtime = testing_data['simtime'] * ms
+        chunk = testing_data['chunk']
+
+        is_rewiring_enable = False
+        if 'rewiring' in training_data.files:
+            is_rewiring_enable = training_data['rewiring']
+
+        # Retreive data from training data
+        training_actual_classes = training_data['actual_classes']
+        training_readout_spikes = training_data['readout_spikes']
+        target_readout_projection = training_data['target_readout_projection']
+        wta_projection = training_data['wta_projection']
+        training_sim_params = training_data['input_sim_params'].ravel()[0]
+
+        original_delays_are_constant = training_sim_params['constant_delay']
+
+        suffix_test = generate_readout_suffix(training_actual_classes)
+        suffix_test += "_" + training_type
+        if extra_suffix:
+            suffix_test += extra_suffix
+        if is_rewiring_enable:
+            suffix_test += "_rewiring"
+        if original_delays_are_constant:
+            suffix_test += "_constant"
+        target_readout_projection = target_readout_projection.reshape(target_readout_projection.size / 4, 4)
+        wta_projection = wta_projection.reshape(wta_projection.size / 4, 4)
+        classes = np.sort(np.unique(testing_actual_classes))
+
+        training_data.close()
+        testing_data.close()
+        _wta_predictions, _rank_order_predictions, _wta_likely_classes, \
+        _rank_order_likely_classes, _rmse_classes = class_assignment(
+            testing_readout_spikes,
+            classes=classes,
+            actual_classes=testing_actual_classes,
+            training_type=training_type,
+            simtime=simtime,
+            chunk=chunk)
+
+    # TODO is rewiring not present plot the evolution of weights / run as plt.plot
+
+    # TODO plot the evolution of weights as boxplot
+
+    print("=" * 45)
+    print("{:45}".format("The suffix for this set of figures is "), ":", suffix_test)
+
+    # TODO for each snapshot point plot the accuracy, recall and STD (2 plots)
 
 
 if __name__ == "__main__":
     import sys
+
+    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_multiple_runs(fname, runs=3, training_type="uns", extra_suffix="_100s")
+    sys.exit()
+
     # Attempting readout of constant delay network
 
-    fname="random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
     readout_neuron_analysis(fname, training_type="uns", extra_suffix="_NESW")
     readout_neuron_analysis(fname, training_type="uns", extra_suffix="_NESW_80s")
     readout_neuron_analysis(fname, training_type="uns", extra_suffix="_rewiring_NESW_rew_p_0")
@@ -344,7 +450,6 @@ if __name__ == "__main__":
     fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
     readout_neuron_analysis(fname, training_type="max", extra_suffix="")
 
-
     fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
     readout_neuron_analysis(fname, training_type="uns", extra_suffix="_b_1")
 
@@ -356,9 +461,7 @@ if __name__ == "__main__":
 
     sys.exit()  # These simulations seem to have an issue with depressing connections too much
 
-
     # The following is the reference simulation
     fname = "random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_evo"
     extra_suffix = "_rerun"
     readout_neuron_analysis(fname, training_type="uns", extra_suffix=extra_suffix)  # perfect
-
