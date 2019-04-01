@@ -112,11 +112,13 @@ for path in args.path:
             readout_spikes_snapshots = {}
             target_spikes_snapshots = {}
             inhibitory_spikes_snapshots = {}
+            actual_classes_snapshots = {}
             mock_filename = generate_readout_filename(path, phase, args, run, None)
 
             if mock_filename and os.path.isfile(mock_filename + ".npz") and not args.no_cache:
                 print("Simulation has been run before & Cached version of results "
                       "exists!")
+                print(mock_filename)
                 current_training_file = mock_filename
                 continue
             if current_error:
@@ -577,6 +579,7 @@ for path in args.path:
                     target_spikes_snapshots[snap_keys[snap]] = np.copy(target_spikes)
                     inhibitory_spikes_snapshots[snap_keys[snap]] = np.copy(inhibitory_spikes)
                     readout_spikes_snapshots[snap_keys[snap]] = np.copy(readout_spikes)
+                    actual_classes_snapshots[snap_keys[snap]] = np.copy(actual_classes)
 
                 except Exception as e:
                     # Print exception traceback
@@ -632,6 +635,7 @@ for path in args.path:
                 wta_snapshots=wta_snapshots,
                 target_spikes_snapshots=target_spikes_snapshots,
                 readout_spikes_snapshots=readout_spikes_snapshots,
-                inhibitory_spikes_snapshots=inhibitory_spikes_snapshots
+                inhibitory_spikes_snapshots=inhibitory_spikes_snapshots,
+                actual_classes_snapshots=actual_classes_snapshots
             )
             print("Results in", filename)
