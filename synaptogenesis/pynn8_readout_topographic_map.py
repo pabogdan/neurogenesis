@@ -112,8 +112,7 @@ for path in args.path:
             readout_spikes_snapshots = {}
             target_spikes_snapshots = {}
             inhibitory_spikes_snapshots = {}
-            if phase == TRAINING_PHASE:
-                mock_filename = generate_readout_filename(path, phase, args, run, None)
+            mock_filename = generate_readout_filename(path, phase, args, run, None)
 
             if mock_filename and os.path.isfile(mock_filename + ".npz") and not args.no_cache:
                 print("Simulation has been run before & Cached version of results "
