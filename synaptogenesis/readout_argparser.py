@@ -187,7 +187,7 @@ parser.add_argument('--testing_t_record', type=int,
                          ' -- [default {}]'.format(DEFAULT_T_RECORD))
 
 
-parser.add_argument('--runs', type=int,
+parser.add_argument('--runs', type=int, nargs="+",
                     default=DEFAULT_RUNS,
                     help='how many times to run the training + testing '
                          'experiments -- [default {}]'.format(DEFAULT_RUNS))

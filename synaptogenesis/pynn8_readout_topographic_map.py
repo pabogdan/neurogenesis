@@ -14,8 +14,10 @@ import pylab as plt
 import os
 import ntpath
 import copy
+from collections import Iterable
 
 import spynnaker8 as sim
+
 # from spynnaker8.extra_models import SpikeSourcePoissonVariable
 
 # SpiNNaker setup
@@ -35,6 +37,7 @@ if (not args.min_supervised and
 if len(args.path) == 0:
     raise AttributeError("Testing setup insufficiently defined! "
                          "Please specify connectivity npz file.")
+
 
 def generate_readout_filename(path, phase, args, run, e):
     # need to retrieve name of the file (not the entire path)
@@ -63,11 +66,19 @@ def generate_readout_filename(path, phase, args, run, e):
         filename += "_" + args.suffix
     return filename
 
+
 # check if the figures folder exist
 sim_dir = args.sim_dir
 if not os.path.isdir(sim_dir) and not os.path.exists(sim_dir):
     print("Making sims dir ...")
     os.mkdir(sim_dir)
+
+# resolve sequence of runs
+arg_passed_run = args.runs
+if not isinstance(arg_passed_run, Iterable) or len(arg_passed_run) == 1:
+    run_seq = np.arange(arg_passed_run[0])
+else:
+    run_seq = np.asarray(arg_passed_run).ravel()
 
 initial_weight = 0
 if args.min_supervised:
@@ -102,7 +113,7 @@ for path in args.path:
     current_training_file = None
     snapshot_no = 1
     snap_keys = [0]
-    for run in np.arange(args.runs):
+    for run in run_seq:
         print("Run ", run)
         current_error = None
         for phase in PHASES:
@@ -241,7 +252,8 @@ for path in args.path:
                     # 'training_angles': training_angles,
                     'argparser': vars(args),
                     'phase': phase,
-                    'actual_classes': np.copy(actual_classes)
+                    'actual_classes': np.copy(actual_classes),
+                    'run_seq': run_seq
                 }
 
                 stdp_model = sim.STDPMechanism(
@@ -325,7 +337,7 @@ for path in args.path:
                             repeated_bases = np.repeat(base_offsets,
                                                        label_time_offset.size)
                             repeated_time_offsets = np.tile(label_time_offset,
-                                                              base_offsets.size)
+                                                            base_offsets.size)
                             spike_times_for_current_class = repeated_bases + \
                                                             repeated_time_offsets
                             label_spikes.append(spike_times_for_current_class)
@@ -387,7 +399,7 @@ for path in args.path:
                         for i in range(classes.size):
                             for j in range(classes.size):
                                 all_to_all_connections.append(
-                                    (i, j, inhibition_weight_multiplier*w_max, 1))
+                                    (i, j, inhibition_weight_multiplier * w_max, 1))
 
                         if args.rewiring:
                             wta_projection = sim.Projection(
@@ -587,7 +599,6 @@ for path in args.path:
             end_time = plt.datetime.datetime.now()
             total_time = end_time - start_time
             print("Total time elapsed -- " + str(total_time))
-
 
             target_weights = np.asarray(target_weights)
             wta_weights = np.asarray(wta_weights)
