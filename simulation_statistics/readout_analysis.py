@@ -205,6 +205,16 @@ def shield_for_class_assignment(spikes, classes, actual_classes, training_type,
     result_dict['ro_classification_f1'] = \
         metrics.f1_score(actual_classes, corrected_ro_predictions,
                          average='weighted')
+    # precision_recall_fscore_support
+    result_dict['wta_classification_precision_recall_fscore_support'] = \
+        metrics.precision_recall_fscore_support(
+            actual_classes, corrected_wta_predictions,
+            average='weighted')
+    result_dict['ro_classification_precision_recall_fscore_support'] = \
+        metrics.precision_recall_fscore_support(
+            actual_classes, corrected_ro_predictions,
+            average='weighted')
+
     # Count instances with no spikes
     result_dict['wta_count_no_spikes'] = np.count_nonzero(
         corrected_wta_predictions == -1)
@@ -635,6 +645,10 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
     ordered_snapshots = np.sort(np.asarray(readout_spikes_snapshots.keys()))
     wta_accuracies = np.empty((number_of_runs, ordered_snapshots.size))
     ro_accuracies = np.empty((number_of_runs, ordered_snapshots.size))
+    wta_precisions = np.empty((number_of_runs, ordered_snapshots.size))
+    ro_precisions = np.empty((number_of_runs, ordered_snapshots.size))
+    wta_fscores = np.empty((number_of_runs, ordered_snapshots.size))
+    ro_fscores = np.empty((number_of_runs, ordered_snapshots.size))
     ro_no_spikes = np.empty((number_of_runs, ordered_snapshots.size))
     wta_no_spikes = np.empty((number_of_runs, ordered_snapshots.size))
     ff_weights = []
@@ -643,59 +657,46 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
     for run in run_nos:
         for index, snap_keys in np.ndenumerate(ordered_snapshots):
             i = int(index[0])
+            # accuracy
             wta_accuracies[run, i] = results_dict[run][snap_keys]['wta_classification_acc']
             ro_accuracies[run, i] = results_dict[run][snap_keys]['ro_classification_acc']
+            # precision
+            wta_precisions[run, i] = results_dict[run][snap_keys]['wta_classification_precision']
+            ro_precisions[run, i] = results_dict[run][snap_keys]['ro_classification_precision']
+            # F1 score
+            wta_fscores[run, i] = results_dict[run][snap_keys]['wta_classification_f1']
+            ro_fscores[run, i] = results_dict[run][snap_keys]['ro_classification_f1']
+            # Count of bins containing no spikes
             ro_no_spikes[run, i] = results_dict[run][snap_keys]['ro_count_no_spikes']
             wta_no_spikes[run, i] = results_dict[run][snap_keys]['wta_count_no_spikes']
             ff_weights[i] += weights_per_run[run][snap_keys].ravel().tolist()
             assert (ro_no_spikes[run, i] == wta_no_spikes[run, i])
 
-    fig, ax = plt.subplots(figsize=(16, 8), dpi=600)
-    # ax2 = ax.twinx()
-    for run in run_nos:
-        cmap_i = (run + 1) / float(number_of_runs)
-        current_color = viridis_cmap(cmap_i)
-        # WTA acc evo
-        ax.plot((ordered_snapshots + t_record) / 1000, wta_accuracies[run, :],
-                c=current_color, alpha=.7)
-        # ax2.plot(ordered_snapshots + t_record, wta_no_spikes[run, :], linestyle=":",
-        #          color=current_color, alpha=0.7)
-    ax.errorbar((ordered_snapshots + t_record) / 1000, np.mean(wta_accuracies, axis=0),
-                yerr=np.std(ro_accuracies, axis=0),
-                c='k', alpha=.7)
-    plt.xlabel("Time (seconds)")
-    plt.ylabel("Accuracy")
-    plt.ylim([-.05, 1.05])
-    plt.grid(True, which='major', axis='y')
-    plt.savefig(fig_folder + "readout_wta_acc_evo{}.pdf".format(suffix_test))
-    plt.savefig(fig_folder + "readout_wta_acc_evo{}.svg".format(suffix_test))
-    if show_plots:
-        plt.show()
-    plt.close(fig)
+    metrics_to_plot = [wta_accuracies, wta_precisions, wta_fscores,
+                       ro_accuracies, ro_precisions, ro_fscores]
+    metrics_names = ["wta_acc", "wta_prec", "wta_fscore",
+                     "ro_acc", "ro_prec", "ro_fscore"]
 
-    fig, ax = plt.subplots(figsize=(16, 8), dpi=600)
-    # ax2 = ax.twinx()
-    for run in run_nos:
-        cmap_i = (run + 1) / float(number_of_runs)
-        current_color = viridis_cmap(cmap_i)
-        # RO acc evo
-        ax.plot((ordered_snapshots + t_record) / 1000, ro_accuracies[run, :],
-                c=current_color, alpha=.7)
-
-        # ax2.plot(ordered_snapshots + t_record, ro_no_spikes[run, :], linestyle=":",
-        #          color=current_color, alpha=0.7)
-    ax.errorbar((ordered_snapshots + t_record) / 1000, np.mean(ro_accuracies, axis=0),
-                yerr=np.std(ro_accuracies, axis=0),
-                c='k', alpha=.7)
-    plt.xlabel("Time (seconds)")
-    plt.ylabel("Accuracy")
-    plt.ylim([-.05, 1.05])
-    plt.grid(True, which='major', axis='y')
-    plt.savefig(fig_folder + "readout_ro_acc_evo{}.pdf".format(suffix_test))
-    plt.savefig(fig_folder + "readout_ro_acc_evo{}.svg".format(suffix_test))
-    if show_plots:
-        plt.show()
-    plt.close(fig)
+    for metric, metric_name in zip(metrics_to_plot, metrics_names):
+        print("{:45}".format("Ploting metric"), ":", metric_name)
+        fig, ax = plt.subplots(figsize=(16, 8), dpi=600)
+        for run in run_nos:
+            cmap_i = (run + 1) / float(number_of_runs)
+            current_color = viridis_cmap(cmap_i)
+            ax.plot((ordered_snapshots + t_record) / 1000, metric[run, :],
+                    c=current_color, alpha=.7)
+        ax.errorbar((ordered_snapshots + t_record) / 1000, np.mean(metric, axis=0),
+                    yerr=stats.sem(metric, axis=0),
+                    c='k', alpha=.7)
+        plt.xlabel("Time (seconds)")
+        plt.ylabel("%", rotation=0)
+        plt.ylim([-.05, 1.05])
+        plt.grid(True, which='major', axis='y')
+        plt.savefig(fig_folder + "readout_{}_evo{}.pdf".format(metric_name, suffix_test))
+        plt.savefig(fig_folder + "readout_{}_evo{}.svg".format(metric_name, suffix_test))
+        if show_plots:
+            plt.show()
+        plt.close(fig)
 
     # TODO is rewiring not present plot the evolution of weights / run as plt.plot
     if not is_rewiring_enable:
@@ -775,7 +776,6 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
     if show_plots:
         plt.show()
     plt.close(fig)
-
 
     np_ff_weights = np.asarray(ff_weights)
     fig = plt.figure(figsize=(16, 8), dpi=600)
