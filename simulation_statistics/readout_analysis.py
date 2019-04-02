@@ -41,6 +41,101 @@ if not os.path.isdir(fig_folder) and not os.path.exists(fig_folder):
     os.mkdir(fig_folder)
 
 
+def _power_on_self_test(fname, training_type="uns", extra_suffix="", show_plots=False):
+    # check shield_for_class_assignment vs. class_assignment
+    # i.e this is the POST area
+    training_fname = "training_readout_for_" + training_type + "_" + fname + extra_suffix
+    testing_fname = "testing_readout_for_" + training_type + "_" + fname + extra_suffix
+
+    training_data = np.load(root_syn + training_fname + ".npz")
+    testing_data = np.load(root_syn + testing_fname + ".npz")
+
+    # Retreive data from testing data
+    testing_target_spikes = testing_data['target_spikes']
+    testing_inhibitory_spikes = testing_data['inhibitory_spikes']
+    testing_readout_spikes = testing_data['readout_spikes']
+    testing_actual_classes = testing_data['actual_classes'].ravel()
+    testing_target_readout_projection = testing_data['target_readout_projection']
+
+    readout_sim_params = testing_data['readout_sim_params'].ravel()[0]
+    w_max = readout_sim_params['argparser']['w_max']
+    simtime = testing_data['simtime'] * ms
+    chunk = testing_data['chunk']
+
+    is_rewiring_enable = False
+    if 'rewiring' in training_data.files:
+        is_rewiring_enable = training_data['rewiring']
+
+    # Retreive data from training data
+    training_actual_classes = training_data['actual_classes']
+    training_readout_spikes = training_data['readout_spikes']
+    target_readout_projection = training_data['target_readout_projection']
+    wta_projection = training_data['wta_projection']
+    training_sim_params = training_data['input_sim_params'].ravel()[0]
+
+    original_delays_are_constant = training_sim_params['constant_delay']
+
+    suffix_test = generate_readout_suffix(training_actual_classes)
+    suffix_test += "_" + training_type
+    if extra_suffix:
+        suffix_test += extra_suffix
+    if is_rewiring_enable:
+        suffix_test += "_rewiring"
+    if original_delays_are_constant:
+        suffix_test += "_constant"
+    print(Fore.RED + "=" * 45)
+    print("{:45}".format("POST POST POST POST POST"))
+    print("{:45}".format("The suffix for this set of figures is "), ":", suffix_test)
+    print("{:45}".format("The training archive name is "), ":", training_fname)
+    print("{:45}".format("The testing archive name is "), ":", testing_fname)
+
+    target_readout_projection = target_readout_projection.reshape(target_readout_projection.size / 4, 4)
+    wta_projection = wta_projection.reshape(wta_projection.size / 4, 4)
+    classes = np.sort(np.unique(testing_actual_classes))
+
+    training_data.close()
+    testing_data.close()
+    wta_predictions, rank_order_predictions, wta_likely_classes, \
+    rank_order_likely_classes, rmse_classes = class_assignment(
+        testing_readout_spikes,
+        classes=classes,
+        actual_classes=testing_actual_classes,
+        training_type=training_type,
+        simtime=simtime,
+        chunk=chunk)
+
+    print(" (VANILLA) WTA ---------------")
+    print(classification_report(testing_actual_classes, wta_likely_classes[wta_predictions]))
+    print(" (VANILLA) WTA LIKELY CLASSES :", wta_likely_classes)
+    print(classification_report(testing_actual_classes,
+                                rank_order_likely_classes[rank_order_predictions]))
+    print(" (VANILLA) RANK ORDER LIKELY CLASSES :", rank_order_likely_classes)
+    result_dict = shield_for_class_assignment(
+        testing_readout_spikes,
+        classes=classes,
+        actual_classes=testing_actual_classes,
+        training_type=training_type,
+        simtime=simtime,
+        chunk=chunk)
+    print(" (SHIELD) WTA ---------------")
+    print(classification_report(testing_actual_classes, result_dict['wta_predictions']))
+    print(" (SHIELD) WTA LIKELY CLASSES :", result_dict['wta_likely_classes'])
+    print(classification_report(testing_actual_classes,
+                                result_dict['ro_predictions']))
+    print(" (SHIELD) RANK ORDER LIKELY CLASSES :", result_dict['ro_likely_classes'])
+
+    # Stop! Assert time!
+    try:
+        assert (np.all(result_dict['ro_likely_classes'] == rank_order_likely_classes))
+        assert (np.all(result_dict['wta_likely_classes'] == wta_likely_classes))
+        assert (np.all(result_dict['ro_predictions'] == rank_order_likely_classes[rank_order_predictions]))
+        assert (np.all(result_dict['wta_predictions'] == wta_likely_classes[wta_predictions]))
+    except:
+        traceback.print_exc()
+    finally:
+        print("{:45}".format("DONE POST DONE POST DONE POST DONE POST"), Style.RESET_ALL)
+
+
 def shield_for_class_assignment(spikes, classes, actual_classes, training_type,
                                 simtime, chunk):
     (wta_predictions,
@@ -55,13 +150,15 @@ def shield_for_class_assignment(spikes, classes, actual_classes, training_type,
         if pred != -1:
             corrected_wta_predictions.append(wta_likely_classes[pred])
         else:
+            # the value is -1
             corrected_wta_predictions.append(pred)
 
     corrected_ro_predictions = []
     for pred in rank_order_predictions:
         if pred != -1:
-            corrected_ro_predictions.append(rank_order_predictions[pred])
+            corrected_ro_predictions.append(rank_order_likely_classes[pred])
         else:
+            # the value is -1
             corrected_ro_predictions.append(pred)
 
     corrected_wta_predictions = np.asarray(corrected_wta_predictions)
@@ -130,6 +227,7 @@ def class_assignment(spikes, classes, actual_classes, training_type,
                 spikes[spikes[:, 0] == number_index][:, 1] < ((chunk_index + 1) * chunk)
             )
         )
+    instaneous_rates = instaneous_rates.astype(int)
     what_network_thinks = np.empty(int((simtime / ms) // chunk))
     for i in range(what_network_thinks.shape[0]):
         #         what_network_thinks[i] = np.argmax(instaneous_rates[:, i])
@@ -144,13 +242,17 @@ def class_assignment(spikes, classes, actual_classes, training_type,
     first_to_spike = np.random.randint(0, 2, size=int((simtime / ms) // chunk))
     for index, value in np.ndenumerate(first_to_spike):
         chunk_index = index[0]
-        try:
-            first_to_spike[chunk_index] = np.sort(spikes[
-                                                      np.where(np.logical_and(
-                                                          spikes[:, 1] >= (chunk_index * chunk),
-                                                          spikes[:, 1] < ((chunk_index + 1) * chunk)
-                                                      ))])[0, 0]
-        except:
+        # order the spike times in the current bin
+        sorted_spikes = np.sort(
+            spikes[np.where(np.logical_and(
+                spikes[:, 1] >= (chunk_index * chunk),
+                spikes[:, 1] < ((chunk_index + 1) * chunk)
+            ))])
+        if sorted_spikes.size > 0:
+            # select the source of the spike occurring at the lowest time
+            # i.e. the first spike in the bin
+            first_to_spike[chunk_index] = sorted_spikes[0, 0]
+        else:
             # print("No spikes", chunk_index)
             first_to_spike[chunk_index] = -1
             pass
@@ -397,7 +499,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
     wta_predictions = {}
     ro_predicted_classes = {}
     ro_predictions = {}
-    actual_classes_snapshots = {}
+    classes_snapshots = {}
     readout_spikes = {}
     readout_connecitvity = {}
     inter_readout_connectivity = {}
@@ -521,37 +623,50 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
         wta_predictions[run] = copy.deepcopy(rl_wta_predictions)
         ro_predicted_classes[run] = copy.deepcopy(rl_ro_predicted_classes)
         ro_predictions[run] = copy.deepcopy(rl_ro_predictions)
-        actual_classes_snapshots[run] = copy.deepcopy(rl_actual_classes_snapshots)
+        classes_snapshots[run] = copy.deepcopy(rl_actual_classes_snapshots)
         readout_spikes[run] = copy.deepcopy(rl_readout_spikes)
         readout_connecitvity[run] = copy.deepcopy(rl_readout_connecitvity)
         inter_readout_connectivity[run] = copy.deepcopy(rl_inter_readout_connectivity)
         results_dict[run] = copy.deepcopy(rl_corrected_results_dict)
         weights_per_run[run] = copy.deepcopy(rl_weights_per_run)
 
-    # plot the
+    # plot the average weight histogram (average over runs for the same snap)
 
     ordered_snapshots = np.sort(np.asarray(readout_spikes_snapshots.keys()))
-    wta_accuracies = np.empty(ordered_snapshots.shape)
-    ro_accuracies = np.empty(ordered_snapshots.shape)
-    ro_no_spikes = np.empty(ordered_snapshots.shape)
-    wta_no_spikes = np.empty(ordered_snapshots.shape)
-
-    fig, ax = plt.subplots(figsize=(16, 8), dpi=600)
-    ax2 = ax.twinx()
+    wta_accuracies = np.empty((number_of_runs, ordered_snapshots.size))
+    ro_accuracies = np.empty((number_of_runs, ordered_snapshots.size))
+    ro_no_spikes = np.empty((number_of_runs, ordered_snapshots.size))
+    wta_no_spikes = np.empty((number_of_runs, ordered_snapshots.size))
+    ff_weights = []
+    for _ in ordered_snapshots:
+        ff_weights.append([])
     for run in run_nos:
         for index, snap_keys in np.ndenumerate(ordered_snapshots):
             i = int(index[0])
-            wta_accuracies[i] = results_dict[run][snap_keys]['wta_classification_acc']
-            ro_accuracies[i] = results_dict[run][snap_keys]['ro_classification_acc']
-            ro_no_spikes[i] = results_dict[run][snap_keys]['ro_count_no_spikes']
-            wta_no_spikes[i] = results_dict[run][snap_keys]['wta_count_no_spikes']
+            wta_accuracies[run, i] = results_dict[run][snap_keys]['wta_classification_acc']
+            ro_accuracies[run, i] = results_dict[run][snap_keys]['ro_classification_acc']
+            ro_no_spikes[run, i] = results_dict[run][snap_keys]['ro_count_no_spikes']
+            wta_no_spikes[run, i] = results_dict[run][snap_keys]['wta_count_no_spikes']
+            ff_weights[i] += weights_per_run[run][snap_keys].ravel().tolist()
+            assert (ro_no_spikes[run, i] == wta_no_spikes[run, i])
+
+    fig, ax = plt.subplots(figsize=(16, 8), dpi=600)
+    # ax2 = ax.twinx()
+    for run in run_nos:
         cmap_i = (run + 1) / float(number_of_runs)
         current_color = viridis_cmap(cmap_i)
         # WTA acc evo
-        ax.plot(ordered_snapshots + t_record, wta_accuracies,
+        ax.plot((ordered_snapshots + t_record) / 1000, wta_accuracies[run, :],
                 c=current_color, alpha=.7)
-        ax2.plot(ordered_snapshots + t_record, wta_no_spikes, linestyle=":",
-                 color=current_color, alpha=0.7)
+        # ax2.plot(ordered_snapshots + t_record, wta_no_spikes[run, :], linestyle=":",
+        #          color=current_color, alpha=0.7)
+    ax.errorbar((ordered_snapshots + t_record) / 1000, np.mean(wta_accuracies, axis=0),
+                yerr=np.std(ro_accuracies, axis=0),
+                c='k', alpha=.7)
+    plt.xlabel("Time (seconds)")
+    plt.ylabel("Accuracy")
+    plt.ylim([-.05, 1.05])
+    plt.grid(True, which='major', axis='y')
     plt.savefig(fig_folder + "readout_wta_acc_evo{}.pdf".format(suffix_test))
     plt.savefig(fig_folder + "readout_wta_acc_evo{}.svg".format(suffix_test))
     if show_plots:
@@ -559,16 +674,23 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(16, 8), dpi=600)
-    ax2 = ax.twinx()
+    # ax2 = ax.twinx()
     for run in run_nos:
         cmap_i = (run + 1) / float(number_of_runs)
         current_color = viridis_cmap(cmap_i)
         # RO acc evo
-        ax.plot(ordered_snapshots + t_record, ro_accuracies,
+        ax.plot((ordered_snapshots + t_record) / 1000, ro_accuracies[run, :],
                 c=current_color, alpha=.7)
 
-        ax2.plot(ordered_snapshots + t_record, ro_no_spikes, linestyle=":",
-                 color=current_color, alpha=0.7)
+        # ax2.plot(ordered_snapshots + t_record, ro_no_spikes[run, :], linestyle=":",
+        #          color=current_color, alpha=0.7)
+    ax.errorbar((ordered_snapshots + t_record) / 1000, np.mean(ro_accuracies, axis=0),
+                yerr=np.std(ro_accuracies, axis=0),
+                c='k', alpha=.7)
+    plt.xlabel("Time (seconds)")
+    plt.ylabel("Accuracy")
+    plt.ylim([-.05, 1.05])
+    plt.grid(True, which='major', axis='y')
     plt.savefig(fig_folder + "readout_ro_acc_evo{}.pdf".format(suffix_test))
     plt.savefig(fig_folder + "readout_ro_acc_evo{}.svg".format(suffix_test))
     if show_plots:
@@ -622,23 +744,70 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
 
     # stlye the median of boxplots
     medianprops = dict(color='#414C82', linewidth=1.5)
+    fig = plt.figure(figsize=(16, 8), dpi=600)
+    plt.axhline(1. / len(classes), color='#b2dd2c', ls=":")
 
-    # fig = plt.figure(figsize=(16, 8), dpi=600)
-    # plt.axhline(.5, color='#b2dd2c', ls=":")
-    # bp = plt.boxplot(all_dsis.T, notch=True, medianprops=medianprops)
-    #
-    # plt.xticks(np.arange(times_in_minutes.shape[0]) + 1, times_in_minutes)
-    # plt.xlabel("Time (minutes)")
-    # plt.ylabel("DSI")
+    bp = plt.boxplot(wta_accuracies, notch=True, medianprops=medianprops)
+
+    plt.xticks(np.arange(ordered_snapshots.shape[0]) + 1, (ordered_snapshots + t_record) / 1000)
+    plt.xlabel("Time (seconds)")
+    plt.ylabel("Accuracy")
+    plt.ylim([-.05, 1.05])
+    plt.grid(True, which='major', axis='y')
+    plt.savefig(fig_folder + "readout_wta_accuracy_boxplot{}.pdf".format(suffix_test))
+    plt.savefig(fig_folder + "readout_wta_accuracy_boxplot{}.svg".format(suffix_test))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    fig = plt.figure(figsize=(16, 8), dpi=600)
+    plt.axhline(1. / len(classes), color='#b2dd2c', ls=":")
+
+    bp = plt.boxplot(ro_accuracies, notch=True, medianprops=medianprops)
+
+    plt.xticks(np.arange(ordered_snapshots.shape[0]) + 1, (ordered_snapshots + t_record) / 1000)
+    plt.xlabel("Time (seconds)")
+    plt.ylabel("Accuracy")
+    plt.ylim([-.05, 1.05])
+    plt.grid(True, which='major', axis='y')
+    plt.savefig(fig_folder + "readout_ro_accuracy_boxplot{}.pdf".format(suffix_test))
+    plt.savefig(fig_folder + "readout_ro_accuracy_boxplot{}.svg".format(suffix_test))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+
+    np_ff_weights = np.asarray(ff_weights)
+    fig = plt.figure(figsize=(16, 8), dpi=600)
+    bp = plt.boxplot(np_ff_weights.T, notch=True, medianprops=medianprops)
+
+    plt.xticks(np.arange(ordered_snapshots.shape[0]) + 1, (ordered_snapshots + t_record) / 1000)
+    plt.xlabel("Time (seconds)")
+    plt.ylabel(r"$\frac{g}{g_{max}}$", rotation="horizontal")
+    plt.ylim([-.05, 1.05])
+    plt.grid(True, which='major', axis='y')
+    plt.savefig(fig_folder + "readout_weight_boxplot_evo{}.pdf".format(suffix_test))
+    plt.savefig(fig_folder + "readout_weight_boxplot_evo{}.svg".format(suffix_test))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
+    fig = plt.figure(figsize=(16, 8), dpi=600)
+    # bp = plt.boxplot(ro_no_spikes, notch=True, medianprops=medianprops)
+    plt.errorbar((ordered_snapshots + t_record) / 1000, np.mean(ro_no_spikes, axis=0), yerr=np.std(ro_no_spikes, axis=0))
+    # plt.xticks(np.arange(ordered_snapshots.shape[0]) + 1, (ordered_snapshots + t_record) / 1000)
+    plt.xlabel("Time (seconds)")
+    plt.ylabel("# of bins with no spikes")
     # plt.ylim([-.05, 1.05])
-    # plt.grid(True, which='major', axis='y')
-    # plt.savefig(fig_folder + "readout_connectivity_boxplot_{}.pdf".format(suffix))
-    # plt.savefig(fig_folder + "readout_connectivity_boxplot_{}.svg".format(suffix))
-    # if show_plots:
-    #     plt.show()
-    # plt.close(fig)
+    plt.grid(True, which='major', axis='y')
+    plt.savefig(fig_folder + "readout_no_spikes_evo{}.pdf".format(suffix_test))
+    plt.savefig(fig_folder + "readout_no_spikes_evo{}.svg".format(suffix_test))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+
     print("=" * 45)
-    print("{:45}".format("The suffix for this set of figures is "), ":", suffix_test)
+    print(Fore.GREEN, "{:45}".format("The suffix for this set of figures is "), ":", suffix_test, Style.RESET_ALL)
 
     # TODO for each snapshot point plot the accuracy, recall and STD (2 plots)
 
@@ -646,11 +815,18 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
 if __name__ == "__main__":
     import sys
 
+    #  post area
     fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_p_.2_b_1.1")  # perfect
+    _power_on_self_test(fname, training_type="uns", extra_suffix="_p_.2_b_1.1")  # perfect
+    _power_on_self_test(fname, training_type="uns", extra_suffix="_run_0_100s")
+    # /post area
 
     fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
     analyse_multiple_runs(fname, runs=5, training_type="uns", extra_suffix="_100s")
+
+    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_p_.2_b_1.1")  # perfect
+
     sys.exit()
 
     # Attempting readout of constant delay network
