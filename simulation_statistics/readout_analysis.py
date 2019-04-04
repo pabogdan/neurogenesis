@@ -287,7 +287,8 @@ def class_assignment(spikes, classes, actual_classes, training_type,
                 else:
                     construct_wta_responses.append(f)
             construct_wta_responses = np.asarray(construct_wta_responses)
-            acc_score = metrics.accuracy_score(actual_classes.ravel(), construct_wta_responses)
+            acc_score = metrics.precision_score(actual_classes.ravel(), construct_wta_responses,
+                                average='weighted')
 
             if acc_score > wta_max_acc:
                 # print("wta_", acc_score)
@@ -302,7 +303,8 @@ def class_assignment(spikes, classes, actual_classes, training_type,
                 else:
                     construct_first_responses.append(f)
             construct_first_responses = np.asarray(construct_first_responses)
-            acc_score = metrics.accuracy_score(actual_classes.ravel(), construct_first_responses)
+            acc_score = metrics.precision_score(actual_classes.ravel(), construct_first_responses,
+                                average='weighted')
             if acc_score > rank_order_max_acc:
                 # print("ro_", acc_score)
                 rank_order_max_acc = copy.deepcopy(acc_score)
@@ -514,6 +516,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
     readout_connecitvity = {}
     inter_readout_connectivity = {}
     results_dict = {}
+    plot_width = 8
 
     weights_per_run = {}
     # Iterate over simulations and the snapshots in testing archives
@@ -551,7 +554,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
 
         # Retreive data from training data
         training_actual_classes = training_data['actual_classes']
-        training_readout_spikes = training_data['readout_spikes']
+        # training_readout_spikes = training_data['readout_spikes']
         target_readout_projection = training_data['target_readout_projection']
         wta_projection = training_data['wta_projection']
         training_sim_params = training_data['input_sim_params'].ravel()[0]
@@ -566,8 +569,8 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
             suffix_test += "_rewiring"
         if original_delays_are_constant:
             suffix_test += "_constant"
-        target_readout_projection = target_readout_projection.reshape(target_readout_projection.size / 4, 4)
-        wta_projection = wta_projection.reshape(wta_projection.size / 4, 4)
+        # target_readout_projection = target_readout_projection.reshape(target_readout_projection.size / 4, 4)
+        # wta_projection = wta_projection.reshape(wta_projection.size / 4, 4)
         classes = np.sort(np.unique(testing_actual_classes))
 
         training_data.close()
@@ -679,7 +682,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
 
     for metric, metric_name in zip(metrics_to_plot, metrics_names):
         print("{:45}".format("Ploting metric"), ":", metric_name)
-        fig, ax = plt.subplots(figsize=(16, 8), dpi=600)
+        fig, ax = plt.subplots(figsize=(plot_width, 8), dpi=600)
         for run in run_nos:
             cmap_i = (run + 1) / float(number_of_runs)
             current_color = viridis_cmap(cmap_i)
@@ -700,7 +703,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
 
     # TODO is rewiring not present plot the evolution of weights / run as plt.plot
     if not is_rewiring_enable:
-        fig = plt.figure(figsize=(16, 8), dpi=600)
+        fig = plt.figure(figsize=(plot_width, 8), dpi=600)
         for run in weights_per_run.keys():
             for snap_keys in weights_per_run[run].keys():
                 cmap_i = (run + 1) / float(number_of_runs)
@@ -717,7 +720,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
         plt.close(fig)
 
     # Adapt this somehow
-    # fig = plt.figure(figsize=(16, 8), dpi=600)
+    # fig = plt.figure(figsize=(plot_width, 8), dpi=600)
     # for run in weights_per_run.keys():
     #     ax = fig.add_subplot(1, number_of_runs, run+1, projection='3d')
     #     snaps = np.sort(np.asarray(weights_per_run[run].keys()))
@@ -745,7 +748,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
 
     # stlye the median of boxplots
     medianprops = dict(color='#414C82', linewidth=1.5)
-    fig = plt.figure(figsize=(16, 8), dpi=600)
+    fig = plt.figure(figsize=(plot_width, 8), dpi=600)
     plt.axhline(1. / len(classes), color='#b2dd2c', ls=":")
 
     bp = plt.boxplot(wta_accuracies, notch=True, medianprops=medianprops)
@@ -761,7 +764,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
         plt.show()
     plt.close(fig)
 
-    fig = plt.figure(figsize=(16, 8), dpi=600)
+    fig = plt.figure(figsize=(plot_width, 8), dpi=600)
     plt.axhline(1. / len(classes), color='#b2dd2c', ls=":")
 
     bp = plt.boxplot(ro_accuracies, notch=True, medianprops=medianprops)
@@ -777,22 +780,23 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
         plt.show()
     plt.close(fig)
 
-    np_ff_weights = np.asarray(ff_weights)
-    fig = plt.figure(figsize=(16, 8), dpi=600)
-    bp = plt.boxplot(np_ff_weights.T, notch=True, medianprops=medianprops)
+    if not is_rewiring_enable:
+        np_ff_weights = np.asarray(ff_weights)
+        fig = plt.figure(figsize=(plot_width, 8), dpi=600)
+        bp = plt.boxplot(np_ff_weights.T, notch=True, medianprops=medianprops)
 
-    plt.xticks(np.arange(ordered_snapshots.shape[0]) + 1, (ordered_snapshots + t_record) / 1000)
-    plt.xlabel("Time (seconds)")
-    plt.ylabel(r"$\frac{g}{g_{max}}$", rotation="horizontal")
-    plt.ylim([-.05, 1.05])
-    plt.grid(True, which='major', axis='y')
-    plt.savefig(fig_folder + "readout_weight_boxplot_evo{}.pdf".format(suffix_test))
-    plt.savefig(fig_folder + "readout_weight_boxplot_evo{}.svg".format(suffix_test))
-    if show_plots:
-        plt.show()
-    plt.close(fig)
+        plt.xticks(np.arange(ordered_snapshots.shape[0]) + 1, (ordered_snapshots + t_record) / 1000)
+        plt.xlabel("Time (seconds)")
+        plt.ylabel(r"$\frac{g}{g_{max}}$", rotation="horizontal")
+        plt.ylim([-.05, 1.05])
+        plt.grid(True, which='major', axis='y')
+        plt.savefig(fig_folder + "readout_weight_boxplot_evo{}.pdf".format(suffix_test))
+        plt.savefig(fig_folder + "readout_weight_boxplot_evo{}.svg".format(suffix_test))
+        if show_plots:
+            plt.show()
+        plt.close(fig)
 
-    fig = plt.figure(figsize=(16, 8), dpi=600)
+    fig = plt.figure(figsize=(plot_width, 8), dpi=600)
     # bp = plt.boxplot(ro_no_spikes, notch=True, medianprops=medianprops)
     plt.errorbar((ordered_snapshots + t_record) / 1000, np.mean(ro_no_spikes, axis=0), yerr=np.std(ro_no_spikes, axis=0))
     # plt.xticks(np.arange(ordered_snapshots.shape[0]) + 1, (ordered_snapshots + t_record) / 1000)
@@ -814,7 +818,6 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
 
 if __name__ == "__main__":
     import sys
-
     #  post area
     fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
     _power_on_self_test(fname, training_type="uns", extra_suffix="_p_.2_b_1.1")  # perfect
@@ -822,10 +825,24 @@ if __name__ == "__main__":
     # /post area
 
     fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_9_100s_p_.2_b_1.1")
+
+    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_100s_p_.2_b_1.1")
+
+    # sys.exit()
+    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_multiple_runs(fname, runs=10, training_type="uns", extra_suffix="_100s_p_.2_b_1.1")
     analyse_multiple_runs(fname, runs=5, training_type="uns", extra_suffix="_100s")
+
 
     fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
     readout_neuron_analysis(fname, training_type="uns", extra_suffix="_p_.2_b_1.1")  # perfect
+
+
+    fname = "constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_multiple_runs(fname, runs=5, training_type="uns", extra_suffix="_100s")
+    analyse_multiple_runs(fname, runs=5, training_type="uns", extra_suffix="_rewiring_100s")
 
     sys.exit()
 

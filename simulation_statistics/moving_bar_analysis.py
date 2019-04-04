@@ -1,4 +1,7 @@
 from __future__ import print_function
+
+import string
+
 import numpy as np
 from analysis_functions_definitions import *
 import matplotlib.pyplot as plt
@@ -2494,7 +2497,8 @@ def _add_batch_labels_to(ax, custom_labels, value_list):
     ax.set_xticklabels(value_list[1], rotation='vertical')
 
 def batch_analyser(batch_data_file, batch_info_file,
-                   extra_suffix=None, show_plots=False, custom_labels=None):
+                   extra_suffix=None, show_plots=False, custom_labels=None,
+                   focus_on_2_parameters=None):
     # Read the archives
     # batch_data = np.load(root_stats + batch_data_file + ".npz")
     # batch_info = np.load(root_stats + batch_info_file + ".npz")
@@ -2503,6 +2507,10 @@ def batch_analyser(batch_data_file, batch_info_file,
     batch_info = np.load(os.path.join(root_stats, batch_info_file + ".npz"))
     # Read files from archives
     batch_parameters = batch_info['parameters_of_interest'].ravel()[0]
+    if focus_on_2_parameters:
+        for poi in batch_parameters.keys():
+            if string.lower(poi) not in focus_on_2_parameters:
+                batch_parameters.pop(poi, None)
     result_keys = batch_data['files']
     batch_argparser_data = batch_data['params']
     N_layer = batch_argparser_data[0][0]['argparser']['n'] ** 2
@@ -2533,7 +2541,7 @@ def batch_analyser(batch_data_file, batch_info_file,
         position_to_fill = []
         keys = batch_parameters.keys()
         for index, poi in np.ndenumerate(keys):
-            i, = np.where(np.isclose(value_list[index[0]], argparser_info[poi]))
+            i, = np.where(np.isclose(value_list[index[0]], argparser_info[string.lower(poi)]))
             position_to_fill.append(i)
         file_matrix[position_to_fill] = file_info
 
@@ -2550,6 +2558,7 @@ def batch_analyser(batch_data_file, batch_info_file,
     print("{:45}".format("files in batch_data.files"), ":", "files" in batch_data.files)
     print("{:45}".format("Batch completed in"), ":", batch_info['total_time'])
     print("{:45}".format("Batch focused on the following params"), ":", batch_parameters.keys())
+    print("{:45}".format("Focusing on these 2 params"), ":", focus_on_2_parameters)
     print("{:45}".format("custom labels"), ":", custom_labels)
     print("{:45}".format("Shape of result matrices"), ":", file_shape)
     print("{:45}".format("Suffix for generated figures"), ":", suffix_test)
@@ -3427,6 +3436,18 @@ def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_pl
 
 if __name__ == "__main__":
     import sys
+
+    fname = args.preproc_folder + "motion_batch_analysis_112404_03042019"
+    info_fname = args.preproc_folder + "batch_72faa7aeecf0d005f75e8f92a7d96539"
+    batch_analyser(fname, info_fname, extra_suffix="2_angles_0_90_sigma_form_lat_b",
+                   focus_on_2_parameters=['b', 'sigma_form_lat']) #,
+                   #custom_labels=['$\sigma_{form-ff}$', '$\sigma_{form-lat}$'])
+    batch_analyser(fname, info_fname, extra_suffix="2_angles_0_90_sigma_form_lat_smax",
+                   focus_on_2_parameters=['sigma_form_lat', 's_max'])
+    batch_analyser(fname, info_fname, extra_suffix="2_angles_0_90_smax_b",
+                   focus_on_2_parameters=['b', 's_max'])
+
+    sys.exit()
 
     fname1 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
     fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_no_off_cont"
