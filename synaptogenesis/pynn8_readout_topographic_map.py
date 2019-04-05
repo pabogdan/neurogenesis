@@ -203,6 +203,8 @@ for path in args.path:
                 w_max = args.w_max
                 w_min = args.w_min
                 p_connect = args.p_connect
+                if args.rewiring:
+                    p_connect = 0.
                 classes = np.asarray(args.classes)
                 label_time_offset = np.asarray(args.label_time_offset)
                 inhibition_weight_multiplier = 8

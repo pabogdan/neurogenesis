@@ -798,7 +798,10 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
 
     fig = plt.figure(figsize=(plot_width, 8), dpi=600)
     # bp = plt.boxplot(ro_no_spikes, notch=True, medianprops=medianprops)
-    plt.errorbar((ordered_snapshots + t_record) / 1000, np.mean(ro_no_spikes, axis=0), yerr=np.std(ro_no_spikes, axis=0))
+    plt.errorbar((ordered_snapshots + t_record) / 1000,
+                 np.mean(ro_no_spikes, axis=0),
+                 yerr=np.std(ro_no_spikes, axis=0),
+                 color=viridis_cmap(0.25))
     # plt.xticks(np.arange(ordered_snapshots.shape[0]) + 1, (ordered_snapshots + t_record) / 1000)
     plt.xlabel("Time (seconds)")
     plt.ylabel("# of bins with no spikes")
@@ -819,9 +822,9 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="", sho
 if __name__ == "__main__":
     import sys
     #  post area
-    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    _power_on_self_test(fname, training_type="uns", extra_suffix="_p_.2_b_1.1")  # perfect
-    _power_on_self_test(fname, training_type="uns", extra_suffix="_run_0_100s")
+    # fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    # _power_on_self_test(fname, training_type="uns", extra_suffix="_p_.2_b_1.1")  # perfect
+    # _power_on_self_test(fname, training_type="uns", extra_suffix="_run_0_100s")
     # /post area
 
     fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
