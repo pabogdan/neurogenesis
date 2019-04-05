@@ -59,7 +59,7 @@ if filename:
 if adjusted_name and os.path.isfile(adjusted_name) and not args.no_cache:
     print("Simulation has been run before & Cached version of results "
           "exists!")
-    sys.exit()
+    sys.exit(0)
 
 # Different input types
 RATE_INPUT = 1
