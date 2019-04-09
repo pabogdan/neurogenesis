@@ -217,8 +217,8 @@ for path in args.path:
                 sigma_form_lateral = args.sigma_form_lat
                 p_form_lateral = args.p_form_lateral
                 p_form_forward = args.p_form_forward
-                p_elim_dep = args.p_elim_dep * 10.
-                p_elim_pot = args.p_elim_pot / 10.
+                p_elim_dep = args.p_elim_dep
+                p_elim_pot = args.p_elim_pot
                 f_rew = args.f_rew  # 10 ** 4  # Hz
 
                 # store ALL parameters
