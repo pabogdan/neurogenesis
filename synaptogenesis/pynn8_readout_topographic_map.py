@@ -602,8 +602,8 @@ for path in args.path:
             total_time = end_time - start_time
             print("Total time elapsed -- " + str(total_time))
 
-            target_weights = np.asarray(target_weights)
-            wta_weights = np.asarray(wta_weights)
+            target_weights = np.asarray(target_weights[-1])
+            wta_weights = np.asarray(wta_weights[-1])
 
             if e:
                 current_error = e
