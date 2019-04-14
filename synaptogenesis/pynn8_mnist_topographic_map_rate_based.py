@@ -444,6 +444,10 @@ else:
 if e:
     filename = "error_" + filename
 
+
+if args.fixed_signal:
+    filename += "_fixed_signal_" + str(args.fixed_signal_value)
+
 np.savez_compressed(
     filename,
     pre_spikes=pre_spikes,
