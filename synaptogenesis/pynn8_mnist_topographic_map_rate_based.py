@@ -150,7 +150,8 @@ sim_params = {'g_max': g_max,
 
 stdp_model = sim.STDPMechanism(
     timing_dependence=sim.SpikePairRule(tau_plus=tau_plus, tau_minus=tau_minus, A_plus=a_plus, A_minus=a_minus),
-    weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=g_max)
+    weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=g_max),
+    weight=g_max
 )
 
 if args.case == CASE_CORR_AND_REW:
