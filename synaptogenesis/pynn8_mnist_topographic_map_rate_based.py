@@ -139,6 +139,7 @@ sim_params = {'g_max': g_max,
               'random_partner': args.random_partner,
               'lesion': args.lesion,
               'argparser': vars(args),
+              'fixed_signal_value': args.fixed_signal_value
               }
 # +-------------------------------------------------------------------+
 # | Initial network setup                                             |
@@ -213,15 +214,29 @@ if not args.testing:
 
     for number in range(10):
         # TODO Make input folder variable so that you can swap between averaged and CS
-        rates_on, rates_off = load_mnist_rates('mnist_input_rates/averaged/',
-                                               number, min_noise=f_mean / 4.,
-                                               max_noise=f_mean / 4.,
-                                               mean_rate=f_mean)
-        # randomise input and allow for arbitrary simulation durations
-        rates_on = rates_on.reshape(rates_on.shape[0], N_layer).T
-        possible_indices = np.arange(rates_on.shape[1])
-        choices = np.random.choice(possible_indices, number_of_slots, replace=True)
-        final_rates_on = rates_on[:, choices]
+        if not args.fixed_signal:
+            rates_on, rates_off = load_mnist_rates('mnist_input_rates/averaged/',
+                                                   number, min_noise=f_mean / 4.,
+                                                   max_noise=f_mean / 4.,
+                                                   mean_rate=f_mean)
+            # randomise input and allow for arbitrary simulation durations
+            rates_on = rates_on.reshape(rates_on.shape[0], N_layer).T.astype(float)
+            possible_indices = np.arange(rates_on.shape[1])
+            choices = np.random.choice(possible_indices, number_of_slots, replace=True)
+            final_rates_on = rates_on[:, choices]
+        else:
+            rates_on, rates_off = load_mnist_rates('mnist_input_rates/averaged/',
+                                                   number, min_noise=0,
+                                                   max_noise=0,)
+            # randomise input and allow for arbitrary simulation durations
+            rates_on = rates_on.reshape(rates_on.shape[0], N_layer).T.astype(float)
+            possible_indices = np.arange(rates_on.shape[1])
+            choices = np.random.choice(possible_indices, number_of_slots, replace=True)
+
+            rates_on_mask = (rates_on[:, choices] > 0).astype(float)
+            final_rates_on = rates_on_mask * args.fixed_signal_value + f_base
+
+
 
         # Input population
         source_column.append(

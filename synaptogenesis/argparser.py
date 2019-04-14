@@ -70,6 +70,8 @@ DEFAULT_CHUNK_SIZE = 200  # ms
 DEFAULT_JITTER = False
 
 DEFAULT_COPLANAR_UPPER_DELAY = 3  # ms, exclusive
+DEFAULT_FIXED_SIGNAL = None
+DEFAULT_FIXED_SIGNAL_VALUE = 20  # Hz
 
 parser = argparse.ArgumentParser(
     description='Test for topographic map formation using STDP and '
@@ -99,6 +101,16 @@ parser.add_argument('--p_elim_dep', type=float,
                     default=DEFAULT_P_ELIM_DEP, dest='p_elim_dep',
                     help='probability of eliminating depressed synapses'
                          ' -- [default {}]'.format(DEFAULT_P_ELIM_DEP))
+
+
+parser.add_argument('--fixed_signal_value', type=float,
+                    default=DEFAULT_FIXED_SIGNAL_VALUE,
+                    help='[App: MNIST] mnist signal has fixed value'
+                         ' -- [default {} Hz]'.format(DEFAULT_FIXED_SIGNAL_VALUE))
+
+parser.add_argument('--fixed_signal', action="store_true",
+                    help='[App: MNIST]  enable fixed signal rather than mean firing'
+                         ' -- [default {}]'.format(DEFAULT_FIXED_SIGNAL))
 
 parser.add_argument('--chunk', type=int,
                     default=None, dest='chunk_size',
