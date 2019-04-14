@@ -321,11 +321,8 @@ else:
                                                        number, min_noise=0,
                                                        max_noise=0)
                 # randomise input and allow for arbitrary simulation durations
-                rates_on = rates_on.reshape(rates_on.shape[0], N_layer).T.astype(float)
-                possible_indices = np.arange(rates_on.shape[1])
-                choices = np.random.choice(possible_indices, number_of_slots, replace=True)
-
-                rates_on_mask = (rates_on[:, choices] > 0).astype(float)
+                rates_on = np.asarray(rates_on).astype(float)
+                rates_on_mask = (rates_on > 0).astype(float)
                 final_rates_on = rates_on_mask * args.fixed_signal_value + f_base
                 rates_on = final_rates_on
 
