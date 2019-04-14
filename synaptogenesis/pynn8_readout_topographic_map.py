@@ -107,7 +107,6 @@ for path in args.path:
         chunk = 400  # ms
     else:
         raise AttributeError("What chunk to use for the specified grid size?")
-    simtime = args.no_iterations
     testing_no_iterations_per_class = args.testing_no_iterations_per_class
     testing_simtime = testing_no_iterations_per_class * len(args.classes) * chunk
     current_training_file = None
@@ -116,6 +115,7 @@ for path in args.path:
     for run in run_seq:
         print("Run ", run)
         current_error = None
+        simtime = args.no_iterations
         for phase in PHASES:
             print("Phase ", PHASES_NAMES[phase])
             target_snapshots = {}
