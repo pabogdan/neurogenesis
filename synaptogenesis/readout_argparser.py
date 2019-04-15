@@ -8,6 +8,7 @@ DEFAULT_CHUNK_SIZE = 200  # ms
 DEFAULT_W_MIN = 0
 DEFAULT_W_MAX = .2
 DEFAULT_CLASSES = [0, 90]
+DEFAULT_CLASS_DEV = 2  # +- 2 * 5 degreess
 DEFAULT_NO_ITERATIONS = DEFAULT_CHUNK_SIZE * (100 * len(DEFAULT_CLASSES))
 DEFAULT_T_RECORD = 200000
 DEFAULT_P_CONNECT = .2  # 20%
@@ -35,7 +36,7 @@ DEFAULT_SIGMA_FORM_FF = 1
 DEFAULT_P_FORM_LATERAL = 1
 DEFAULT_P_FORM_FORWARD = 0.16
 DEFAULT_P_ELIM_DEP = 0.0245
-DEFAULT_P_ELIM_POT = 1.36 * (10 ** -5) # 10 times lower than usual
+DEFAULT_P_ELIM_POT = 1.36 * (10 ** -5)  # 10 times lower than usual
 
 DEFAULT_F_REW = 10 ** 4
 
@@ -188,7 +189,6 @@ parser.add_argument('--testing_t_record', type=int,
                     help='time between retrieval of recordings (ms)'
                          ' -- [default {}]'.format(DEFAULT_T_RECORD))
 
-
 parser.add_argument('--runs', type=int, nargs="+",
                     default=DEFAULT_RUNS,
                     help='how many times to run the training + testing '
@@ -215,7 +215,6 @@ parser.add_argument('--sigma_form_lat', type=float,
                     help='spread of lateral formations'
                          ' -- [default {}]'.format(DEFAULT_SIGMA_FORM_LAT))
 
-
 parser.add_argument('--p_elim_pot', type=float,
                     default=DEFAULT_P_ELIM_POT, dest='p_elim_pot',
                     help='probability of eliminating potentiated synapses'
@@ -236,10 +235,26 @@ parser.add_argument('--p_elim_dep', type=float,
                     help='probability of eliminating depressed synapses'
                          ' -- [default {}]'.format(DEFAULT_P_ELIM_DEP))
 
-
 parser.add_argument('--f_rew', type=float,
                     default=DEFAULT_F_REW, dest='f_rew',
                     help='frequency of rewire attempts (Hz)')
+
+parser.add_argument('--test_jitter',
+                    help="[App: Motion detection] jitter the input by +-1 ms",
+                    action="store_true")
+
+
+parser.add_argument('--test_class_with_deviation',
+                    help="[App: Motion detection] jitter the input by +-1 ms",
+                    action="store_true")
+
+parser.add_argument('--test_class_dev',
+                    help="[App: Motion detection] Network will be tested "
+                         "using a random succession of these classes"
+                         " -- [default {}]".format(DEFAULT_CLASS_DEV),
+                    type=int, nargs=1, default=DEFAULT_CLASS_DEV
+                    )
+
 
 parser.add_argument('--no-cache',
                     help="force simulation re-run without "

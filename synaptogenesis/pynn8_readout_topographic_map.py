@@ -39,7 +39,9 @@ if len(args.path) == 0:
                          "Please specify connectivity npz file.")
 
 
-def generate_readout_filename(path, phase, args, run, e):
+def generate_readout_filename(path, phase, args, run, e,
+                              deviation=False,
+                              jitter=False):
     # need to retrieve name of the file (not the entire path)
     prefix = "training_readout_for_"
     if phase == TESTING_PHASE:
@@ -61,6 +63,12 @@ def generate_readout_filename(path, phase, args, run, e):
 
     if args.rewiring:
         filename += "_rewiring"
+
+    if phase == TESTING_PHASE:
+        if deviation:
+            filename += "_class_dev"
+        if jitter:
+            filename += "_jitter"
 
     if args.suffix:
         filename += "_" + args.suffix
@@ -124,7 +132,10 @@ for path in args.path:
             target_spikes_snapshots = {}
             inhibitory_spikes_snapshots = {}
             actual_classes_snapshots = {}
-            mock_filename = generate_readout_filename(path, phase, args, run, None)
+            mock_filename = generate_readout_filename(
+                path, phase, args, run, None,
+                deviation=args.test_class_with_deviation,
+                jitter=args.test_jitter)
 
             if mock_filename and os.path.isfile(mock_filename + ".npz") and not args.no_cache:
                 print("Simulation has been run before & Cached version of results "
@@ -164,7 +175,12 @@ for path in args.path:
                     aa, final_on_gratings, final_off_gratings = \
                         generate_bar_input(simtime, chunk, N_layer,
                                            angles=args.classes,
-                                           actual_angles=actual_classes)
+                                           actual_angles=actual_classes,
+                                           class_deviation=args.test_class_with_deviation and phase == TESTING_PHASE,
+                                           class_dev_amount=args.test_class_dev)
+                    if phase == TESTING_PHASE and args.test_jitter:
+                        final_on_gratings, final_off_gratings = jitter_the_input(
+                            final_on_gratings, final_off_gratings)
                     aa = np.asarray(aa)
                     actual_classes = aa
                 # actual_classes = np.asarray(actual_classes)
@@ -608,7 +624,10 @@ for path in args.path:
             if e:
                 current_error = e
 
-            filename = generate_readout_filename(path, phase, args, run, e)
+            filename = generate_readout_filename(
+                path, phase, args, run, e,
+                deviation=args.test_class_with_deviation,
+                jitter=args.test_jitter)
 
             # This has to be set after all the filename adjustments
             if phase == TRAINING_PHASE:
