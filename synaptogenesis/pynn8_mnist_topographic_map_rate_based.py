@@ -408,23 +408,23 @@ try:
         print("run", current_run + 1, "of", no_runs)
         sim.run(run_duration)
 
-        # Retrieve data if training
-        if not args.testing:
-            for ff_projection in ff_connections:
-                pre_weights.append(
+    # Retrieve data if training
+    if not args.testing:
+        for ff_projection in ff_connections:
+            pre_weights.append(
+                np.array([
+                    ff_projection._get_synaptic_data(True, 'source'),
+                    ff_projection._get_synaptic_data(True, 'target'),
+                    ff_projection._get_synaptic_data(True, 'weight'),
+                    ff_projection._get_synaptic_data(True, 'delay')]).T)
+        if args.case != CASE_CORR_NO_REW:
+            for lat_projection in lat_connections:
+                post_weights.append(
                     np.array([
-                        ff_projection._get_synaptic_data(True, 'source'),
-                        ff_projection._get_synaptic_data(True, 'target'),
-                        ff_projection._get_synaptic_data(True, 'weight'),
-                        ff_projection._get_synaptic_data(True, 'delay')]).T)
-            if args.case != CASE_CORR_NO_REW:
-                for lat_projection in lat_connections:
-                    post_weights.append(
-                        np.array([
-                            lat_projection._get_synaptic_data(True, 'source'),
-                            lat_projection._get_synaptic_data(True, 'target'),
-                            lat_projection._get_synaptic_data(True, 'weight'),
-                            lat_projection._get_synaptic_data(True, 'delay')]).T)
+                        lat_projection._get_synaptic_data(True, 'source'),
+                        lat_projection._get_synaptic_data(True, 'target'),
+                        lat_projection._get_synaptic_data(True, 'weight'),
+                        lat_projection._get_synaptic_data(True, 'delay')]).T)
 
     if args.record_source:
         for source_pop in source_column:
