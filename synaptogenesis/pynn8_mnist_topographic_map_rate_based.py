@@ -471,7 +471,7 @@ np.savez_compressed(
     testing_numbers=randomised_testing_numbers,
     testing_file=args.testing,
     random_input=args.random_input,
-    exception=e
+    exception=str(e)
 )
 
 print("Results in", filename)
