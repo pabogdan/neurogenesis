@@ -914,7 +914,8 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
                             _max_val = bins[class_id][ua]
                             _max_ang = ua
                     classes_based_on_dsi_and_weights[class_id] = _max_ang
-                print("{:45}".format("DSI + weight class"), ":", classes_based_on_dsi_and_weights)
+                print("{:45}".format("DSI + weight class"), ":", classes_based_on_dsi_and_weights.astype(int))
+                print("{:45}".format("RO class"), ":", ro_predicted_classes[run][snap_keys])
 
 
         print("{:45}".format("Ploting metric"), ":", "Bottom and top weight avg DSI")
