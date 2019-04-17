@@ -357,7 +357,7 @@ def plot_spikes(spikes, title, classes, filename, chunk=200, end_time=1800):
         ax1.set_ylabel('Class neuron')
         ax1.set_title(title)
         ax1.set_yticks(np.arange(classes.size))
-        ax1.set_yticklabels(np.sort(classes))
+        ax1.set_yticklabels(classes)
         # chunk separators
         bin_edges = (np.arange(int(end_time / chunk) - 1) + 1) * chunk
         for i in bin_edges:
@@ -397,6 +397,7 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
     target_readout_projection = training_data['target_readout_projection']
     wta_projection = training_data['wta_projection']
     training_sim_params = training_data['input_sim_params'].ravel()[0]
+    argparser_info = readout_sim_params['argparser']
 
     if len(target_readout_projection.shape) == 3:
         target_readout_projection = target_readout_projection[-1]
@@ -416,9 +417,14 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
     print("{:45}".format("The suffix for this set of figures is "), ":", suffix_test)
     print("{:45}".format("The training archive name is "), ":", training_fname)
     print("{:45}".format("The testing archive name is "), ":", testing_fname)
+    print("{:45}".format("Argparser Parameters of Interest"))
+    print("{:45}".format("s_max"), ":", argparser_info['s_max'])
+    print("{:45}".format("rewiring"), ":", argparser_info['rewiring'])
+    print("{:45}".format("p_connect"), ":", argparser_info['p_connect'])
+    print("{:45}".format("w_max"), ":", argparser_info['w_max'])
 
-    target_readout_projection = target_readout_projection.reshape(target_readout_projection.size / 4, 4)
-    wta_projection = wta_projection.reshape(wta_projection.size / 4, 4)
+    # target_readout_projection = target_readout_projection.reshape(target_readout_projection.size / 4, 4)
+    # wta_projection = wta_projection.reshape(wta_projection.size / 4, 4)
     classes = np.sort(np.unique(testing_actual_classes))
 
     training_data.close()
@@ -426,15 +432,44 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
 
     # assert np.all(testing_target_readout_projection == target_readout_projection), target_readout_projection
 
+
+    wta_predictions, rank_order_predictions, wta_likely_classes, \
+    rank_order_likely_classes, rmse_classes = class_assignment(
+        testing_readout_spikes,
+        classes=classes,
+        actual_classes=testing_actual_classes,
+        training_type=training_type,
+        simtime=simtime,
+        chunk=chunk)
+
+    print(" WTA ---------------")
+    print(classification_report(testing_actual_classes, wta_likely_classes[wta_predictions]))
+    print("{:45}".format("WTA LIKELY CLASSES"), ":", wta_likely_classes)
+    print()
+    print(" Rank order --------")
+    print()
+    print(classification_report(testing_actual_classes,
+                                rank_order_likely_classes[rank_order_predictions]))
+    print("{:45}".format("RANK ORDER LIKELY CLASSES"), ":", rank_order_likely_classes)
+
+    print(" RMSE Rank order --------")
+    print()
+    print(classification_report(testing_actual_classes,
+                                rmse_classes[rank_order_predictions]))
+    print("{:45}".format("RMSE LIKELY CLASSES"), ":", rmse_classes)
+
+    print("{:45}".format("Connectivity stats"))
+
+
     fig = plot_spikes(training_readout_spikes, "Readout neuron spikes (training)",
-                      np.unique(testing_actual_classes),
+                      rank_order_likely_classes,
                       "readout_training_spikes{}".format(suffix_test))
     if show_plots:
         plt.show()
     plt.close(fig)
 
     try:
-        fig = plot_spikes(testing_readout_spikes, "Readout neuron spikes (testing)", np.unique(testing_actual_classes),
+        fig = plot_spikes(testing_readout_spikes, "Readout neuron spikes (testing)", rank_order_likely_classes,
                           "readout_testing_spikes{}".format(suffix_test))
         if show_plots:
             plt.show()
@@ -453,51 +488,57 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
     for index, value in np.ndenumerate(classes):
         print("Number of spikes for class", value, ":",
               spikes[spikes[:, 0] == index[0]].size, "equivalent of ", spikes[spikes[:, 0] == index[0]].size / simtime)
-
-    wta_predictions, rank_order_predictions, wta_likely_classes, \
-    rank_order_likely_classes, rmse_classes = class_assignment(
-        testing_readout_spikes,
-        classes=classes,
-        actual_classes=testing_actual_classes,
-        training_type=training_type,
-        simtime=simtime,
-        chunk=chunk)
-
-    print(" WTA ---------------")
-    print(classification_report(testing_actual_classes, wta_likely_classes[wta_predictions]))
-    print(" WTA LIKELY CLASSES :", wta_likely_classes)
-    print()
-    print(" Rank order --------")
-    print()
-    print(classification_report(testing_actual_classes,
-                                rank_order_likely_classes[rank_order_predictions]))
-    print(" RANK ORDER LIKELY CLASSES :", rank_order_likely_classes)
-
-    print(" RMSE Rank order --------")
-    print()
-    print(classification_report(testing_actual_classes,
-                                rmse_classes[rank_order_predictions]))
-    print(" RMSE LIKELY CLASSES :", rmse_classes)
+    print("{:45}".format("First 10 testing classes"), ":", testing_actual_classes[:10])
 
     conns = []
     conns_names = []
     for index, value in np.ndenumerate(classes):
-        conns.append(target_readout_projection[target_readout_projection[:, 1] == index[0]])
-        conns_names.append("$readout_{%s}$" % str(value))
+        conns.append(target_readout_projection[target_readout_projection[:, 1] == index[0]][:, 2])
+        label = "$readout_{%s}$" % str(value)
+        conns_names.append(label)
+        print("{:25}".format(label), "{:20}".format("# total"), ":", conns[index[0]].size)
+        print("{:25}".format(label), "{:20}".format("# potentiated"), ":", np.count_nonzero(conns[index[0]]>=(w_max/2)))
+        print("{:25}".format(label), "{:20}".format("# depressed"), ":", np.count_nonzero(conns[index[0]]<(w_max/2)))
+        print("-"*52)
     fig, axes = plt.subplots(1, classes.size, figsize=(classes.size * 5, 7), dpi=800, sharey=True)
 
     minimus = 0
     maximus = 1
     for index, ax in np.ndenumerate(axes):
         i = index[0]
-        ax.hist(conns[i][:, 2] / w_max, bins=20, color='#414C82', edgecolor='k')
+        ax.hist(conns[i] / w_max, bins=20, color='#414C82', edgecolor='k')
         ax.set_title(conns_names[i])
         ax.set_xlim([minimus, maximus])
-        print(np.max(conns[i][:, 2]))
-        # assert np.max(conns[i][:, 2]) <= w_max
+        print(np.max(conns[i]))
     plt.tight_layout()
     plt.savefig(fig_folder + "readout_weight_histograms{}.pdf".format(suffix_test), bbox_inches='tight')
     plt.savefig(fig_folder + "readout_weight_histograms{}.svg".format(suffix_test), bbox_inches='tight')
+    if show_plots:
+        plt.show()
+    plt.close(fig)
+    conns = []
+    conns_names = []
+    for index, value in np.ndenumerate(classes):
+        conns.append(wta_projection[wta_projection[:, 1] == index[0]][:, 2])
+        label = "$lat_{%s}$" % str(value)
+        conns_names.append(label)
+        print("{:25}".format(label), "{:20}".format("# total"), ":", conns[index[0]].size)
+        print("{:25}".format(label), "{:20}".format("# potentiated"), ":", np.count_nonzero(conns[index[0]] >= (w_max / 2)))
+        print("{:25}".format(label), "{:20}".format("# depressed"), ":", np.count_nonzero(conns[index[0]] < (w_max / 2)))
+        print("-" * 52)
+    fig, axes = plt.subplots(1, classes.size, figsize=(classes.size * 5, 7), dpi=800, sharey=True)
+
+    minimus = 0
+    maximus = 1
+    for index, ax in np.ndenumerate(axes):
+        i = index[0]
+        ax.hist(conns[i] / w_max, bins=20, color='#414C82', edgecolor='k')
+        ax.set_title(conns_names[i])
+        # ax.set_xlim([minimus, maximus])
+        print(np.max(conns[i]))
+    plt.tight_layout()
+    plt.savefig(fig_folder + "readout_lat_weight_histograms{}.pdf".format(suffix_test), bbox_inches='tight')
+    plt.savefig(fig_folder + "readout_lat_weight_histograms{}.svg".format(suffix_test), bbox_inches='tight')
     if show_plots:
         plt.show()
     plt.close(fig)
@@ -975,6 +1016,9 @@ if __name__ == "__main__":
     # /post area
     fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
 
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_200s_new_defaults_b_1.3_p_0.05")
+    sys.exit()
+
     analyse_multiple_runs(fname, runs=10, training_type="uns", extra_suffix="_rewiring_200s_new_defaults_b_1.3_smax_32",
                           preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
     # sys.exit()
@@ -993,7 +1037,6 @@ if __name__ == "__main__":
     analyse_multiple_runs(fname, runs=5, training_type="uns", extra_suffix="_200s_new_defaults_b_1.3_p_0.05_test_nesw",
                           preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
     sys.exit()
-    # readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_200s_new_defaults_b_1.3_p_0.05")
     # readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_rewiring_200s_new_defaults_b_1.3_smax_32")
     # readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_4_rewiring_200s_new_defaults_b_1.3_smax_32")
     # readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_rewiring_200s_new_defaults_b_1.3_smax_64_f_rew_100_p_elim")
