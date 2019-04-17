@@ -296,6 +296,7 @@ for path in args.path:
                     sigma_form_lateral=sigma_form_lateral,
                     p_form_forward=p_form_forward,
                     p_form_lateral=p_form_lateral,
+                    lateral_inhibition=True,
                     is_distance_dependent=False
                 )
                 # Setup input populations
