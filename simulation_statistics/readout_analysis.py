@@ -399,9 +399,9 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
     training_sim_params = training_data['input_sim_params'].ravel()[0]
     argparser_info = readout_sim_params['argparser']
 
-    if len(target_readout_projection.shape) == 3:
+    if len(target_readout_projection.shape) == 3 or len(target_readout_projection.shape) == 1:
         target_readout_projection = target_readout_projection[-1]
-    if len(wta_projection.shape) == 3:
+    if len(wta_projection.shape) == 3 or len(wta_projection.shape) == 1:
         wta_projection = wta_projection[-1]
     original_delays_are_constant = training_sim_params['constant_delay']
 
@@ -432,7 +432,6 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
 
     # assert np.all(testing_target_readout_projection == target_readout_projection), target_readout_projection
 
-
     wta_predictions, rank_order_predictions, wta_likely_classes, \
     rank_order_likely_classes, rmse_classes = class_assignment(
         testing_readout_spikes,
@@ -459,7 +458,6 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
     print("{:45}".format("RMSE LIKELY CLASSES"), ":", rmse_classes)
 
     print("{:45}".format("Connectivity stats"))
-
 
     fig = plot_spikes(training_readout_spikes, "Readout neuron spikes (training)",
                       rank_order_likely_classes,
@@ -497,9 +495,9 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
         label = "$readout_{%s}$" % str(value)
         conns_names.append(label)
         print("{:25}".format(label), "{:20}".format("# total"), ":", conns[index[0]].size)
-        print("{:25}".format(label), "{:20}".format("# potentiated"), ":", np.count_nonzero(conns[index[0]]>=(w_max/2)))
-        print("{:25}".format(label), "{:20}".format("# depressed"), ":", np.count_nonzero(conns[index[0]]<(w_max/2)))
-        print("-"*52)
+        print("{:25}".format(label), "{:20}".format("# potentiated"), ":", np.count_nonzero(conns[index[0]] >= (w_max / 2)))
+        print("{:25}".format(label), "{:20}".format("# depressed"), ":", np.count_nonzero(conns[index[0]] < (w_max / 2)))
+        print("-" * 52)
     fig, axes = plt.subplots(1, classes.size, figsize=(classes.size * 5, 7), dpi=800, sharey=True)
 
     minimus = 0
@@ -516,32 +514,34 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
     if show_plots:
         plt.show()
     plt.close(fig)
-    conns = []
-    conns_names = []
-    for index, value in np.ndenumerate(classes):
-        conns.append(wta_projection[wta_projection[:, 1] == index[0]][:, 2])
-        label = "$lat_{%s}$" % str(value)
-        conns_names.append(label)
-        print("{:25}".format(label), "{:20}".format("# total"), ":", conns[index[0]].size)
-        print("{:25}".format(label), "{:20}".format("# potentiated"), ":", np.count_nonzero(conns[index[0]] >= (w_max / 2)))
-        print("{:25}".format(label), "{:20}".format("# depressed"), ":", np.count_nonzero(conns[index[0]] < (w_max / 2)))
-        print("-" * 52)
-    fig, axes = plt.subplots(1, classes.size, figsize=(classes.size * 5, 7), dpi=800, sharey=True)
 
-    minimus = 0
-    maximus = 1
-    for index, ax in np.ndenumerate(axes):
-        i = index[0]
-        ax.hist(conns[i] / w_max, bins=20, color='#414C82', edgecolor='k')
-        ax.set_title(conns_names[i])
-        # ax.set_xlim([minimus, maximus])
-        print(np.max(conns[i]))
-    plt.tight_layout()
-    plt.savefig(fig_folder + "readout_lat_weight_histograms{}.pdf".format(suffix_test), bbox_inches='tight')
-    plt.savefig(fig_folder + "readout_lat_weight_histograms{}.svg".format(suffix_test), bbox_inches='tight')
-    if show_plots:
-        plt.show()
-    plt.close(fig)
+    if wta_projection.size > 0:
+        conns = []
+        conns_names = []
+        for index, value in np.ndenumerate(classes):
+            conns.append(wta_projection[wta_projection[:, 1] == index[0]][:, 2])
+            label = "$lat_{%s}$" % str(value)
+            conns_names.append(label)
+            print("{:25}".format(label), "{:20}".format("# total"), ":", conns[index[0]].size)
+            print("{:25}".format(label), "{:20}".format("# potentiated"), ":", np.count_nonzero(conns[index[0]] >= (w_max / 2)))
+            print("{:25}".format(label), "{:20}".format("# depressed"), ":", np.count_nonzero(conns[index[0]] < (w_max / 2)))
+            print("-" * 52)
+        fig, axes = plt.subplots(1, classes.size, figsize=(classes.size * 5, 7), dpi=800, sharey=True)
+
+        minimus = 0
+        maximus = 1
+        for index, ax in np.ndenumerate(axes):
+            i = index[0]
+            ax.hist(conns[i] / w_max, bins=20, color='#414C82', edgecolor='k')
+            ax.set_title(conns_names[i])
+            # ax.set_xlim([minimus, maximus])
+            # print(np.max(conns[i]))
+        plt.tight_layout()
+        plt.savefig(fig_folder + "readout_lat_weight_histograms{}.pdf".format(suffix_test), bbox_inches='tight')
+        plt.savefig(fig_folder + "readout_lat_weight_histograms{}.svg".format(suffix_test), bbox_inches='tight')
+        if show_plots:
+            plt.show()
+        plt.close(fig)
     print("=" * 45, "\n\n")
 
 
@@ -703,7 +703,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
         training_snapshots[run] = np.copy(ordered_snapshots)
 
     # plot the average weight histogram (average over runs for the same snap)
-    ordered_snapshots = training_snapshots[0]
+    ordered_snapshots = training_snapshots[run_nos[0]]
     wta_accuracies = np.empty((number_of_runs, ordered_snapshots.size))
     ro_accuracies = np.empty((number_of_runs, ordered_snapshots.size))
     wta_precisions = np.empty((number_of_runs, ordered_snapshots.size))
@@ -716,24 +716,25 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
     ff_weights = []
     for _ in ordered_snapshots:
         ff_weights.append([])
-    for run in run_nos:
+    for run, run_no in np.ndenumerate(run_nos):
+        run = run[0]
         for index, snap_keys in np.ndenumerate(ordered_snapshots):
             i = int(index[0])
             # accuracy
-            wta_accuracies[run, i] = results_dict[run][snap_keys]['wta_classification_acc']
-            ro_accuracies[run, i] = results_dict[run][snap_keys]['ro_classification_acc']
+            wta_accuracies[run, i] = results_dict[run_no][snap_keys]['wta_classification_acc']
+            ro_accuracies[run, i] = results_dict[run_no][snap_keys]['ro_classification_acc']
             # precision
-            wta_precisions[run, i] = results_dict[run][snap_keys]['wta_classification_precision']
-            ro_precisions[run, i] = results_dict[run][snap_keys]['ro_classification_precision']
+            wta_precisions[run, i] = results_dict[run_no][snap_keys]['wta_classification_precision']
+            ro_precisions[run, i] = results_dict[run_no][snap_keys]['ro_classification_precision']
             # F1 score
-            wta_fscores[run, i] = results_dict[run][snap_keys]['wta_classification_f1']
-            ro_fscores[run, i] = results_dict[run][snap_keys]['ro_classification_f1']
+            wta_fscores[run, i] = results_dict[run_no][snap_keys]['wta_classification_f1']
+            ro_fscores[run, i] = results_dict[run_no][snap_keys]['ro_classification_f1']
             # Count of bins containing no spikes
-            ro_no_spikes[run, i] = results_dict[run][snap_keys]['ro_count_no_spikes']
-            wta_no_spikes[run, i] = results_dict[run][snap_keys]['wta_count_no_spikes']
-            ff_weights[i] += weights_per_run[run][snap_keys].ravel().tolist()
+            ro_no_spikes[run, i] = results_dict[run_no][snap_keys]['ro_count_no_spikes']
+            wta_no_spikes[run, i] = results_dict[run_no][snap_keys]['wta_count_no_spikes']
+            ff_weights[i] += weights_per_run[run_no][snap_keys].ravel().tolist()
             # count number of connections
-            afferents[run, i] += len(weights_per_run[run][snap_keys].ravel().tolist())
+            afferents[run, i] += len(weights_per_run[run_no][snap_keys].ravel().tolist())
             assert (ro_no_spikes[run, i] == wta_no_spikes[run, i])
     # normalise afferents
     afferents = afferents / float(classes.size)
@@ -745,7 +746,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
     for metric, metric_name in zip(metrics_to_plot, metrics_names):
         print("{:45}".format("Ploting metric"), ":", metric_name)
         fig, ax = plt.subplots(figsize=(plot_width, 8), dpi=600)
-        for run in run_nos:
+        for run in np.arange(number_of_runs):
             cmap_i = (run + 1) / float(number_of_runs)
             current_color = viridis_cmap(cmap_i)
             ax.plot((ordered_snapshots) / 1000, metric[run, :],
@@ -763,31 +764,6 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
             plt.show()
         plt.close(fig)
 
-    # Adapt this somehow
-    # fig = plt.figure(figsize=(plot_width, 8), dpi=600)
-    # for run in weights_per_run.keys():
-    #     ax = fig.add_subplot(1, number_of_runs, run+1, projection='3d')
-    #     snaps = np.sort(np.asarray(weights_per_run[run].keys()))
-    #     for snap_keys in snaps:
-    #         cmap_i = (run + 1) / float(number_of_runs)
-    #         current_color = viridis_cmap(cmap_i)
-    #         nbins = 20
-    #         hist, bins = np.histogram(weights_per_run[run][snap_keys], bins=nbins)
-    #         xs = (bins[:-1] + bins[1:]) / 2
-    #
-    #         ax.bar(xs, hist, zs=snaps, zdir='y', color=current_color, alpha=0.8)
-    #
-    #         ax.set_xlabel('X')
-    #         ax.set_ylabel('Y')
-    #         ax.set_zlabel('Z')
-    #     break
-    #
-    # plt.savefig(fig_folder + "readout_3d_hist_evo{}.pdf".format(suffix_test))
-    # plt.savefig(fig_folder + "readout_3d_hist_evo{}.svg".format(suffix_test))
-    # if show_plots:
-    #     plt.show()
-    # plt.close(fig)
-
     # plot the evolution of weights as boxplot
     # stlye the median of boxplots
     medianprops = dict(color='#414C82', linewidth=1.5)
@@ -796,7 +772,11 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
 
     bp = plt.boxplot(wta_accuracies, notch=True, medianprops=medianprops)
 
-    plt.xticks(np.arange(ordered_snapshots.shape[0]) + 1, (ordered_snapshots + t_record) / 1000)
+    _, labels = plt.xticks(np.arange(ordered_snapshots.shape[0]) + 1, (ordered_snapshots + t_record) / 1000)
+    every_nth = 4
+    for n, label in enumerate(labels):
+        if n % every_nth != 0:
+            label.set_visible(False)
     plt.xlabel("Time (seconds)")
     plt.ylabel("Accuracy")
     plt.ylim([-.05, 1.05])
@@ -812,7 +792,11 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
 
     bp = plt.boxplot(ro_accuracies, notch=True, medianprops=medianprops)
 
-    plt.xticks(np.arange(ordered_snapshots.shape[0]) + 1, (ordered_snapshots + t_record) / 1000)
+    _, labels = plt.xticks(np.arange(ordered_snapshots.shape[0]) + 1, (ordered_snapshots + t_record) / 1000)
+    every_nth = 4
+    for n, label in enumerate(labels):
+        if n % every_nth != 0:
+            label.set_visible(False)
     plt.xlabel("Time (seconds)")
     plt.ylabel("Accuracy")
     plt.ylim([-.05, 1.05])
@@ -828,7 +812,11 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
     fig = plt.figure(figsize=(plot_width, 8), dpi=600)
     bp = plt.boxplot(ff_weights, notch=True, medianprops=medianprops)
 
-    plt.xticks(np.arange(ordered_snapshots.shape[0]) + 1, (ordered_snapshots + t_record) / 1000)
+    _, labels = plt.xticks(np.arange(ordered_snapshots.shape[0]) + 1, (ordered_snapshots + t_record) / 1000)
+    every_nth = 4
+    for n, label in enumerate(labels):
+        if n % every_nth != 0:
+            label.set_visible(False)
     plt.xlabel("Time (seconds)")
     plt.ylabel(r"$\frac{g}{g_{max}}$", rotation="horizontal")
     plt.ylim([-.05, 1.05])
@@ -839,11 +827,14 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
         plt.show()
     plt.close(fig)
 
-
     fig = plt.figure(figsize=(plot_width, 8), dpi=600)
     bp = plt.boxplot(afferents, notch=True, medianprops=medianprops)
 
-    plt.xticks(np.arange(ordered_snapshots.shape[0]) + 1, (ordered_snapshots + t_record) / 1000)
+    _, labels = plt.xticks(np.arange(ordered_snapshots.shape[0]) + 1, (ordered_snapshots + t_record) / 1000)
+    every_nth = 4
+    for n, label in enumerate(labels):
+        if n % every_nth != 0:
+            label.set_visible(False)
     plt.xlabel("Time (seconds)")
     plt.ylabel("Number of afferents")
     plt.grid(True, which='major', axis='y')
@@ -896,10 +887,12 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
         top_entropy = np.empty((number_of_runs, ordered_snapshots.size))
         bottom_entropy = np.empty((number_of_runs, ordered_snapshots.size))
         dsi_class_distance = np.empty((number_of_runs, ordered_snapshots.size))
-        for run in run_nos:
+        per_class_top_dsi = np.empty((classes.size, number_of_runs, ordered_snapshots.size))
+        for run, run_no in np.ndenumerate(run_nos):
+            run = run[0]
             for index, snap_keys in np.ndenumerate(ordered_snapshots):
                 i = int(index[0])
-                curr_connectivity = readout_connectivity[run][snap_keys]
+                curr_connectivity = readout_connectivity[run_no][snap_keys]
                 _top = curr_connectivity[curr_connectivity[:, 2] >= (w_max / 2.)]
                 _bot = curr_connectivity[curr_connectivity[:, 2] < (w_max / 2.)]
                 _avg_top_dsi = np.mean(concatenated_dsis[_top[:, 0].astype(int)])
@@ -910,6 +903,10 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
                 bottom_dsi[run, i] = _avg_bot_dsi
                 top_entropy[run, i] = _avg_top_ent
                 bottom_entropy[run, i] = _avg_bot_ent
+
+                for c in np.arange(classes.size):
+                    _class_top = _top[_top[:, 1] == c]
+                    per_class_top_dsi[c, run, i] = np.mean(concatenated_dsis[_class_top[:, 0].astype(int)])
 
                 # for each readout neuron create a weight vector for all
                 # possible pre-synaptic neurons
@@ -956,8 +953,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
                             _max_ang = ua
                     classes_based_on_dsi_and_weights[class_id] = _max_ang
                 print("{:45}".format("DSI + weight class"), ":", classes_based_on_dsi_and_weights.astype(int))
-                print("{:45}".format("RO class"), ":", ro_predicted_classes[run][snap_keys])
-
+                print("{:45}".format("RO class"), ":", ro_predicted_classes[run_no][snap_keys])
 
         print("{:45}".format("Ploting metric"), ":", "Bottom and top weight avg DSI")
         fig, ax = plt.subplots(figsize=(plot_width, 8), dpi=600)
@@ -979,7 +975,6 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
         if show_plots:
             plt.show()
         plt.close(fig)
-
 
         print("{:45}".format("Ploting metric"), ":", "Bottom and top weight avg Entropy")
         fig, ax = plt.subplots(figsize=(plot_width, 8), dpi=600)
@@ -1006,6 +1001,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
     print(Fore.GREEN, "{:45}".format("The suffix for this set of figures has been"), ":", suffix_test, Style.RESET_ALL)
     print("=" * 45)
 
+
 if __name__ == "__main__":
     import sys
 
@@ -1016,13 +1012,30 @@ if __name__ == "__main__":
     # /post area
     fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
 
-    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_200s_new_defaults_b_1.3_p_0.05")
-    sys.exit()
-
-    analyse_multiple_runs(fname, runs=10, training_type="uns", extra_suffix="_rewiring_200s_new_defaults_b_1.3_smax_32",
+    analyse_multiple_runs(fname, runs=[0,1,2,7,8], training_type="uns", extra_suffix="_400s_new_defaults_b_1.3_p_0.05",
                           preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
+    sys.exit()
+    analyse_multiple_runs(fname, runs=1, training_type="uns", extra_suffix="_rewiring_400s_new_defaults_b_1.3_frew_100",
+                          preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_rewiring_400s_new_defaults_b_1.3_frew_100")
+    analyse_multiple_runs(fname, runs=1, training_type="uns", extra_suffix="_rewiring_400s_new_defaults_b_1.3_frew_10",
+                          preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_rewiring_400s_new_defaults_b_1.3_frew_10")
+    sys.exit()
+    analyse_multiple_runs(fname, runs=1, training_type="uns", extra_suffix="_rewiring_400s_new_defaults_b_1.3",
+                          preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_rewiring_400s_new_defaults_b_1.3")
+    sys.exit()
+    analyse_multiple_runs(fname, runs=1, training_type="uns", extra_suffix="_rewiring_400s_new_defaults_b_1.3_smax_16",
+                          preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_rewiring_400s_new_defaults_b_1.3_smax_16")
+    sys.exit()
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_200s_new_defaults_b_1.3_p_0.05")
     # sys.exit()
     analyse_multiple_runs(fname, runs=10, training_type="uns", extra_suffix="_200s_new_defaults_b_1.3_p_0.05",
+                          preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
+    sys.exit()
+    analyse_multiple_runs(fname, runs=10, training_type="uns", extra_suffix="_rewiring_200s_new_defaults_b_1.3_smax_32",
                           preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
     analyse_multiple_runs(fname, runs=5, training_type="uns", extra_suffix="_200s_new_defaults_b_1.3_p_0.05",
                           preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont",
