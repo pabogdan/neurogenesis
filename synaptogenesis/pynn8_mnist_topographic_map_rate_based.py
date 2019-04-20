@@ -398,7 +398,10 @@ post_spikes = []
 pre_weights = []
 post_weights = []
 
-no_runs = simtime // t_record
+if t_record <= simtime:
+    no_runs = simtime // t_record
+else:
+    no_runs = 1
 run_duration = t_record
 e = None
 print("Starting the sim")
