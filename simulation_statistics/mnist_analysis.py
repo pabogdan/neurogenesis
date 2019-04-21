@@ -205,17 +205,27 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     maximus = [-1]
     minimus = [2 ** 31]
 
+    print("-" * 60)
+    print("{:45}".format("Average weight proportion [0, 1]"))
+    weights_per_number = []
     for index, val in np.ndenumerate(axes):
         x, y = index
         source_weighted_hits = np.empty(28 ** 2)
-        conn_list = final_ff_conn[x * 5 + y]
+        number = x * 5 + y
+        conn_list = final_ff_conn[number]
+        weights_per_number.append([conn_list[:, 2]/g_max])
         for i in range(28 ** 2):
             source_weighted_hits[i] = np.sum(conn_list[conn_list[:, 0] == i, 2])
         maximus = np.maximum(maximus, source_weighted_hits.max())
         minimus = np.minimum(minimus, source_weighted_hits.min())
 
+        # Report some stats
+        print("{:45}".format("Average normalised weight for number " + str(number)), ":",
+              np.mean(conn_list[:, 2]) / g_max)
+
         silly_ax.append(axes[x, y].matshow(source_weighted_hits.reshape(28, 28)))
 
+    print("-" * 60)
     axes[0, 0].set_ylabel("Neuron ID")
     axes[1, 0].set_ylabel("Neuron ID")
 
@@ -243,6 +253,22 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     if show_plots:
         plt.show()
     plt.close(fig_conn)
+
+    # Weight boxplot
+    fig = plt.figure(figsize=(16, 8), dpi=600)
+
+    # plt.axhline(s_max, color='#b2dd2c', ls=":")
+    bp = plt.boxplot(weights_per_number, notch=True, medianprops=medianprops)
+
+    plt.xticks(np.arange(rates_for_number.shape[0]) + 1, np.arange(rates_for_number.shape[0]))
+    plt.xlabel("Target layer")
+    plt.ylabel("Normalised weight")
+    plt.grid(True, which='major', axis='y')
+    plt.savefig(fig_folder + "mnist_normalised_weight_boxplot{}.pdf".format(suffix))
+    plt.savefig(fig_folder + "mnist_normalised_weight_boxplot{}.svg".format(suffix))
+    if show_plots:
+        plt.show()
+    plt.close(fig)
 
     fig_conn, axes = plt.subplots(2, 5, figsize=(const_fig_width, const_fig_height), dpi=500, sharey=True)
 
@@ -514,6 +540,17 @@ if __name__ == "__main__":
     #   2 - rewiring and     STDP, but no lateral connections
     #   3 - rewiring, but no STDP
 
+
+    filename = "mnist_case_1_fixed_signal_20_sigma"
+    mnist_analysis(filename, extra_suffix="fixed_signal_sigma")
+    filename = "mnist_case_2_fixed_signal_20_sigma"
+    mnist_analysis(filename, extra_suffix="fixed_signal_sigma")
+    filename = "mnist_case_3_fixed_signal_20_sigma"
+    mnist_analysis(filename, extra_suffix="fixed_signal_sigma")
+
+    sys.exit()
+
+
     # Rate-based input experiments
 
     filename = "mnist_case_1_5hz_rate_smax_96_sigma_lat_2"
@@ -534,6 +571,15 @@ if __name__ == "__main__":
     mnist_analysis(filename)
     sys.exit()
 
+    filename = "mnist_case_3_fixed_signal"
+    mnist_analysis(filename, extra_suffix="fixed_signal")
+    filename = "mnist_case_1_fixed_signal"
+    mnist_analysis(filename, extra_suffix="fixed_signal")
+    filename = "mnist_case_2_fixed_signal"
+    mnist_analysis(filename, extra_suffix="fixed_signal")
+
+    sys.exit()
+
     # filename = "mnist_case_1__600s"
     # mnist_analysis(filename, "600s")
     # sys.exit()
@@ -544,14 +590,6 @@ if __name__ == "__main__":
     #
     # sys.exit()
     #
-    # filename = "mnist_case_3_fixed_signal"
-    # mnist_analysis(filename, extra_suffix="fixed_signal")
-    # filename = "mnist_case_1_fixed_signal"
-    # mnist_analysis(filename, extra_suffix="fixed_signal")
-    # filename = "mnist_case_2_fixed_signal"
-    # mnist_analysis(filename, extra_suffix="fixed_signal")
-    #
-    # sys.exit()
 
     filename = "mnist_case_3_300s_cont_master"
     mnist_analysis(filename, extra_suffix="pynn8_cspc")
