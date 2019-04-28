@@ -420,7 +420,7 @@ for path in args.path:
                                 all_to_all_connections.append(
                                     (i, j, inhibition_weight_multiplier * w_max, 1))
 
-                        if args.rewiring:
+                        if args.rewiring and not args.fixed_wta:
                             wta_projection = sim.Projection(
                                 readout_pop, readout_pop,
                                 sim.FixedProbabilityConnector(0.),

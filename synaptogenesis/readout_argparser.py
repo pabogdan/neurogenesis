@@ -129,6 +129,9 @@ parser.add_argument('--p_connect', type=float,
 parser.add_argument('--plot', help="display plots",
                     action="store_true")
 
+parser.add_argument('--fixed_wta', help="disable rewiring for WTA conns",
+                    action="store_true")
+
 flags.add_argument('--snapshots',
                    help="store snapshot information "
                         "(connectivity + weights + delays)",
