@@ -875,6 +875,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
     # TODO preproc archive -- what is the DSI and entropy of the target neurons
     # which still have potentiated synapses with the readout neurons
 
+    hamming_exception = False
     if preproc_archive:
         preproc_path = os.path.join(root_stats, "preproc", preproc_archive)
         preproc_data = np.load(preproc_path + ".npz")
@@ -963,31 +964,37 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
                     classes_based_on_dsi_and_weights[class_id] = _max_ang
                 # print("{:45}".format("DSI + weight class"), ":", classes_based_on_dsi_and_weights.astype(int))
                 # print("{:45}".format("RO class"), ":", ro_predicted_classes[run_no][snap_keys])
+                try:
+                    dsi_class_distance[run, i] = scipy.spatial.distance.hamming(
+                        ro_predicted_classes[run_no][snap_keys],
+                        classes_based_on_dsi_and_weights.astype(int)
+                    )
+                except Exception as e:
+                    # Print exception traceback
+                    traceback.print_exc()
+                    hamming_exception = True
 
-                dsi_class_distance[run, i] = scipy.spatial.distance.hamming(
-                    ro_predicted_classes[run_no][snap_keys],
-                    classes_based_on_dsi_and_weights.astype(int)
-                )
-        print("{:45}".format("Ploting metric"), ":", "Hamming Distance")
-        fig, ax = plt.subplots(figsize=(plot_width, 8), dpi=600)
-        for run in np.arange(number_of_runs):
-            cmap_i = (run + 1) / float(number_of_runs)
-            current_color = viridis_cmap(cmap_i)
-            ax.plot((ordered_snapshots) / 1000, dsi_class_distance[run, :],
-                    c=current_color, alpha=.7)
-        # ax.errorbar((ordered_snapshots) / 1000, np.mean(dsi_class_distance, axis=0),
-        #             yerr=np.std(dsi_class_distance, axis=0),
-        #             c='k', alpha=.8)
-        plt.xlabel("Training time (seconds)")
-        plt.ylabel("Average DSI")
-        # plt.legend(loc='best')
-        # plt.ylim([-.05, 1.05])
-        plt.grid(True, which='major', axis='y')
-        plt.savefig(fig_folder + "readout_hamming_dist_evo{}.pdf".format(suffix_test))
-        plt.savefig(fig_folder + "readout_hamming_dist_evo{}.svg".format(suffix_test))
-        if show_plots:
-            plt.show()
-        plt.close(fig)
+        if not hamming_exception:
+            print("{:45}".format("Ploting metric"), ":", "Hamming Distance")
+            fig, ax = plt.subplots(figsize=(plot_width, 8), dpi=600)
+            for run in np.arange(number_of_runs):
+                cmap_i = (run + 1) / float(number_of_runs)
+                current_color = viridis_cmap(cmap_i)
+                ax.plot((ordered_snapshots) / 1000, dsi_class_distance[run, :],
+                        c=current_color, alpha=.7)
+            # ax.errorbar((ordered_snapshots) / 1000, np.mean(dsi_class_distance, axis=0),
+            #             yerr=np.std(dsi_class_distance, axis=0),
+            #             c='k', alpha=.8)
+            plt.xlabel("Training time (seconds)")
+            plt.ylabel("Average DSI")
+            # plt.legend(loc='best')
+            # plt.ylim([-.05, 1.05])
+            plt.grid(True, which='major', axis='y')
+            plt.savefig(fig_folder + "readout_hamming_dist_evo{}.pdf".format(suffix_test))
+            plt.savefig(fig_folder + "readout_hamming_dist_evo{}.svg".format(suffix_test))
+            if show_plots:
+                plt.show()
+            plt.close(fig)
 
         print("{:45}".format("Ploting metric"), ":", "Bottom and top weight avg DSI")
         fig, ax = plt.subplots(figsize=(plot_width, 8), dpi=600)
