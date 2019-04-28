@@ -754,7 +754,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
         ax.errorbar((ordered_snapshots) / 1000, np.mean(metric, axis=0),
                     yerr=stats.sem(metric, axis=0),
                     c='k', alpha=.7)
-        plt.xlabel("Time (seconds)")
+        plt.xlabel("Training time (seconds)")
         plt.ylabel("%", rotation=0)
         plt.ylim([-.05, 1.05])
         plt.grid(True, which='major', axis='y')
@@ -768,7 +768,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
     # stlye the median of boxplots
     medianprops = dict(color='#414C82', linewidth=1.5)
     fig = plt.figure(figsize=(plot_width, 8), dpi=600)
-    plt.axhline(1. / len(classes), color='#b2dd2c', ls=":")
+    # plt.axhline(1. / len(classes), color='#b2dd2c', ls=":")
 
     bp = plt.boxplot(wta_accuracies, notch=True, medianprops=medianprops)
 
@@ -777,9 +777,9 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
     for n, label in enumerate(labels):
         if n % every_nth != 0:
             label.set_visible(False)
-    plt.xlabel("Time (seconds)")
+    plt.xlabel("Training time (seconds)")
     plt.ylabel("Accuracy")
-    plt.ylim([-.05, 1.05])
+    # plt.ylim([-.05, 1.05])
     plt.grid(True, which='major', axis='y')
     plt.savefig(fig_folder + "readout_wta_accuracy_boxplot{}.pdf".format(suffix_test))
     plt.savefig(fig_folder + "readout_wta_accuracy_boxplot{}.svg".format(suffix_test))
@@ -788,7 +788,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
     plt.close(fig)
 
     fig = plt.figure(figsize=(plot_width, 8), dpi=600)
-    plt.axhline(1. / len(classes), color='#b2dd2c', ls=":")
+    # plt.axhline(1. / len(classes), color='#b2dd2c', ls=":")
 
     bp = plt.boxplot(ro_accuracies, notch=True, medianprops=medianprops)
 
@@ -797,9 +797,9 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
     for n, label in enumerate(labels):
         if n % every_nth != 0:
             label.set_visible(False)
-    plt.xlabel("Time (seconds)")
+    plt.xlabel("Training time (seconds)")
     plt.ylabel("Accuracy")
-    plt.ylim([-.05, 1.05])
+    # plt.ylim([-.05, 1.05])
     plt.grid(True, which='major', axis='y')
     plt.savefig(fig_folder + "readout_ro_accuracy_boxplot{}.pdf".format(suffix_test))
     plt.savefig(fig_folder + "readout_ro_accuracy_boxplot{}.svg".format(suffix_test))
@@ -817,7 +817,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
     for n, label in enumerate(labels):
         if n % every_nth != 0:
             label.set_visible(False)
-    plt.xlabel("Time (seconds)")
+    plt.xlabel("Training time (seconds)")
     plt.ylabel(r"$\frac{g}{g_{max}}$", rotation="horizontal")
     plt.ylim([-.05, 1.05])
     plt.grid(True, which='major', axis='y')
@@ -835,7 +835,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
     for n, label in enumerate(labels):
         if n % every_nth != 0:
             label.set_visible(False)
-    plt.xlabel("Time (seconds)")
+    plt.xlabel("Training time (seconds)")
     plt.ylabel("Number of afferents")
     plt.grid(True, which='major', axis='y')
     plt.savefig(fig_folder + "readout_no_afferents_boxplot_evo{}.pdf".format(suffix_test))
@@ -851,7 +851,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
                  yerr=np.std(ro_no_spikes, axis=0),
                  color=viridis_cmap(0.25))
     # plt.xticks(np.arange(ordered_snapshots.shape[0]) + 1, (ordered_snapshots + t_record) / 1000)
-    plt.xlabel("Time (seconds)")
+    plt.xlabel("Training time (seconds)")
     plt.ylabel("# of bins with no spikes")
     # plt.ylim([-.05, 1.05])
     plt.grid(True, which='major', axis='y')
@@ -952,8 +952,33 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
                             _max_val = bins[class_id][ua]
                             _max_ang = ua
                     classes_based_on_dsi_and_weights[class_id] = _max_ang
-                print("{:45}".format("DSI + weight class"), ":", classes_based_on_dsi_and_weights.astype(int))
-                print("{:45}".format("RO class"), ":", ro_predicted_classes[run_no][snap_keys])
+                # print("{:45}".format("DSI + weight class"), ":", classes_based_on_dsi_and_weights.astype(int))
+                # print("{:45}".format("RO class"), ":", ro_predicted_classes[run_no][snap_keys])
+
+                dsi_class_distance[run, i] = scipy.spatial.distance.hamming(
+                    ro_predicted_classes[run_no][snap_keys],
+                    classes_based_on_dsi_and_weights.astype(int)
+                )
+        print("{:45}".format("Ploting metric"), ":", "Hamming Distance")
+        fig, ax = plt.subplots(figsize=(plot_width, 8), dpi=600)
+        for run in np.arange(number_of_runs):
+            cmap_i = (run + 1) / float(number_of_runs)
+            current_color = viridis_cmap(cmap_i)
+            ax.plot((ordered_snapshots) / 1000, dsi_class_distance[run, :],
+                    c=current_color, alpha=.7)
+        # ax.errorbar((ordered_snapshots) / 1000, np.mean(dsi_class_distance, axis=0),
+        #             yerr=np.std(dsi_class_distance, axis=0),
+        #             c='k', alpha=.8)
+        plt.xlabel("Training time (seconds)")
+        plt.ylabel("Average DSI")
+        # plt.legend(loc='best')
+        # plt.ylim([-.05, 1.05])
+        plt.grid(True, which='major', axis='y')
+        plt.savefig(fig_folder + "readout_hamming_dist_evo{}.pdf".format(suffix_test))
+        plt.savefig(fig_folder + "readout_hamming_dist_evo{}.svg".format(suffix_test))
+        if show_plots:
+            plt.show()
+        plt.close(fig)
 
         print("{:45}".format("Ploting metric"), ":", "Bottom and top weight avg DSI")
         fig, ax = plt.subplots(figsize=(plot_width, 8), dpi=600)
@@ -965,7 +990,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
                     yerr=np.std(top_dsi, axis=0),
                     c=viridis_cmap(.75), alpha=.8, label=r"$w\geq\theta_{g}$")
         ax.axhline(dsi_thresh, color='#b2dd2c', ls=":")
-        plt.xlabel("Time (seconds)")
+        plt.xlabel("Training time (seconds)")
         plt.ylabel("Average DSI")
         plt.legend(loc='best')
         plt.ylim([-.05, 1.05])
@@ -986,7 +1011,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
         ax.errorbar((ordered_snapshots) / 1000, np.mean(top_entropy, axis=0),
                     yerr=np.std(top_entropy, axis=0),
                     c=viridis_cmap(.75), alpha=.8, label=r"$w\geq\theta_{g}$")
-        plt.xlabel("Time (seconds)")
+        plt.xlabel("Training time (seconds)")
         plt.ylabel("Average Entropy")
         plt.legend(loc='best')
         # plt.ylim([-.05, 1.05])
@@ -1010,16 +1035,34 @@ if __name__ == "__main__":
     # _power_on_self_test(fname, training_type="uns", extra_suffix="_p_.2_b_1.1")  # perfect
     # _power_on_self_test(fname, training_type="uns", extra_suffix="_run_0_100s")
     # /post area
+
     fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
 
     analyse_multiple_runs(fname, runs=[0,1,2,7,8], training_type="uns", extra_suffix="_400s_new_defaults_b_1.3_p_0.05",
+                          preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont",
+                          testing_suffix="_class_dev")
+    analyse_multiple_runs(fname, runs=[0,1,2,7,8], training_type="uns", extra_suffix="_400s_new_defaults_b_1.3_p_0.05",
+                          preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont",
+                          testing_suffix="_class_dev_jitter")
+    analyse_multiple_runs(fname, runs=[0,1,2,7,8], training_type="uns", extra_suffix="_400s_new_defaults_b_1.3_p_0.05",
+                          preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont",
+                          testing_suffix="_jitter")
+    # ok rewiring results
+    analyse_multiple_runs(fname, runs=3, training_type="uns", extra_suffix="_rewiring_400s_new_defaults_b_1.3_frew_10",
                           preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
+    # legit results
+    analyse_multiple_runs(fname, runs=[0,1,2,7,8], training_type="uns", extra_suffix="_400s_new_defaults_b_1.3_p_0.05",
+                          preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
+
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_400s_new_defaults_b_1.3_p_0.05")
+    sys.exit()
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_1_400s_new_defaults_b_1.3_p_0.05")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_8_400s_new_defaults_b_1.3_p_0.05")
     sys.exit()
     analyse_multiple_runs(fname, runs=1, training_type="uns", extra_suffix="_rewiring_400s_new_defaults_b_1.3_frew_100",
                           preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
     readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_rewiring_400s_new_defaults_b_1.3_frew_100")
-    analyse_multiple_runs(fname, runs=1, training_type="uns", extra_suffix="_rewiring_400s_new_defaults_b_1.3_frew_10",
-                          preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
+
     readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_rewiring_400s_new_defaults_b_1.3_frew_10")
     sys.exit()
     analyse_multiple_runs(fname, runs=1, training_type="uns", extra_suffix="_rewiring_400s_new_defaults_b_1.3",

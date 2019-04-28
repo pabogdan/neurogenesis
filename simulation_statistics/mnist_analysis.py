@@ -84,6 +84,7 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     if extra_suffix:
         suffix += "_" + extra_suffix
 
+
     print("{:45}".format("Beginning MNIST analysis"))
     print("{:45}".format("Archive name"), ":", archive)
     print("{:45}".format("Suffix"), ":", suffix)
@@ -255,7 +256,7 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     plt.close(fig_conn)
 
     # Weight boxplot
-    fig = plt.figure(figsize=(16, 8), dpi=600)
+    fig = plt.figure(figsize=(8, 8), dpi=600)
 
     # plt.axhline(s_max, color='#b2dd2c', ls=":")
     bp = plt.boxplot(weights_per_number, notch=True, medianprops=medianprops)
@@ -325,7 +326,7 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
 
     instaneous_rates /= float(N_layer)
     # firing rate per digit
-    fig = plt.figure(figsize=(16, 8), dpi=600)
+    fig = plt.figure(figsize=(8, 8), dpi=600)
 
     # plt.axhline(s_max, color='#b2dd2c', ls=":")
     bp = plt.boxplot(instaneous_rates.T / Hz, notch=True, medianprops=medianprops)
@@ -494,7 +495,7 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     number_of_afferents = np.asarray(number_of_afferents)
 
     # synaptic capacity per digit
-    fig = plt.figure(figsize=(16, 8), dpi=600)
+    fig = plt.figure(figsize=(8, 8), dpi=600)
 
     plt.axhline(s_max, color='#b2dd2c', ls=":")
     bp = plt.boxplot(number_of_afferents.T, notch=True, medianprops=medianprops)
@@ -510,7 +511,7 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     plt.close(fig)
 
     # firing rate per digit
-    fig = plt.figure(figsize=(16, 8), dpi=600)
+    fig = plt.figure(figsize=(8, 8), dpi=600)
 
     # plt.axhline(s_max, color='#b2dd2c', ls=":")
     bp = plt.boxplot(instaneous_rates.T / Hz, notch=True, medianprops=medianprops)
@@ -540,7 +541,15 @@ if __name__ == "__main__":
     #   2 - rewiring and     STDP, but no lateral connections
     #   3 - rewiring, but no STDP
 
+    filename = "mnist_case_1_fixed_signal_20_sigma_1200s"
+    mnist_analysis(filename, extra_suffix="1200s")
 
+    sys.exit()
+
+    filename = "mnist_case_1_sigma_600s"
+    mnist_analysis(filename, extra_suffix="600s")
+
+    sys.exit()
     filename = "mnist_case_1_fixed_signal_20_sigma"
     mnist_analysis(filename, extra_suffix="fixed_signal_sigma")
     filename = "mnist_case_2_fixed_signal_20_sigma"

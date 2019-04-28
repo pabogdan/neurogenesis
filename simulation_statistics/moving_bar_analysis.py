@@ -2931,6 +2931,7 @@ def batch_analyser(batch_data_file, batch_info_file,
     ax.view_init(elev=60)
     plt.savefig(fig_folder + "batch_all_dsi_entropy_3d_coords{}.pdf".format(suffix_test))
     plt.savefig(fig_folder + "batch_all_dsi_entropy_3d_coords{}.svg".format(suffix_test))
+    plt.savefig(fig_folder + "batch_all_dsi_entropy_3d_coords{}.png".format(suffix_test))
     if show_plots:
         plt.show()
     plt.close(fig)
@@ -3437,6 +3438,127 @@ def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_pl
 if __name__ == "__main__":
     import sys
 
+
+    fname = args.preproc_folder + "results_for_testing_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="just_testing_with_opposite_polarities")
+
+    fname = args.preproc_folder + "results_for_testing_with_opp_polarities_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="constant_just_testing_with_opposite_polarities")
+
+    fname1 = args.preproc_folder + "results_for_testing_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_with_opp_polarities_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    comparison(fname1, fname2, extra_suffix="just_testing_with_opposite_polarities")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    comparison(fname1, fname2, extra_suffix="cont_vs_just_testing_with_opposite_polarities", custom_labels=['Reference','Opposite polarity'])
+
+    fname = args.preproc_folder + "results_for_testing_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
+    analyse_one(fname, extra_suffix="just_testing_with_opposite_polarities")
+
+    fname = args.preproc_folder + "results_for_testing_with_opp_polarities_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
+    analyse_one(fname, extra_suffix="constant_just_testing_with_opposite_polarities")
+
+    fname1 = args.preproc_folder + "results_for_testing_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
+    fname2 = args.preproc_folder + "results_for_testing_with_opp_polarities_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
+    comparison(fname1, fname2, extra_suffix="just_testing_with_opposite_polarities")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
+    fname2 = args.preproc_folder + "results_for_testing_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
+    comparison(fname1, fname2, extra_suffix="cont_vs_just_testing_with_opposite_polarities", custom_labels=['Reference','Opposite polarity'])
+
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_pol_inversion_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_vs_opp_polarity")
+
+    fname = args.preproc_folder + "results_for_trained_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="continuous_test_tested_opp_polarity")
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_pol_inversion_cont"
+    analyse_one(fname, extra_suffix="continuous_test_opp_polarity")
+    sys.exit()
+
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
+    analyse_one(fname)
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
+    analyse_one(fname, extra_suffix="constant")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
+    comparison(fname1, fname2)
+
+    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+             38400 * bunits.second,
+             76800 * bunits.second
+             ]
+    filenames = [
+        "results_for_testing_constant_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_NESW_cont",
+        "results_for_testing_constant_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_NESW_cont",
+        "results_for_testing_constant_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_NESW_cont",
+        "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont",
+        "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_cont",
+        "results_for_testing_constant_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_cont"
+    ]
+    evolution(filenames, times, path=args.preproc_folder, suffix="4_angles_NESW_constant")
+
+    sys.exit()
+
+
+    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+             38400 * bunits.second,
+             76800 * bunits.second
+             ]
+    filenames = [
+        "results_for_testing_constant_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_0_90_cont",
+        "results_for_testing_constant_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_0_90_cont",
+        "results_for_testing_constant_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_0_90_cont",
+        "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont",
+        "results_for_testing_constant_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_0_90_cont",
+        "results_for_testing_constant_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_0_90_cont"
+    ]
+    evolution(filenames, times, path=args.preproc_folder, suffix="2_angles_0_90_constant_cont")
+
+    sys.exit()
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_cont"
+    analyse_one(fname, extra_suffix="768k")
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_cont"
+    analyse_one(fname, extra_suffix="constant_768k")
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_cont"
+    comparison(fname1, fname2, extra_suffix="768k")
+
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_cont"
+    comparison(fname1, fname2, extra_suffix="192k_vs_768k", custom_labels=['5 hours', '20 hours'])
+
+
+
+    sys.exit()
+
+    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+             38400 * bunits.second,
+             76800 * bunits.second
+             ]
+    filenames = [
+        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_NESW_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_NESW_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_NESW_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_NESW_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_cont"
+    ]
+    evolution(filenames, times, path=args.preproc_folder, suffix="4_angles_NESW")
+
+    sys.exit()
+
+
     fname = args.preproc_folder + "motion_batch_analysis_112404_03042019"
     info_fname = args.preproc_folder + "batch_72faa7aeecf0d005f75e8f92a7d96539"
     batch_analyser(fname, info_fname, extra_suffix="2_angles_0_90_sigma_form_lat_b",
@@ -3446,6 +3568,13 @@ if __name__ == "__main__":
                    focus_on_2_parameters=['sigma_form_lat', 's_max'])
     batch_analyser(fname, info_fname, extra_suffix="2_angles_0_90_smax_b",
                    focus_on_2_parameters=['b', 's_max'])
+
+
+
+    fname = args.preproc_folder + "motion_batch_analysis_085402_26032019"
+    info_fname = args.preproc_folder + "batch_3f01fccb37e1f90a137ed0e9dd27fdda"
+    batch_analyser(fname, info_fname, extra_suffix="2_angles_0_90",
+                   custom_labels=['$\sigma_{form-ff}$', '$\sigma_{form-lat}$'])
 
     sys.exit()
 
@@ -3474,17 +3603,6 @@ if __name__ == "__main__":
     comparison(fname1, fname2, extra_suffix="cont_no_off")
 
 
-
-
-    sys.exit()
-
-    fname = args.preproc_folder + "motion_batch_analysis_085402_26032019"
-    info_fname = args.preproc_folder + "batch_3f01fccb37e1f90a137ed0e9dd27fdda"
-    batch_analyser(fname, info_fname, extra_suffix="2_angles_0_90",
-                   custom_labels=['$\sigma_{form-ff}$', '$\sigma_{form-lat}$'])
-
-    sys.exit()
-
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_master_pynn8_backprop"
     analyse_one(fname, extra_suffix="cont_backprop")
 
@@ -3496,22 +3614,6 @@ if __name__ == "__main__":
     comparison(fname1, fname2, extra_suffix="cont_backprop")
 
     sys.exit()
-
-
-    fname = args.preproc_folder + "results_for_testing_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    analyse_one(fname, extra_suffix="just_testing_with_opposite_polarities")
-
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    fname2 = args.preproc_folder + "results_for_testing_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    comparison(fname1, fname2, extra_suffix="cont_vs_just_testing_with_opposite_polarities", custom_labels=['Reference','Opposite polarity'])
-
-    fname = args.preproc_folder + "results_for_testing_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
-    analyse_one(fname, extra_suffix="just_testing_with_opposite_polarities")
-
-
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
-    fname2 = args.preproc_folder + "results_for_testing_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_cont"
-    comparison(fname1, fname2, extra_suffix="cont_vs_just_testing_with_opposite_polarities", custom_labels=['Reference','Opposite polarity'])
 
     sys.exit()
 
@@ -3576,15 +3678,6 @@ if __name__ == "__main__":
 
     sys.exit()
 
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_pol_inversion_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_vs_opp_polarity")
-
-    fname = args.preproc_folder + "results_for_trained_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    analyse_one(fname, extra_suffix="continuous_test_tested_opp_polarity")
-
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_pol_inversion_cont"
-    analyse_one(fname, extra_suffix="continuous_test_opp_polarity")
 
 
     fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_opp_no_off_cont"
@@ -3615,15 +3708,6 @@ if __name__ == "__main__":
     sys.exit()
 
 
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_cont"
-    analyse_one(fname, extra_suffix="continuous_test_not_coplanar_768k")
-
-    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_cont"
-    analyse_one(fname, extra_suffix="constant_continuous_test_not_coplanar_768k")
-
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_cont"
-    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_NESW_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_not_coplanar_768k")
 
 
 
