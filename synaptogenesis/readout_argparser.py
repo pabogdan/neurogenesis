@@ -258,6 +258,9 @@ parser.add_argument('--test_class_dev',
                     type=int, nargs=1, default=DEFAULT_CLASS_DEV
                     )
 
+parser.add_argument('--random_delay',
+                    help="[App: Motion detection] SR with random delays",
+                    action="store_true")
 
 parser.add_argument('--no-cache',
                     help="force simulation re-run without "

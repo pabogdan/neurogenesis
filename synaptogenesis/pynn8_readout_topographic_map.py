@@ -88,6 +88,11 @@ if not isinstance(arg_passed_run, Iterable) or len(arg_passed_run) == 1:
 else:
     run_seq = np.asarray(arg_passed_run).ravel()
 
+if args.random_delay:
+    delay_interval = [1, 16]
+else:
+    delay_interval = [1, 1]
+
 initial_weight = 0
 if args.min_supervised:
     initial_weight = DEFAULT_W_MIN
@@ -271,7 +276,9 @@ for path in args.path:
                     'argparser': vars(args),
                     'phase': phase,
                     'actual_classes': np.copy(actual_classes),
-                    'run_seq': run_seq
+                    'run_seq': run_seq,
+                    'constant_delay': not args.random_delay,
+                    'random_delay': args.random_delay
                 }
 
                 stdp_model = sim.STDPMechanism(
@@ -286,7 +293,7 @@ for path in args.path:
                 structure_model_w_stdp = sim.StructuralMechanismSTDP(
                     stdp_model=stdp_model,
                     weight=w_max,
-                    delay=1,
+                    delay=delay_interval,
                     s_max=s_max,
                     grid=grid,
                     f_rew=f_rew,
