@@ -442,7 +442,7 @@ elif case == CASE_CORR_NO_REW:
 if not args.testing:
     print("No insults")
     if args.expands:
-        data_file_name = args.testing
+        data_file_name = args.expands
         if ".npz" not in args.expands:
             data_file_name += ".npz"
         testing_data = np.load(data_file_name)
