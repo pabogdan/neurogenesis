@@ -443,7 +443,7 @@ if not args.testing:
     print("No insults")
     if args.expands:
         data_file_name = args.testing
-        if ".npz" not in args.testing:
+        if ".npz" not in args.expands:
             data_file_name += ".npz"
         testing_data = np.load(data_file_name)
         trained_ff_on_connectivity = testing_data['ff_connections'][-1]
