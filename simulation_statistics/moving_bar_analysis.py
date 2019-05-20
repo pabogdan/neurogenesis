@@ -3438,6 +3438,84 @@ def comparative_elephant_analysis(archive1, archive2, extra_suffix=None, show_pl
 if __name__ == "__main__":
     import sys
 
+    # noise play
+
+    # fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_fbase_20_cont"
+    # analyse_one(fname, extra_suffix="fnoise_20")
+    #
+    # fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_fbase_20_cont"
+    # analyse_one(fname, extra_suffix="constant_fnoise_20")
+    #
+    # fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_fbase_20_cont"
+    # fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_fbase_20_cont"
+    # comparison(fname1, fname2, extra_suffix="fnoise_20") #, custom_labels=["5 Hz", "20 Hz"])
+    # all angles
+    filenames = [
+        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_all_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_all_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_all_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_all_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_all_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_all_cont"
+    ]
+
+    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+             38400 * bunits.second,
+             76800 * bunits.second
+             ]
+    evolution(filenames, times, path=args.preproc_folder, suffix="_all_angles_cont")
+    sys.exit()
+
+    fname = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_one(fname, extra_suffix="fnoise_0")
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_fbase_0_cont"
+    analyse_one(fname, extra_suffix="constant_fnoise_0")
+
+    fname1 = args.preproc_folder + "results_for_testing_training_without_noise_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_fbase_0_cont"
+    comparison(fname1, fname2, extra_suffix="fnoise_0") #, custom_labels=["5 Hz", "20 Hz"])
+
+    # Single angle analysis
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_2"
+    analyse_one(fname, extra_suffix="continuous_test")
+
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
+    analyse_one(fname, extra_suffix="constant_continuous_test")
+
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont_2"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test")
+
+    sys.exit()
+
+
+    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
+    analyse_one(fname, extra_suffix="continuous_test_jitter")
+
+
+    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
+    analyse_one(fname, extra_suffix="constant_continuous_test_jitter")
+
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_jitter")
+
+
+    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
+    comparison(fname1, fname2, extra_suffix="continuous_test_vs_jitter", custom_labels=["no jitter", "jitter"])
+
+    fname1 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
+    comparison(fname1, fname2, extra_suffix="constant_continuous_test_vs_jitter", custom_labels=["no jitter", "jitter"])
+
+    sys.exit()
+
 
     fname = args.preproc_folder + "results_for_testing_with_opp_polarities_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
     analyse_one(fname, extra_suffix="just_testing_with_opposite_polarities")
@@ -3812,25 +3890,6 @@ if __name__ == "__main__":
 
     sys.exit()
 
-
-    fname = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
-    analyse_one(fname, extra_suffix="continuous_test_jitter")
-
-
-    fname = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
-    analyse_one(fname, extra_suffix="constant_continuous_test_jitter")
-
-
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
-    fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_jitter")
-
-
-    fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
-    fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_jitter_cont"
-    comparison(fname1, fname2, extra_suffix="continuous_test_vs_jitter", custom_labels=["no jitter", "jitter"])
-
-    sys.exit()
 
 
 

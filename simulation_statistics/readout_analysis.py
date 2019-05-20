@@ -500,13 +500,16 @@ def readout_neuron_analysis(fname, training_type="uns", extra_suffix="", show_pl
         print("-" * 52)
     fig, axes = plt.subplots(1, classes.size, figsize=(classes.size * 5, 7), dpi=800, sharey=True)
 
-    minimus = 0
-    maximus = 1
+    minimus = 0.
+    maximus = 1.
     for index, ax in np.ndenumerate(axes):
         i = index[0]
         ax.hist(conns[i] / w_max, bins=20, color='#414C82', edgecolor='k')
-        ax.set_title(conns_names[i])
+        # ax.set_title(conns_names[i])
         ax.set_xlim([minimus, maximus])
+        if i==0:
+            ax.set_ylabel("Number of connections")
+        ax.set_xlabel("$g/g_{max}$" + "\n" + conns_names[i])
         print(np.max(conns[i]))
     plt.tight_layout()
     plt.savefig(fig_folder + "readout_weight_histograms{}.pdf".format(suffix_test), bbox_inches='tight')
@@ -747,10 +750,14 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
     print("{:45}".format("MEAN WTA ACC @ final snpashot"), ":", np.mean(wta_accuracies[:, -1]))
     # MEAN WTA acc (at every snapshot)
     print("{:45}".format("ALL MEAN WTA ACC"), ":", np.mean(wta_accuracies[:], axis=0))
+    print("{:45}".format("ALL STD WTA ACC"), ":", np.std(wta_accuracies[:], axis=0))
+    print("{:45}".format("ALL SEM WTA ACC"), ":", stats.sem(wta_accuracies[:], axis=0))
     # RO acc (at the last snapshot)
     print("{:45}".format("MEAN RO ACC @ final snpashot"), ":", np.mean(ro_accuracies[:, -1]))
     # MEAN RO acc (at every snapshot)
     print("{:45}".format("ALL MEAN RO ACC"), ":", np.mean(ro_accuracies[:], axis=0))
+    print("{:45}".format("ALL STD RO ACC"), ":", np.std(ro_accuracies[:], axis=0))
+    print("{:45}".format("ALL SEM RO ACC"), ":", stats.sem(ro_accuracies[:], axis=0))
 
     for metric, metric_name in zip(metrics_to_plot, metrics_names):
         print("{:45}".format("Ploting metric"), ":", metric_name)
@@ -761,7 +768,7 @@ def analyse_multiple_runs(fname, runs, training_type="uns", extra_suffix="",
             ax.plot((ordered_snapshots) / 1000, metric[run, :],
                     c=current_color, alpha=.7)
         ax.errorbar((ordered_snapshots) / 1000, np.mean(metric, axis=0),
-                    yerr=stats.sem(metric, axis=0),
+                    yerr=np.std(metric, axis=0),
                     c='k', alpha=.7)
         plt.xlabel("Training time (seconds)")
         plt.ylabel("%", rotation=0)
@@ -1052,16 +1059,58 @@ if __name__ == "__main__":
     # _power_on_self_test(fname, training_type="uns", extra_suffix="_run_0_100s")
     # /post area
 
+    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
 
+
+    analyse_multiple_runs(fname, runs=[0, 2, 4, 6, 8], training_type="uns", extra_suffix="_rewiring_1ks_new_defaults_b_1.3_fixed_wta_frew_100_pelimpot_0",
+                          preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_rewiring_1ks_new_defaults_b_1.3_fixed_wta_frew_100_pelimpot_0")
+
+
+    analyse_multiple_runs(fname, runs=[0, 2, 4, 6, 8], training_type="uns", extra_suffix="_rewiring_1ks_new_defaults_b_1.3_fixed_wta_frew_100_rand_delay",
+                          preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_rewiring_1ks_new_defaults_b_1.3_fixed_wta_frew_100_rand_delay")
+
+
+
+
+
+    sys.exit()
+
+
+    fname = "constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
+    analyse_multiple_runs(fname, runs=[0, 2, 4, 6, 8], training_type="uns", extra_suffix="_400s_new_defaults_b_1.3_p_0.05",
+                          preproc_archive="results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont") # Perfect
+
+    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_400s_new_defaults_b_1.3_p_0.05")
+    sys.exit()
 
 
 
     # Fixed WTA connections
-    fname = "random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont"
 
-    analyse_multiple_runs(fname, runs=[0, 2, 4, 6, 8], training_type="uns", extra_suffix="_rewiring_1ks_new_defaults_b_1.3_fixed_wta_frew_100",
-                          preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
-    readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_rewiring_1ks_new_defaults_b_1.3_fixed_wta_frew_100")
+
+    # Awful awful awful!
+    # analyse_multiple_runs(fname, runs=[0, 2, 4, 6, 8], training_type="uns", extra_suffix="_rewiring_1ks_new_defaults_b_1.3_frew_100_smax_64",
+    #                       preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
+    # readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_rewiring_1ks_new_defaults_b_1.3_frew_100_smax_64")
+    # sys.exit()
+    #
+    # analyse_multiple_runs(fname, runs=[0, 2, 4, 6, 8], training_type="uns", extra_suffix="_rewiring_1ks_new_defaults_b_1.3_fixed_wta_frew_100_smax_64",
+    #                       preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
+    # readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_rewiring_1ks_new_defaults_b_1.3_fixed_wta_frew_100_smax_64")
+    # sys.exit()
+    # # [0, 2, 4, 6, 8]
+    # analyse_multiple_runs(fname, runs=[0, 2, 4, 6, 8], training_type="uns", extra_suffix="_rewiring_1ks_new_defaults_b_1.3_fixed_wta_frew_10",
+    #                       preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
+    # readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_rewiring_1ks_new_defaults_b_1.3_fixed_wta_frew_10")
+    # sys.exit()
+    # </Awful awful awful!>
+
+    # [0, 2, 4, 6, 8]
+    # analyse_multiple_runs(fname, runs=10, training_type="uns", extra_suffix="_rewiring_1ks_new_defaults_b_1.3_fixed_wta_frew_100",
+    #                       preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")
+    # readout_neuron_analysis(fname, training_type="uns", extra_suffix="_run_0_rewiring_1ks_new_defaults_b_1.3_fixed_wta_frew_100")
     # sys.exit()
     analyse_multiple_runs(fname, runs=[0, 1, 2, 7, 8], training_type="uns", extra_suffix="_400s_new_defaults_b_1.3_p_0.05",
                           preproc_archive="results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_cont")

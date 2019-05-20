@@ -18,6 +18,9 @@ from argparser import *
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib as mlib
 
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+
 # ensure we use viridis as the default cmap
 plt.viridis()
 
@@ -390,8 +393,15 @@ for file in paths:
         suffix_test = "_case_{}".format(str(simdata['case']))
         # final weight histogram
         # ff weight histogram
-        fig = plt.figure(figsize=(10, 5), dpi=600)
-        plt.hist(ff_last[:, 2]/g_max, bins=20, normed=True, edgecolor='k', color='#414C82')
+        current_conns = ff_last[:, 2] / g_max
+        hist_weights = np.ones_like(current_conns) / float(ff_last.shape[0])
+        fig, ax = plt.subplots(1,1, figsize=(6, 7), dpi=600)
+        ax.set_xlim([0, 1])
+        plt.xticks([0, .5, 1], ["0", "0.5", "1"])
+
+        ax.set_xlabel(r"$g/g_{max}$")
+        ax.set_ylabel("Proportion of all weights")
+        plt.hist(current_conns, bins=20, weights=hist_weights, edgecolor='k', color='#414C82')
         # plt.title("Histogram of feedforward weights")
         plt.tight_layout()
 
@@ -406,12 +416,17 @@ for file in paths:
             plt.show()
         plt.close(fig)
 
+        # Lat weight histogram
+        current_conns = lat_last[:, 2] / g_max
+        hist_weights = np.ones_like(current_conns) / float(ff_last.shape[0])
+        fig, ax = plt.subplots(1, 1, figsize=(6, 7), dpi=600)
+        ax.set_xlim([0, 1])
+        plt.xticks([0, .5, 1], ["0", "0.5", "1"])
 
-
-        # lat weight histogram
-        fig = plt.figure(figsize=(10, 5), dpi=600)
-        plt.hist(lat_last[:, 2]/g_max, bins=20, normed=True, edgecolor='k', color='#414C82')
-        # plt.title("Histogram of lateral weights")
+        ax.set_xlabel(r"$g/g_{max}$")
+        ax.set_ylabel("Proportion of all weights")
+        plt.hist(current_conns, bins=20, weights=hist_weights, edgecolor='k', color='#414C82')
+        # plt.title("Histogram of feedforward weights")
         plt.tight_layout()
 
         plt.savefig(
@@ -423,7 +438,6 @@ for file in paths:
 
         if args.plot:
             plt.show()
-
         plt.close(fig)
         # LAT connection bar chart
 
