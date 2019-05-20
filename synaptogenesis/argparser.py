@@ -89,6 +89,10 @@ parser.add_argument('--testing', type=str, dest='testing',
                          'archive with connectivity information to commence'
                          'testing')
 
+parser.add_argument('--expands', type=str,
+                    help='defines the network connectivity starting point as '
+                         'the end point of a different training simulation')
+
 parser.add_argument("-l", '--lesion', type=int,
                     choices=[NO_LESION, RANDOM_CONNECTIVITY_LESION,
                              ONE_TO_ONE_LESION],

@@ -229,7 +229,8 @@ sim_params = {'g_max': g_max,
               'no_off_polarity': args.no_off_polarity,
               'coplanar': args.coplanar,
               'record_exc_v': args.record_exc_v,
-              'tau_syn_i':args.tau_syn_i
+              'tau_syn_i':args.tau_syn_i,
+              'expands':args.expands
               }
 
 if args.input_type == GAUSSIAN_INPUT:
@@ -440,37 +441,81 @@ elif case == CASE_CORR_NO_REW:
 
 if not args.testing:
     print("No insults")
-    ff_projection = sim.Projection(
-        source_pop, target_pop,
-        sim.FixedProbabilityConnector(0.),
-        # sim.FromListConnector(init_ff_connections),
-        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-        label="plastic_ff_projection"
-    )
+    if args.expands:
+        data_file_name = args.testing
+        if ".npz" not in args.testing:
+            data_file_name += ".npz"
+        testing_data = np.load(data_file_name)
+        trained_ff_on_connectivity = testing_data['ff_connections'][-1]
+        trained_ff_off_connectivity = testing_data['ff_off_connections'][-1]
+        trained_lat_connectivity = testing_data['lat_connections'][-1]
+        trained_noise_connectivity = testing_data['noise_connections'][-1]
+        if args.topology != 1:
+            trained_inh_lat_connectivity = testing_data['inh_connections']
+            trained_exh_lat_connectivity = testing_data['exh_connections']
+            trained_inh_inh_connectivity = testing_data['inh_inh_connections']
+        if args.topology == 3:
+            trained_on_inh_connectivity = testing_data['on_inh_connections']
+            trained_off_inh_connectivity = testing_data['off_inh_connections']
+            trained_noise_inh_connectivity = testing_data['noise_inh_connections']
 
-    ff_off_projection = sim.Projection(
-        source_pop_off, target_pop,
-        sim.FixedProbabilityConnector(0.),
-        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-        label="ff_off_projection"
-    )
+        ff_projection = sim.Projection(
+            source_pop, target_pop,
+            sim.FromListConnector(trained_ff_on_connectivity),
+            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+            label="plastic_ff_projection"
+        )
 
-    noise_projection = sim.Projection(
-        noise_pop, target_pop,
-        sim.FixedProbabilityConnector(0.),
-        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-        label="noise_projection"
-    )
+        ff_off_projection = sim.Projection(
+            source_pop_off, target_pop,
+            sim.FromListConnector(trained_ff_off_connectivity),
+            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+            label="ff_off_projection"
+        )
 
-    lat_projection = sim.Projection(
-        target_pop, target_pop,
+        noise_projection = sim.Projection(
+            noise_pop, target_pop,
+            sim.FromListConnector(trained_noise_connectivity),
+            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+            label="noise_projection"
+        )
 
-        sim.FixedProbabilityConnector(0.),
-        # sim.FromListConnector(init_lat_connections),
-        synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-        label="plastic_lat_projection",
-        target="inhibitory" if args.lateral_inhibition else "excitatory"
-    )
+        lat_projection = sim.Projection(
+            target_pop, target_pop,
+            sim.FromListConnector(trained_lat_connectivity),
+            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+            label="plastic_lat_projection",
+            target="inhibitory" if args.lateral_inhibition else "excitatory"
+        )
+    else:
+        ff_projection = sim.Projection(
+            source_pop, target_pop,
+            sim.FixedProbabilityConnector(0.),
+            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+            label="plastic_ff_projection"
+        )
+
+        ff_off_projection = sim.Projection(
+            source_pop_off, target_pop,
+            sim.FixedProbabilityConnector(0.),
+            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+            label="ff_off_projection"
+        )
+
+        noise_projection = sim.Projection(
+            noise_pop, target_pop,
+            sim.FixedProbabilityConnector(0.),
+            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+            label="noise_projection"
+        )
+
+        lat_projection = sim.Projection(
+            target_pop, target_pop,
+            sim.FixedProbabilityConnector(0.),
+            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+            label="plastic_lat_projection",
+            target="inhibitory" if args.lateral_inhibition else "excitatory"
+        )
     if args.coplanar:
         structure_model_w_stdp.set_projection_parameter(
             lat_projection,
@@ -517,63 +562,108 @@ if not args.testing:
         )
 
     if args.topology == 2 or args.topology == 3:
-        inh_projection = sim.Projection(
-            inh_pop, target_pop,
-            sim.FixedProbabilityConnector(0.),
-            synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
-            label="plastic_inh_lat_projection",
-            target="inhibitory"
-        )
+        if args.expands:
+            inh_projection = sim.Projection(
+                inh_pop, target_pop,
+                sim.FromListConnector(trained_on_inh_connectivity),
+                synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+                label="plastic_inh_lat_projection",
+                target="inhibitory"
+            )
+            inh_inh_projection = sim.Projection(
+                inh_pop, inh_pop,
+                sim.FromListConnector(trained_inh_inh_connectivity),
+                synapse_dynamics=sim.SynapseDynamics(slow=inh_structure_model_w_stdp),
+                label="plastic_inh_inh_projection",
+                target="inhibitory"
+            )
+            exh_projection = sim.Projection(
+                target_pop, inh_pop,
+                sim.FromListConnector(trained_exh_lat_connectivity),
+                synapse_dynamics=sim.SynapseDynamics(slow=inh_structure_model_w_stdp),
+                label="plastic_exh_lat_projection",
+                target="excitatory"
+            )
+        else:
+            inh_projection = sim.Projection(
+                inh_pop, target_pop,
+                sim.FixedProbabilityConnector(0.),
+                synapse_dynamics=sim.SynapseDynamics(slow=structure_model_w_stdp),
+                label="plastic_inh_lat_projection",
+                target="inhibitory"
+            )
+            inh_inh_projection = sim.Projection(
+                inh_pop, inh_pop,
+                sim.FixedProbabilityConnector(0.),
+                synapse_dynamics=sim.SynapseDynamics(slow=inh_structure_model_w_stdp),
+                label="plastic_inh_inh_projection",
+                target="inhibitory"
+            )
+            exh_projection = sim.Projection(
+                target_pop, inh_pop,
+                sim.FixedProbabilityConnector(0.),
+                synapse_dynamics=sim.SynapseDynamics(slow=inh_structure_model_w_stdp),
+                label="plastic_exh_lat_projection",
+                target="excitatory"
+            )
+
+
         if args.coplanar:
             structure_model_w_stdp.set_projection_parameter(
                 inh_projection,
                 sim.StructuralMechanismSTDP.connectivity_exception_param.delay,
                 local_connection_delay_dist)
-        inh_inh_projection = sim.Projection(
-            inh_pop, inh_pop,
-            sim.FixedProbabilityConnector(0.),
-            synapse_dynamics=sim.SynapseDynamics(slow=inh_structure_model_w_stdp),
-            label="plastic_inh_inh_projection",
-            target="inhibitory"
-        )
-        if args.coplanar:
             structure_model_w_stdp.set_projection_parameter(
                 inh_inh_projection,
                 sim.StructuralMechanismSTDP.connectivity_exception_param.delay,
                 local_connection_delay_dist)
-        exh_projection = sim.Projection(
-            target_pop, inh_pop,
-            sim.FixedProbabilityConnector(0.),
-            synapse_dynamics=sim.SynapseDynamics(slow=inh_structure_model_w_stdp),
-            label="plastic_exh_lat_projection",
-            target="excitatory"
-        )
-        if args.coplanar:
             structure_model_w_stdp.set_projection_parameter(
                 exh_projection,
                 sim.StructuralMechanismSTDP.connectivity_exception_param.delay,
                 local_connection_delay_dist)
     if args.topology == 3:
-        ff_inh_projection = sim.Projection(
-            source_pop, inh_pop,
-            sim.FixedProbabilityConnector(0.),
-            synapse_dynamics=sim.SynapseDynamics(slow=inh_structure_model_w_stdp),
-            label="plastic_ff_inh_projection"
-        )
+        if args.expands:
+            ff_inh_projection = sim.Projection(
+                source_pop, inh_pop,
+                sim.FromListConnector(trained_on_inh_connectivity),
+                synapse_dynamics=sim.SynapseDynamics(slow=inh_structure_model_w_stdp),
+                label="plastic_ff_inh_projection"
+            )
 
-        ff_off_inh_projection = sim.Projection(
-            source_pop_off, inh_pop,
-            sim.FixedProbabilityConnector(0.),
-            synapse_dynamics=sim.SynapseDynamics(slow=inh_structure_model_w_stdp),
-            label="ff_off_inh_projection"
-        )
+            ff_off_inh_projection = sim.Projection(
+                source_pop_off, inh_pop,
+                sim.FromListConnector(trained_off_inh_connectivity),
+                synapse_dynamics=sim.SynapseDynamics(slow=inh_structure_model_w_stdp),
+                label="ff_off_inh_projection"
+            )
 
-        noise_inh_projection = sim.Projection(
-            noise_pop, inh_pop,
-            sim.FixedProbabilityConnector(0.),
-            synapse_dynamics=sim.SynapseDynamics(slow=inh_structure_model_w_stdp),
-            label="noise_inh_projection"
-        )
+            noise_inh_projection = sim.Projection(
+                noise_pop, inh_pop,
+                sim.FromListConnector(trained_noise_inh_connectivity),
+                synapse_dynamics=sim.SynapseDynamics(slow=inh_structure_model_w_stdp),
+                label="noise_inh_projection"
+            )
+        else:
+            ff_inh_projection = sim.Projection(
+                source_pop, inh_pop,
+                sim.FixedProbabilityConnector(0.),
+                synapse_dynamics=sim.SynapseDynamics(slow=inh_structure_model_w_stdp),
+                label="plastic_ff_inh_projection"
+            )
+
+            ff_off_inh_projection = sim.Projection(
+                source_pop_off, inh_pop,
+                sim.FixedProbabilityConnector(0.),
+                synapse_dynamics=sim.SynapseDynamics(slow=inh_structure_model_w_stdp),
+                label="ff_off_inh_projection"
+            )
+
+            noise_inh_projection = sim.Projection(
+                noise_pop, inh_pop,
+                sim.FixedProbabilityConnector(0.),
+                synapse_dynamics=sim.SynapseDynamics(slow=inh_structure_model_w_stdp),
+                label="noise_inh_projection"
+            )
 
 else:  # testing begins here
     data_file_name = args.testing
