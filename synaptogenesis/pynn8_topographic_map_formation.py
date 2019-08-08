@@ -22,7 +22,7 @@ print("Case", case, "selected!")
 start_time = plt.datetime.datetime.now()
 
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
-max_atoms_per_core = 16
+max_atoms_per_core = 32
 sim.set_number_of_neurons_per_core(sim.IF_cond_exp, max_atoms_per_core)
 sim.set_number_of_neurons_per_core(sim.SpikeSourcePoisson, max_atoms_per_core)
 sim.set_number_of_neurons_per_core(SpikeSourcePoissonVariable, max_atoms_per_core)
@@ -243,7 +243,8 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
     #     p_form_lateral=p_form_lateral  # lateral formation probability
     # )
 
-    partner_selection_last_neuron = sim.RandomSelection()
+    # partner_selection_last_neuron = sim.RandomSelection()
+    partner_selection_last_neuron = sim.LastNeuronSelection()
     formation_distance = sim.DistanceDependentFormation(
         grid=grid,  # spatial org of neurons
         sigma_form_forward=sigma_form_forward,  # spread of feadforward receptive field
