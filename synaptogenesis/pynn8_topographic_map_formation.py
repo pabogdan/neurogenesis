@@ -122,7 +122,8 @@ sim_params = {'g_max': g_max,
               'a_plus': a_plus,
               'input_type': args.input_type,
               'random_partner': args.random_partner,
-              'lesion': args.lesion
+              'lesion': args.lesion,
+              'argparser': vars(args),
               }
 
 if args.input_type == GAUSSIAN_INPUT:
