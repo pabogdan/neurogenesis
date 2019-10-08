@@ -60,9 +60,9 @@ for file in paths:
         start_time = plt.datetime.datetime.now()
         print("\n\nAnalysing file", str(file))
         if "npz" in str(file):
-            data = np.load(file)
+            data = np.load(file, allow_pickle=True)
         else:
-            data = np.load(str(file) + ".npz")
+            data = np.load(str(file) + ".npz", allow_pickle=True)
         simdata = np.array(data['sim_params']).ravel()[0]
         if sensitivity_analysis:
             batch_params.append((simdata, file))
