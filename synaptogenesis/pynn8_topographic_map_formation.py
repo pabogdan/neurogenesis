@@ -223,7 +223,8 @@ target_pop = sim.Population(N_layer, model, cell_params, label="TARGET_POP")
 
 stdp_model = sim.STDPMechanism(
     timing_dependence=sim.SpikePairRule(tau_plus=tau_plus, tau_minus=tau_minus, A_plus=a_plus, A_minus=a_minus),
-    weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=g_max)
+    weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=g_max),
+    backprop_delay=False
 )
 
 if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
@@ -275,7 +276,8 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
         f_rew=f_rew,
         # STDP rules
         timing_dependence=sim.SpikePairRule(tau_plus=tau_plus, tau_minus=tau_minus, A_plus=a_plus, A_minus=a_minus),
-        weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=g_max)
+        weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=g_max),
+        backprop_delay=False
     )
 elif case == CASE_CORR_NO_REW:
     structure_model_w_stdp = stdp_model
