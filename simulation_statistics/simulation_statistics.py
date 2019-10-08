@@ -29,6 +29,13 @@ mlib.rcParams.update({'font.size': 24})
 mlib.rcParams.update({'errorbar.capsize': 5})
 mlib.rcParams.update({'figure.autolayout': True})
 
+root_stats = args.root_stats
+root_syn = args.root_syn
+fig_folder = args.fig_folder
+# check if the figures folder exist
+if not os.path.isdir(fig_folder) and not os.path.exists(fig_folder):
+    os.mkdir(fig_folder)
+
 paths = []
 for file in args.path:
     if "*" in file:
@@ -387,9 +394,6 @@ for file in paths:
                 file
             ))
 
-        root_stats = args.root_stats
-        root_syn = args.root_syn
-        fig_folder = args.fig_folder
         suffix_test = "_case_{}".format(str(simdata['case']))
         # final weight histogram
         # ff weight histogram
