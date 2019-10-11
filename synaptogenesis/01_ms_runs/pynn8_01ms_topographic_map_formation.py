@@ -6,8 +6,8 @@ http://hdl.handle.net/1842/3997
 # Imports
 import traceback
 
-from function_definitions import *
-from argparser import *
+from synaptogenesis.function_definitions import *
+from synaptogenesis.argparser import *
 
 import numpy as np
 import pylab as plt
