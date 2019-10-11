@@ -52,7 +52,7 @@ cell_params = {'cm': 20.0,  # nF
                'tau_syn_I': 5.0,
                'v_reset': -70.0,
                'v_rest': -70.0,
-               'v_thresh': -50.0,
+               'v_thresh': v_thr,
                'e_rev_E': 0.,
                'e_rev_I': -80.
                }
