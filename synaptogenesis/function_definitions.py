@@ -284,7 +284,7 @@ def load_mnist_rates(in_path, class_idx, min_noise=0, max_noise=0,
                                                      size=(n_smpls, height,
                                                            width))).astype(
                 'uint16')
-            for i in xrange(len(data[ON][IDX])):
+            for i in range(len(data[ON][IDX])):
                 for idx in data[ON][IDX][i]:
                     r = idx // width
                     c = idx % width
@@ -303,7 +303,7 @@ def load_mnist_rates(in_path, class_idx, min_noise=0, max_noise=0,
                                                       size=(n_smpls, height,
                                                             width))).astype(
                 'uint16')
-            for i in xrange(len(data[OFF][IDX])):
+            for i in range(len(data[OFF][IDX])):
                 for idx in data[OFF][IDX][i]:
                     r = idx // width
                     c = idx % width
