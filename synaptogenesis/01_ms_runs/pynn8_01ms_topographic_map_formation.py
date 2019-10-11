@@ -47,7 +47,7 @@ hard_delay = 0.1
 cell_params = {'cm': 20.0,  # nF
                'i_offset': 0.0,
                'tau_m': 20.0,
-               'tau_refrac': 0,
+               'tau_refrac': 5.0,
                'tau_syn_E': 5.0,
                'tau_syn_I': 5.0,
                'v_reset': -70.0,
