@@ -12,10 +12,8 @@ start_time = plt.datetime.datetime.now()
 
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
 sim.set_number_of_neurons_per_core(sim.IF_curr_exp, 50)
-sim.set_number_of_neurons_per_core(sim.IF_cond_exp, 25)
-sim.set_number_of_neurons_per_core(sim.SpikeSourcePoisson, 256)
-sim.set_number_of_neurons_per_core(SpikeSourcePoissonVariable, 128)
-sim.set_number_of_neurons_per_core(sim.SpikeSourceArray, 256)
+sim.set_number_of_neurons_per_core(sim.IF_cond_exp, 32)
+sim.set_number_of_neurons_per_core(SpikeSourcePoissonVariable, 32)
 # +-------------------------------------------------------------------+
 # | General Parameters                                                |
 # +-------------------------------------------------------------------+
@@ -169,19 +167,6 @@ elimination_weight = sim.RandomByWeightElimination(
 )
 
 if args.case == CASE_CORR_AND_REW:
-    # structure_model_w_stdp = sim.StructuralMechanismSTDP(
-    #     stdp_model=stdp_model,
-    #     weight=g_max,
-    #     s_max=s_max,
-    #     grid=grid, f_rew=f_rew,
-    #     lateral_inhibition=args.lateral_inhibition,
-    #     random_partner=args.random_partner,
-    #     p_elim_dep=p_elim_dep,
-    #     p_elim_pot=p_elim_pot,
-    #     sigma_form_forward=sigma_form_forward,
-    #     sigma_form_lateral=sigma_form_lateral,
-    #     p_form_forward=p_form_forward,
-    #     p_form_lateral=p_form_lateral)
     structure_model_w_stdp = sim.StructuralMechanismSTDP(
         # Partner selection, formation and elimination rules from above
         partner_selection_last_neuron, formation_distance, elimination_weight,
@@ -199,21 +184,10 @@ if args.case == CASE_CORR_AND_REW:
         f_rew=f_rew,
         # STDP rules
         timing_dependence=sim.SpikePairRule(tau_plus=tau_plus, tau_minus=tau_minus, A_plus=a_plus, A_minus=a_minus),
-        weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=g_max)
+        weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=g_max),
+        backprop_delay=False
     )
 elif args.case == CASE_REW_NO_CORR or args.case == CASE_CORR_NO_REW:
-    # structure_model_w_stdp = sim.StructuralMechanismStatic(
-    #     weight=g_max,
-    #     s_max=s_max,
-    #     grid=grid, f_rew=f_rew,
-    #     lateral_inhibition=args.lateral_inhibition,
-    #     random_partner=args.random_partner,
-    #     p_elim_dep=p_elim_dep,
-    #     p_elim_pot=p_elim_pot,
-    #     sigma_form_forward=sigma_form_forward,
-    #     sigma_form_lateral=sigma_form_lateral,
-    #     p_form_forward=p_form_forward,
-    #     p_form_lateral=p_form_lateral)
     structure_model_w_stdp = sim.StructuralMechanismStatic(
         # Partner selection, formation and elimination rules from above
         partner_selection_last_neuron, formation_distance, elimination_weight,
@@ -251,15 +225,6 @@ if not args.testing:
     target_column = []
     lat_connections = []
 
-    # init_ff_connections = [(i, j, g_max, args.delay) for i in
-    #                        range(N_layer)
-    #                        for j in range(N_layer) if
-    #                        np.random.rand() < .01]
-    #
-    # init_lat_connections = [(i, j, g_max, args.delay) for i in
-    #                         range(N_layer)
-    #                         for j in range(N_layer) if
-    #                         np.random.rand() < .01]
     init_ff_connections = []
     init_lat_connections = []
 
@@ -453,7 +418,7 @@ if t_record <= simtime:
 else:
     no_runs = 1
 run_duration = t_record
-e = None
+current_error = None
 print("Starting the sim")
 
 try:
@@ -489,6 +454,7 @@ try:
 except Exception as e:
     # print(e)
     traceback.print_exc()
+    current_error = e
 
 end_time = plt.datetime.datetime.now()
 total_time = end_time - start_time
@@ -504,7 +470,7 @@ elif args.testing:
 else:
     filename = "mnist_topographic_map_rate_results" + str(suffix)
 
-if e:
+if current_error:
     filename = "error_" + filename
 
 
@@ -524,7 +490,7 @@ np.savez_compressed(
     testing_numbers=randomised_testing_numbers,
     testing_file=args.testing,
     random_input=args.random_input,
-    exception=str(e)
+    exception=str(current_error)
 )
 
 print("Results in", filename)
