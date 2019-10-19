@@ -3450,6 +3450,42 @@ if __name__ == "__main__":
     # fname2 = args.preproc_folder + "results_for_testing_constant_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_90_fbase_20_cont"
     # comparison(fname1, fname2, extra_suffix="fnoise_20") #, custom_labels=["5 Hz", "20 Hz"])
     # all angles
+
+
+    filenames = [
+        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_all_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_all_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_all_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_all_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_384k_sigma_7.5_3_angle_all_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_768k_sigma_7.5_3_angle_all_cont",
+        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_all_cont_expanding_768k",
+        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_all_cont_expanding_768k",
+        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_all_cont_expanding_768k",
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_all_cont_expanding_768k",
+
+        "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_all_cont_expanding_1152k",
+        "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_all_cont_expanding_1152k",
+        "results_for_testing_random_delay_smax_128_gmax_1_96k_sigma_7.5_3_angle_all_cont_expanding_1152k",
+        "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_all_cont_expanding_1152k",
+    ]
+
+    times = [2400 * bunits.second, 4800 * bunits.second, 9600 * bunits.second, 19200 * bunits.second,
+             38400 * bunits.second,
+             76800 * bunits.second,
+             76800 * bunits.second + 2400 * bunits.second,
+             76800 * bunits.second + 4800 * bunits.second,
+             76800 * bunits.second + 9600 * bunits.second,
+             76800 * bunits.second + 19200 * bunits.second,
+
+             115200 * bunits.second + 2400 * bunits.second,
+             115200 * bunits.second + 4800 * bunits.second,
+             115200 * bunits.second + 9600 * bunits.second,
+             115200 * bunits.second + 19200 * bunits.second,
+             ]
+    evolution(filenames, times, path=args.preproc_folder, suffix="_all_angles_expansion")
+    sys.exit()
+
     filenames = [
         "results_for_testing_random_delay_smax_128_gmax_1_24k_sigma_7.5_3_angle_all_cont",
         "results_for_testing_random_delay_smax_128_gmax_1_48k_sigma_7.5_3_angle_all_cont",

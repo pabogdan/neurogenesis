@@ -57,10 +57,10 @@ def img_map(idx, width, n_per_coord=1):
 def spikes_to_images(on_spikes, off_spikes, width, height, n_per_coord=1,
                      dt=11, cols=10):
     max_t = np.max([t for _, t in on_spikes])
-    print "on_spikes length = ", len(on_spikes)
+    print("on_spikes length = ", len(on_spikes))
     if off_spikes is not None:
         max_t = max(max_t, np.max([t for _, t in off_spikes]))
-        print "off_spikes length = ", len(off_spikes)
+        print("off_spikes length = ", len(off_spikes))
     max_t = int(max_t)
 
     img = np.zeros((height, width, 3))

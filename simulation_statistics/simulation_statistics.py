@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import division, print_function
 from collections import Iterable
 
 import numpy as np
@@ -29,6 +29,13 @@ mlib.rcParams.update({'font.size': 24})
 mlib.rcParams.update({'errorbar.capsize': 5})
 mlib.rcParams.update({'figure.autolayout': True})
 
+root_stats = args.root_stats
+root_syn = args.root_syn
+fig_folder = args.fig_folder
+# check if the figures folder exist
+if not os.path.isdir(fig_folder) and not os.path.exists(fig_folder):
+    os.mkdir(fig_folder)
+
 paths = []
 for file in args.path:
     if "*" in file:
@@ -51,26 +58,26 @@ if sensitivity_analysis:
     batch_snapshots = []
     # don't forget about sim_params
     batch_params = []  # append into this sim params in order
-    print
-    print "BATCH ANALYSIS!"
-    print
+    print()
+    print("BATCH ANALYSIS!")
+    print()
 
 for file in paths:
     try:
         start_time = plt.datetime.datetime.now()
-        print "\n\nAnalysing file", str(file)
+        print("\n\nAnalysing file", str(file))
         if "npz" in str(file):
-            data = np.load(file)
+            data = np.load(file, allow_pickle=True)
         else:
-            data = np.load(str(file) + ".npz")
+            data = np.load(str(file) + ".npz", allow_pickle=True)
         simdata = np.array(data['sim_params']).ravel()[0]
         if sensitivity_analysis:
             batch_params.append((simdata, file))
 
         if 'case' in simdata:
-            print "Case", simdata['case'], "analysis"
+            print("Case", simdata['case'], "analysis")
         else:
-            print "Case unknown"
+            print("Case unknown")
         simtime = int(data['simtime'])
         post_spikes = data['post_spikes']
 
@@ -97,7 +104,7 @@ for file in paths:
             f_rew = simdata['f_rew']
         except:
             # use defaults
-            print "USING DEFAULTS! SOMETHING WENT WRONG!"
+            print("USING DEFAULTS! SOMETHING WENT WRONG!")
             grid = np.asarray([16, 16])
             N_layer = 256
             n = 32
@@ -111,7 +118,7 @@ for file in paths:
             f_rew = 10 ** 4  # Hz
             g_max = .2
 
-        print N_layer
+        print(N_layer)
         total_target_neuron_mean_spike_rate = \
             post_spikes.shape[0] / float(simtime) * 1000. / N_layer
 
@@ -322,12 +329,12 @@ for file in paths:
         fin_stds_weight_shuf = fin_means_and_std_devs_weight_shuf[:, 5]
         fin_AD_weight_shuf = fin_means_and_std_devs_weight_shuf[:, 4]
 
-        # print "----"
+        # print("----"
         # for x in fin_stds_conn.ravel():
-        #     print x
-        # print "----"
+        #     print(x
+        # print("----"
         # for x in fin_stds_conn_shuf.ravel():
-        #     print x
+        #     print(x
         #
         # plt.scatter(fin_stds_weight.ravel(), fin_stds_weight_shuf.ravel())
         # plt.show()
@@ -344,26 +351,26 @@ for file in paths:
                  fin_stds_conn=fin_stds_conn, fin_AD_conn=fin_AD_conn,
                  fin_stds_weight=fin_stds_weight, fin_AD_weight=fin_AD_weight)
 
-        print
+        print()
         pp(simdata)
-        print
-        print "%-60s" % "Target neuron spike rate", total_target_neuron_mean_spike_rate, "Hz"
-        print "%-60s" % "Final mean number of feedforward synapses", final_mean_number_ff_synapses
-        print "%-60s" % "Weight as proportion of max", final_weight_proportion
-        print "%-60s" % "Mean sigma aff init", init_mean_std
-        print "%-60s" % "Mean sigma aff fin conn shuffle", fin_mean_std_conn_shuf
-        print "%-60s" % "Mean sigma aff fin conn", fin_mean_std_conn
-        print "%-60s" % "p(WSR sigma aff fin conn vs sigma aff fin conn shuffle)", wsr_sigma_fin_conn_fin_conn_shuffle.pvalue
-        print "%-60s" % "Mean sigma aff fin weight shuffle", fin_mean_std_weight_shuf
-        print "%-60s" % "Mean sigma aff fin weight", fin_mean_std_weight
-        print "%-60s" % "p(WSR sigma aff fin weight vs sigma aff fin weight shuffle)", wsr_sigma_fin_weight_fin_weight_shuffle.pvalue
-        print "%-60s" % "Mean AD init", init_mean_AD
-        print "%-60s" % "Mean AD fin conn shuffle", fin_mean_AD_conn_shuf
-        print "%-60s" % "Mean AD fin conn", fin_mean_AD_conn
-        print "%-60s" % "p(WSR AD fin conn vs AD fin conn shuffle)", wsr_AD_fin_conn_fin_conn_shuffle.pvalue
-        print "%-60s" % "Mean AD fin weight shuffle", fin_mean_AD_weight_shuf
-        print "%-60s" % "Mean AD fin weight", fin_mean_AD_weight
-        print "%-60s" % "p(WSR AD fin weight vs AD fin weight shuffle)", wsr_AD_fin_weight_fin_weight_shuffle.pvalue
+        print()
+        print("%-60s" % "Target neuron spike rate", total_target_neuron_mean_spike_rate, "Hz")
+        print("%-60s" % "Final mean number of feedforward synapses", final_mean_number_ff_synapses)
+        print("%-60s" % "Weight as proportion of max", final_weight_proportion)
+        print("%-60s" % "Mean sigma aff init", init_mean_std)
+        print("%-60s" % "Mean sigma aff fin conn shuffle", fin_mean_std_conn_shuf)
+        print("%-60s" % "Mean sigma aff fin conn", fin_mean_std_conn)
+        print("%-60s" % "p(WSR sigma aff fin conn vs sigma aff fin conn shuffle)", wsr_sigma_fin_conn_fin_conn_shuffle.pvalue)
+        print("%-60s" % "Mean sigma aff fin weight shuffle", fin_mean_std_weight_shuf)
+        print("%-60s" % "Mean sigma aff fin weight", fin_mean_std_weight)
+        print("%-60s" % "p(WSR sigma aff fin weight vs sigma aff fin weight shuffle)", wsr_sigma_fin_weight_fin_weight_shuffle.pvalue)
+        print("%-60s" % "Mean AD init", init_mean_AD)
+        print("%-60s" % "Mean AD fin conn shuffle", fin_mean_AD_conn_shuf)
+        print("%-60s" % "Mean AD fin conn", fin_mean_AD_conn)
+        print("%-60s" % "p(WSR AD fin conn vs AD fin conn shuffle)", wsr_AD_fin_conn_fin_conn_shuffle.pvalue)
+        print("%-60s" % "Mean AD fin weight shuffle", fin_mean_AD_weight_shuf)
+        print("%-60s" % "Mean AD fin weight", fin_mean_AD_weight)
+        print("%-60s" % "p(WSR AD fin weight vs AD fin weight shuffle)", wsr_AD_fin_weight_fin_weight_shuffle.pvalue)
 
         if sensitivity_analysis:
             batch_matrix_results.append((
@@ -387,9 +394,6 @@ for file in paths:
                 file
             ))
 
-        root_stats = args.root_stats
-        root_syn = args.root_syn
-        fig_folder = args.fig_folder
         suffix_test = "_case_{}".format(str(simdata['case']))
         # final weight histogram
         # ff weight histogram
@@ -507,7 +511,7 @@ for file in paths:
 
         elapsed_time = end_time - start_time
 
-        print "Total time elapsed -- " + str(elapsed_time)
+        print("Total time elapsed -- " + str(elapsed_time))
 
         if args.filename:
             filename = args.filename
@@ -901,9 +905,9 @@ for file in paths:
 
 
     except IOError as e:
-        print "IOError:", e
+        print("IOError:", e)
     except MemoryError:
-        print "Out of memory. Did you use HDF5 slices to read in data?", e
+        print("Out of memory. Did you use HDF5 slices to read in data?", e)
     finally:
         data.close()
 

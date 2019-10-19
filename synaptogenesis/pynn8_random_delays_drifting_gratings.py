@@ -14,6 +14,7 @@ import numpy as np
 import pylab as plt
 import spynnaker8 as sim
 import sys
+from spynnaker.pyNN.models.spike_source import SpikeSourcePoissonVariable
 
 case = args.case
 print("Case", case, "selected!")
@@ -22,9 +23,10 @@ print("Case", case, "selected!")
 start_time = plt.datetime.datetime.now()
 
 sim.setup(timestep=1.0, min_delay=1.0, max_delay=15)
-sim.set_number_of_neurons_per_core(sim.IF_curr_exp, 50)
-sim.set_number_of_neurons_per_core(sim.IF_cond_exp, 50)
-sim.set_number_of_neurons_per_core(sim.SpikeSourcePoisson, 256)
+max_atoms_per_core = 32
+sim.set_number_of_neurons_per_core(sim.IF_cond_exp, max_atoms_per_core)
+sim.set_number_of_neurons_per_core(sim.SpikeSourcePoisson, max_atoms_per_core)
+sim.set_number_of_neurons_per_core(SpikeSourcePoissonVariable, max_atoms_per_core)
 sim.set_number_of_neurons_per_core(sim.SpikeSourceArray, 256)
 
 # +-------------------------------------------------------------------+
@@ -395,40 +397,104 @@ stdp_model = sim.STDPMechanism(
 )
 
 if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
+    # structure_model_w_stdp = sim.StructuralMechanismSTDP(
+    #     stdp_model=stdp_model,
+    #     weight=g_max,
+    #     delay=delay_interval,
+    #     s_max=s_max,
+    #     grid=grid,
+    #     f_rew=f_rew,
+    #     lateral_inhibition=args.lateral_inhibition,
+    #     random_partner=args.random_partner,
+    #     p_elim_dep=p_elim_dep,
+    #     p_elim_pot=p_elim_pot,
+    #     sigma_form_forward=sigma_form_forward,
+    #     sigma_form_lateral=sigma_form_lateral,
+    #     p_form_forward=p_form_forward,
+    #     p_form_lateral=p_form_lateral
+    # )
+    partner_selection_last_neuron = sim.LastNeuronSelection()
+    formation_distance = sim.DistanceDependentFormation(
+        grid=grid,  # spatial org of neurons
+        sigma_form_forward=sigma_form_forward,  # spread of feadforward receptive field
+        sigma_form_lateral=sigma_form_lateral,  # spread of lateral receptive field
+        p_form_forward=p_form_forward,  # feedforward formation probability
+        p_form_lateral=p_form_lateral  # lateral formation probability
+    )
+    elimination_weight = sim.RandomByWeightElimination(
+        threshold=g_max / 2.,  # Use same weight as initial weight for static connections
+        prob_elim_depressed=p_elim_dep,
+        prob_elim_potentiatiated=p_elim_pot
+    )
     structure_model_w_stdp = sim.StructuralMechanismSTDP(
-        stdp_model=stdp_model,
+        # Partner selection, formation and elimination rules from above
+        partner_selection_last_neuron, formation_distance, elimination_weight,
+        # Use this weight when creating a new synapse
+        initial_weight=g_max,
+        # Use this weight for synapses at start of simulation
         weight=g_max,
-        delay=delay_interval,
-        s_max=s_max,
-        grid=grid,
+        # Use this delay when creating a new synapse
+        initial_delay=args.delay,
+        # Use this weight for synapses at the start of simulation
+        delay=args.delay,
+        # Maximum allowed fan-in per target-layer neuron
+        s_max=s_max * 2,
+        # Frequency of rewiring in Hz
         f_rew=f_rew,
-        lateral_inhibition=args.lateral_inhibition,
-        random_partner=args.random_partner,
-        p_elim_dep=p_elim_dep,
-        p_elim_pot=p_elim_pot,
-        sigma_form_forward=sigma_form_forward,
-        sigma_form_lateral=sigma_form_lateral,
-        p_form_forward=p_form_forward,
-        p_form_lateral=p_form_lateral
+        # STDP rules
+        timing_dependence=sim.SpikePairRule(tau_plus=tau_plus, tau_minus=tau_minus, A_plus=a_plus, A_minus=a_minus),
+        weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=g_max)
     )
     if args.common_rewiring_seed:
         inh_structure_model_w_stdp = structure_model_w_stdp
     else:
+        # inh_structure_model_w_stdp = sim.StructuralMechanismSTDP(
+        #     stdp_model=stdp_model,
+        #     weight=g_max,
+        #     delay=delay_interval,
+        #     s_max=s_max,
+        #     grid=grid,
+        #     f_rew=f_rew,
+        #     lateral_inhibition=args.lateral_inhibition,
+        #     random_partner=args.random_partner,
+        #     p_elim_dep=p_elim_dep,
+        #     p_elim_pot=p_elim_pot,
+        #     sigma_form_forward=sigma_form_forward,
+        #     sigma_form_lateral=sigma_form_lateral,
+        #     p_form_forward=p_form_forward,
+        #     p_form_lateral=p_form_lateral
+        # )
+        partner_selection_last_neuron = sim.LastNeuronSelection()
+        formation_distance = sim.DistanceDependentFormation(
+            grid=grid,  # spatial org of neurons
+            sigma_form_forward=sigma_form_forward,  # spread of feadforward receptive field
+            sigma_form_lateral=sigma_form_lateral,  # spread of lateral receptive field
+            p_form_forward=p_form_forward,  # feedforward formation probability
+            p_form_lateral=p_form_lateral  # lateral formation probability
+        )
+        elimination_weight = sim.RandomByWeightElimination(
+            threshold=g_max / 2.,  # Use same weight as initial weight for static connections
+            prob_elim_depressed=p_elim_dep,
+            prob_elim_potentiatiated=p_elim_pot
+        )
         inh_structure_model_w_stdp = sim.StructuralMechanismSTDP(
-            stdp_model=stdp_model,
+            # Partner selection, formation and elimination rules from above
+            partner_selection_last_neuron, formation_distance, elimination_weight,
+            # Use this weight when creating a new synapse
+            initial_weight=g_max,
+            # Use this weight for synapses at start of simulation
             weight=g_max,
-            delay=delay_interval,
-            s_max=s_max,
-            grid=grid,
+            # Use this delay when creating a new synapse
+            initial_delay=args.delay,
+            # Use this weight for synapses at the start of simulation
+            delay=args.delay,
+            # Maximum allowed fan-in per target-layer neuron
+            s_max=s_max * 2,
+            # Frequency of rewiring in Hz
             f_rew=f_rew,
-            lateral_inhibition=args.lateral_inhibition,
-            random_partner=args.random_partner,
-            p_elim_dep=p_elim_dep,
-            p_elim_pot=p_elim_pot,
-            sigma_form_forward=sigma_form_forward,
-            sigma_form_lateral=sigma_form_lateral,
-            p_form_forward=p_form_forward,
-            p_form_lateral=p_form_lateral
+            # STDP rules
+            timing_dependence=sim.SpikePairRule(tau_plus=tau_plus, tau_minus=tau_minus, A_plus=a_plus, A_minus=a_minus),
+            weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=g_max)
         )
 elif case == CASE_CORR_NO_REW:
     structure_model_w_stdp = stdp_model

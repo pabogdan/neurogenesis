@@ -6,8 +6,8 @@ http://hdl.handle.net/1842/3997
 # Imports
 import traceback
 
-from function_definitions import *
-from argparser import *
+from synaptogenesis.function_definitions import *
+from synaptogenesis.argparser import *
 
 import numpy as np
 import pylab as plt
@@ -21,7 +21,7 @@ print("Case", case, "selected!")
 # SpiNNaker setup
 start_time = plt.datetime.datetime.now()
 
-sim.setup(timestep=1.0, min_delay=1.0, max_delay=10)
+sim.setup(timestep=0.1, min_delay=0.1, max_delay=1)
 max_atoms_per_core = 32
 sim.set_number_of_neurons_per_core(sim.IF_cond_exp, max_atoms_per_core)
 sim.set_number_of_neurons_per_core(sim.SpikeSourcePoisson, max_atoms_per_core)
@@ -42,15 +42,17 @@ g_max = 0.2
 tau_m = 20  # ms
 tau_ex = 5  # ms
 
+hard_delay = 0.1
+
 cell_params = {'cm': 20.0,  # nF
                'i_offset': 0.0,
                'tau_m': 20.0,
-               'tau_refrac': args.tau_refrac,
+               'tau_refrac': 5.0,
                'tau_syn_E': 5.0,
                'tau_syn_I': 5.0,
                'v_reset': -70.0,
                'v_rest': -70.0,
-               'v_thresh': -50.0,
+               'v_thresh': v_thr,
                'e_rev_E': 0.,
                'e_rev_I': -80.
                }
@@ -113,11 +115,11 @@ sim_params = {'g_max': g_max,
               'p_elim_pot': p_elim_pot,
               'f_rew': f_rew,
               'lateral_inhibition': args.lateral_inhibition,
-              'delay': args.delay,
+              'delay': hard_delay,
               'b': b,
               't_minus': tau_minus,
               't_plus': tau_plus,
-              'tau_refrac': args.tau_refrac,
+              'tau_refrac': 0,
               'a_minus': a_minus,
               'a_plus': a_plus,
               'input_type': args.input_type,
@@ -186,11 +188,11 @@ if args.initial_connectivity_file is None:
     init_ff_connections = generate_initial_connectivity(
         sigma_form_forward, p_form_forward,
         "\nGenerating initial feedforward connectivity...",
-        N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=args.delay)
+        N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=hard_delay)
     init_lat_connections = generate_initial_connectivity(
         sigma_form_lateral, p_form_lateral,
         "\nGenerating initial lateral connectivity...",
-        N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=args.delay)
+        N_layer=N_layer, n=n, s_max=s_max, g_max=g_max, delay=hard_delay)
     print("\n")
 else:
     if "npz" in args.initial_connectivity_file:
@@ -231,7 +233,7 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
     # structure_model_w_stdp = sim.StructuralMechanismSTDP(
     #     stdp_model=stdp_model,  # wrap around the STDP model to use
     #     weight=g_max,  # initial weight
-    #     delay=args.delay,  # synaptic delay
+    #     delay=hard_delay,  # synaptic delay
     #     s_max=s_max * 2,  # synaptic capacity
     #     grid=grid,  # grid description
     #     f_rew=f_rew,  # rate of rewiring
@@ -267,9 +269,9 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
         # Use this weight for synapses at start of simulation
         weight=g_max,
         # Use this delay when creating a new synapse
-        initial_delay=args.delay,
+        initial_delay=hard_delay,
         # Use this weight for synapses at the start of simulation
-        delay=args.delay,
+        delay=hard_delay,
         # Maximum allowed fan-in per target-layer neuron
         s_max=s_max*2,
         # Frequency of rewiring in Hz
@@ -309,19 +311,19 @@ elif args.lesion == ONE_TO_ONE_LESION:
     # init_lat_connections = np.asarray(init_lat_connections)
     print("Insulted network")
 
-    # ff_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in range(N_layer) if np.random.rand() < .05]
-    # lat_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in range(N_layer) if np.random.rand() < .05]
+    # ff_prob_conn = [(i, j, g_max, hard_delay) for i in range(N_layer) for j in range(N_layer) if np.random.rand() < .05]
+    # lat_prob_conn = [(i, j, g_max, hard_delay) for i in range(N_layer) for j in range(N_layer) if np.random.rand() < .05]
     #
     # init_ff_connections = ff_prob_conn
     # init_lat_connections = lat_prob_conn
 
-    # one_to_one_conn = [(i, i, g_max, args.delay) for i in range(N_layer)]
+    # one_to_one_conn = [(i, i, g_max, hard_delay) for i in range(N_layer)]
     one_to_one_conn = []
     ff_projection = sim.Projection(
         source_pop, target_pop,
         # sim.FromListConnector(one_to_one_conn),
         # sim.FromListConnector(ff_prob_conn),
-        # sim.OneToOneConnector(weights=g_max, delays=args.delay),
+        # sim.OneToOneConnector(weights=g_max, delays=hard_delay),
         # sim.FromListConnector(init_ff_connections[subsample_ff]),
         sim.FixedProbabilityConnector(p_connect=0.),
         synapse_type=structure_model_w_stdp,
@@ -332,7 +334,7 @@ elif args.lesion == ONE_TO_ONE_LESION:
         target_pop, target_pop,
         # sim.FromListConnector(one_to_one_conn),
         # sim.FromListConnector(lat_prob_conn),
-        # sim.OneToOneConnector(weights=g_max, delays=args.delay),
+        # sim.OneToOneConnector(weights=g_max, delays=hard_delay),
         # sim.FromListConnector(init_lat_connections[subsample_lat]),
         sim.FixedProbabilityConnector(p_connect=0.0),
         synapse_type=structure_model_w_stdp,
@@ -355,9 +357,9 @@ elif args.lesion == RANDOM_CONNECTIVITY_LESION:
     # init_lat_connections = np.asarray(init_lat_connections)
     print("Insulted network")
 
-    ff_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in
+    ff_prob_conn = [(i, j, g_max, hard_delay) for i in range(N_layer) for j in
                     range(N_layer) if np.random.rand() < .05]
-    lat_prob_conn = [(i, j, g_max, args.delay) for i in range(N_layer) for j in
+    lat_prob_conn = [(i, j, g_max, hard_delay) for i in range(N_layer) for j in
                      range(N_layer) if np.random.rand() < .05]
 
     init_ff_connections = ff_prob_conn
@@ -524,14 +526,14 @@ if args.plot and e is None:
             final_ff_conn_network[int(source), int(target)] = weight
         else:
             final_ff_conn_network[int(source), int(target)] += weight
-        assert delay == args.delay
+        assert delay == hard_delay
 
     for source, target, weight, delay in post_weights[-1]:
         if np.isnan(final_lat_conn_network[int(source), int(target)]):
             final_lat_conn_network[int(source), int(target)] = weight
         else:
             final_lat_conn_network[int(source), int(target)] += weight
-        assert delay == args.delay
+        assert delay == hard_delay
 
     f, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
     i = ax1.matshow(np.nan_to_num(final_ff_conn_network))
