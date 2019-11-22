@@ -37,17 +37,18 @@ model = sim.IF_cond_exp
 # Membrane
 v_rest = -70  # mV
 e_ext = 0  # V
-v_thr = -54  # mV
+v_thr = -50  # mV
 g_max = 0.2
 tau_m = 20  # ms
 tau_ex = 5  # ms
+tau_refrac=0.1
 
 hard_delay = 0.1
 
 cell_params = {'cm': 20.0,  # nF
                'i_offset': 0.0,
                'tau_m': 20.0,
-               'tau_refrac': 5.0,
+               'tau_refrac': tau_refrac,
                'tau_syn_E': 5.0,
                'tau_syn_I': 5.0,
                'v_reset': -70.0,
@@ -119,7 +120,7 @@ sim_params = {'g_max': g_max,
               'b': b,
               't_minus': tau_minus,
               't_plus': tau_plus,
-              'tau_refrac': 0,
+              'tau_refrac': tau_refrac,
               'a_minus': a_minus,
               'a_plus': a_plus,
               'input_type': args.input_type,
