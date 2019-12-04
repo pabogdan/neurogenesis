@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='spinnaker_neurogenesis',
+    name='spinnaker_structural_plasticity',
     version='1.0.0',
     packages=find_packages(),
     url='https://github.com/pabogdan/neurogenesis',
@@ -15,10 +15,7 @@ setup(
     install_requires=["numpy",
                       "scipy",
                       "brian2",
-                      "spynnaker>= 1!4.0.0, < 1!5.0.0",
-                      "neo",
-                      "quantities",
-                      "elephant",
+                      "spynnaker",
                       "matplotlib"],
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -29,8 +26,8 @@ setup(
         "Operating System :: Microsoft :: Windows",
         "Operating System :: MacOS",
 
-        "Programming Language :: Python :: 2"
-        "Programming Language :: Python :: 2.7"
+        "Programming Language :: Python :: 3"
+        "Programming Language :: Python :: 3.7"
         
         "Topic :: Scientific/Engineering",
     ]
