@@ -397,22 +397,6 @@ stdp_model = sim.STDPMechanism(
 )
 
 if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
-    # structure_model_w_stdp = sim.StructuralMechanismSTDP(
-    #     stdp_model=stdp_model,
-    #     weight=g_max,
-    #     delay=delay_interval,
-    #     s_max=s_max,
-    #     grid=grid,
-    #     f_rew=f_rew,
-    #     lateral_inhibition=args.lateral_inhibition,
-    #     random_partner=args.random_partner,
-    #     p_elim_dep=p_elim_dep,
-    #     p_elim_pot=p_elim_pot,
-    #     sigma_form_forward=sigma_form_forward,
-    #     sigma_form_lateral=sigma_form_lateral,
-    #     p_form_forward=p_form_forward,
-    #     p_form_lateral=p_form_lateral
-    # )
     partner_selection_last_neuron = sim.LastNeuronSelection()
     formation_distance = sim.DistanceDependentFormation(
         grid=grid,  # spatial org of neurons
@@ -438,7 +422,7 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
         # Use this weight for synapses at the start of simulation
         delay=args.delay,
         # Maximum allowed fan-in per target-layer neuron
-        s_max=s_max * 2,
+        s_max=s_max,
         # Frequency of rewiring in Hz
         f_rew=f_rew,
         # STDP rules
@@ -448,22 +432,6 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
     if args.common_rewiring_seed:
         inh_structure_model_w_stdp = structure_model_w_stdp
     else:
-        # inh_structure_model_w_stdp = sim.StructuralMechanismSTDP(
-        #     stdp_model=stdp_model,
-        #     weight=g_max,
-        #     delay=delay_interval,
-        #     s_max=s_max,
-        #     grid=grid,
-        #     f_rew=f_rew,
-        #     lateral_inhibition=args.lateral_inhibition,
-        #     random_partner=args.random_partner,
-        #     p_elim_dep=p_elim_dep,
-        #     p_elim_pot=p_elim_pot,
-        #     sigma_form_forward=sigma_form_forward,
-        #     sigma_form_lateral=sigma_form_lateral,
-        #     p_form_forward=p_form_forward,
-        #     p_form_lateral=p_form_lateral
-        # )
         partner_selection_last_neuron = sim.LastNeuronSelection()
         formation_distance = sim.DistanceDependentFormation(
             grid=grid,  # spatial org of neurons
@@ -489,7 +457,7 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
             # Use this weight for synapses at the start of simulation
             delay=args.delay,
             # Maximum allowed fan-in per target-layer neuron
-            s_max=s_max * 2,
+            s_max=s_max,
             # Frequency of rewiring in Hz
             f_rew=f_rew,
             # STDP rules
@@ -499,7 +467,6 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
 elif case == CASE_CORR_NO_REW:
     structure_model_w_stdp = stdp_model
 
-# structure_model_w_stdp = sim.StructuralMechanism(weight=g_max, s_max=s_max)
 
 if not args.testing:
     print("No insults")
