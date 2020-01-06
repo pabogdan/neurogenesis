@@ -1,17 +1,31 @@
 # Towards simulating neurogenesis on real-time neuromorphic hardware
 
-I have been attempting to simulate hippocampal or striatal adult neurogenesis on 
-[SpiNNaker](http://apt.cs.manchester.ac.uk/projects/SpiNNaker/). The network would have been described using the  [PyNN](http://neuralensemble.org/PyNN/) simulator-independent language. This process entails several phases of potentially 
+The goal at the outset of my PhD was to simulate hippocampal or striatal 
+adult neurogenesis on 
+[SpiNNaker](http://apt.cs.manchester.ac.uk/projects/SpiNNaker/). 
+The network would have been described using the  
+[PyNN](http://neuralensemble.org/PyNN/) simulator-independent language. 
+This process entails several phases of potentially 
 increasing difficulty (this list is not exhaustive):
 
 
 1.  Create a SpiNNaker based framework for defining rewiring synapses
 
-2.  [sPyNNaker](http://spinnakermanchester.github.io/) (SpiNNaker's implementation of PyNN) synaptogenesis simulation -- replication of [Simeon Bamford's](http://www.sim.me.uk/) doctoral [thesis](http://www.sim.me.uk/neural/thesis.pdf)
+2.  [sPyNNaker](http://spinnakermanchester.github.io/) 
+(SpiNNaker's implementation of PyNN) synaptogenesis simulation -- 
+replication of [Simeon Bamford's](http://www.sim.me.uk/) doctoral 
+[thesis](http://www.sim.me.uk/neural/thesis.pdf)
 
 3.  Extend framework to allow for Neurogenesis
 
-At the time of writing, neurogenesis is not realised. However, extensive experiments have been performed using the synaptic rewiring model implemented on SpiNNaker. For more details, see below.
+At the time of writing, neurogenesis is not realised. 
+However, extensive experiments have been performed using the synaptic 
+rewiring model implemented on SpiNNaker. For more details, see below.
+
+This repository is a collection of different experiments, mostly revolving 
+around synaptic rewiring ([synaptogenesis](synaptogenesis)) with associated 
+analysis scripts([simulation_statistics](simulation_statistics)), sundry 
+experiments ([sundry](sundry)) and ipynb notebooks ([notebooks](notebooks)).
 
 # Publications
 
@@ -27,9 +41,11 @@ At the time of writing, neurogenesis is not realised. However, extensive experim
 
 	**Bogdan PA**, Rowley AGD, Rhodes O and Furber SB (2018) "Structural Plasticity on the SpiNNaker Many-Core Neuromorphic System". Front. Neurosci. 12:434.  http://dx.doi.org/10.3389/fnins.2018.00434
 
-
 	Hopkins M, Pineda-García G, **Bogdan PA**, Furber SB (2018) "Spiking neural networks for computer vision". Interface Focus 8 20180007.  http://dx.doi.org/10.1098/rsfs.2018.0007
-    
+   
+1. Thesis
+
+    **Bogdan, PA** (2020). Structural Plasticity on SpiNNaker (The University of Manchester). https://doi.org/10.13140/RG.2.2.33591.06568    
 1.  Data repositories
 
 	**Bogdan PA**, Rhodes O, Rowley AGD, Furber SB (2018) "Structural plasticity on the SpiNNaker many-core neuromorphic system", Mendeley Data, v1. http://dx.doi.org/10.17632/xfp84r5hb7.1
