@@ -527,12 +527,6 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     plt.close(fig)
 
 
-def mnist_comparison(archive_1, archive_2, out_filename=None, extra_suffix=None,
-                     custom_labels=None, show_plots=False):
-    # TODO
-    pass
-
-
 if __name__ == "__main__":
     import sys
 
@@ -540,121 +534,6 @@ if __name__ == "__main__":
     #   1 - rewiring and     STDP
     #   2 - rewiring and     STDP, but no lateral connections
     #   3 - rewiring, but no STDP
-
-    filename = "mnist_case_1_sigma_1200s_b_1"
-    mnist_analysis(filename, extra_suffix="1200s_b_1")
-    filename = "mnist_case_1_sigma_1200s_b_1.1"
-    mnist_analysis(filename, extra_suffix="1200s_b_1.1")
-
-    filename = "mnist_case_1_sigma_1200s_b_1_fmean_10"
-    mnist_analysis(filename, extra_suffix="1200s_b_1_fmean_10")
-    filename = "mnist_case_1_sigma_1200s_b_1.1_fmean_10"
-    mnist_analysis(filename, extra_suffix="1200s_b_1.1_fmean_10")
-
-    sys.exit()
-    filename = "mnist_case_1_sigma_2400s"
-    mnist_analysis(filename, extra_suffix="2400s")
-    filename = "mnist_case_3_sigma_2400s"
-    mnist_analysis(filename, extra_suffix="2400s")
-
-    sys.exit()
-
-    filename = "mnist_case_1_sigma_600s"
-    mnist_analysis(filename, extra_suffix="600s")
-
-    sys.exit()
-    filename = "mnist_case_1_fixed_signal_20_sigma"
-    mnist_analysis(filename, extra_suffix="fixed_signal_sigma")
-    filename = "mnist_case_2_fixed_signal_20_sigma"
-    mnist_analysis(filename, extra_suffix="fixed_signal_sigma")
-    filename = "mnist_case_3_fixed_signal_20_sigma"
-    mnist_analysis(filename, extra_suffix="fixed_signal_sigma")
-
-    sys.exit()
-
-
-    # Rate-based input experiments
-
-    filename = "mnist_case_1_5hz_rate_smax_96_sigma_lat_2"
-    mnist_analysis(filename)
-
-    filename = "mnist_case_2_5hz_rate_smax_96"
-    mnist_analysis(filename)
-
-    filename = "mnist_case_3_5hz_rate_smax_96_sigma_lat_2"
-    mnist_analysis(filename)
-
-    # Centre Surround (Filtered) input experiments
-
-    filename = "mnist_case_1_5hz_cs_on_off_smax_96_sigma_lat_2"
-    mnist_analysis(filename)
-
-    filename = "mnist_case_3_5hz_cs_on_off_smax_96_sigma_lat_2"
-    mnist_analysis(filename)
-    sys.exit()
-
-    filename = "mnist_case_3_fixed_signal"
-    mnist_analysis(filename, extra_suffix="fixed_signal")
-    filename = "mnist_case_1_fixed_signal"
-    mnist_analysis(filename, extra_suffix="fixed_signal")
-    filename = "mnist_case_2_fixed_signal"
-    mnist_analysis(filename, extra_suffix="fixed_signal")
-
-    sys.exit()
-
-    # filename = "mnist_case_1__600s"
-    # mnist_analysis(filename, "600s")
-    # sys.exit()
-    #
-    # filename = "mnist_case_1_fixed_signal"
-    # mnist_analysis(filename, extra_suffix="fixed_signal_signal_10_fbase_2")
-    # mnist_analysis(filename, extra_suffix="fixed_signal_signal_10")
-    #
-    # sys.exit()
-    #
-
-    filename = "mnist_case_3_300s_cont_master"
-    mnist_analysis(filename, extra_suffix="pynn8_cspc")
-    # sys.exit()
-    filename = "mnist_case_1_300s_cont_master"
-    mnist_analysis(filename, extra_suffix="pynn8_cspc")
-    filename = "mnist_case_2_300s_cont_master"
-    mnist_analysis(filename, extra_suffix="pynn8_cspc")
-
-    sys.exit()
-
-    filename = "mnist_case_3_cont_pynn8"
-    mnist_analysis(filename, extra_suffix="pynn8")
-    sys.exit()
-
-    filename = "mnist_case_3_cont_pynn8_cspc"
-    mnist_analysis(filename, extra_suffix="pynn8_cspc")
-    sys.exit()
-
-    filename = "mnist_case_1_300s_cont_fmean_5.npz"
-    mnist_analysis(filename, extra_suffix="300s_continuous_test")
-
-    filename = "mnist_case_1_300s_cont"
-    mnist_analysis(filename, extra_suffix="300s_continuous_test")
-
-    filename = "mnist_case_3_300s_cont"
-    mnist_analysis(filename, extra_suffix="300s_continuous_test")
-
-    filename = "mnist_case_3_600s_cont"
-    mnist_analysis(filename, extra_suffix="600s_continuous_test")
-
-    filename = "mnist_case_1_400s_cont"
-    mnist_analysis(filename, extra_suffix="400s_continuous_test")
-    # sys.exit()
-
-    filename = "mnist_case_1_smax_128_cont"
-    mnist_analysis(filename, extra_suffix="smax_128_continuous_test")
-
-    filename = "mnist_case_1_cont"
-    mnist_analysis(filename, extra_suffix="continuous_test")
-
-    filename = "mnist_case_3_cont"
-    mnist_analysis(filename, extra_suffix="continuous_test")
 
     # Rate-based input experiments
 
