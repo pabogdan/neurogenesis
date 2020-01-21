@@ -1,14 +1,8 @@
 from __future__ import print_function
-
 import string
-
-import numpy as np
 from analysis_functions_definitions import *
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm as cm_mlib
-from matplotlib.ticker import LinearLocator, FormatStrFormatter
-import scipy
 from matplotlib import animation, rc, colors
 import brian2.units as bunits
 import matplotlib as mlib
@@ -24,8 +18,7 @@ from gari_analysis_functions import get_filtered_dsi_per_neuron
 import copy
 import neo
 from datetime import datetime
-from quantities import s, ms, Hz
-import statsmodels.api as sm
+from quantities import ms
 import statsmodels.graphics.api as smg
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)

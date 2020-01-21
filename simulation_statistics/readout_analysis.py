@@ -1,16 +1,8 @@
 from __future__ import print_function
-import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm as cm_mlib
-from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import scipy
-from matplotlib import animation, rc, colors
 from brian2.units import *
 import matplotlib as mlib
-from scipy import stats
-from pprint import pprint as pp
-from mpl_toolkits.axes_grid1 import make_axes_locatable, ImageGrid
 from analysis_functions_definitions import *
 import traceback
 from sklearn.metrics import confusion_matrix, classification_report
