@@ -54,7 +54,7 @@ cyclic_viridis = colors.LinearSegmentedColormap.from_list(
 # some defaults
 root_stats = os.path.abspath(args.root_stats)
 root_syn = os.path.abspath(args.root_syn)
-fig_folder = os.path.abspath(args.fig_folder)
+fig_folder = args.fig_folder
 
 # check if the figures folder exist
 if not os.path.isdir(fig_folder) and not os.path.exists(fig_folder):
@@ -63,11 +63,15 @@ if not os.path.isdir(fig_folder) and not os.path.exists(fig_folder):
 
 def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=False):
     if ".npz" in archive:
-        data = np.load(os.path.join(root_syn, archive))
-        testing_data = np.load(os.path.join(root_syn, "testing_" + archive))
+        data = np.load(os.path.join(root_syn, archive),
+                       allow_pickle=True)
+        testing_data = np.load(os.path.join(root_syn, "testing_" + archive),
+                               allow_pickle=True)
     else:
-        data = np.load(os.path.join(root_syn, archive + ".npz"))
-        testing_data = np.load(os.path.join(root_syn, "testing_" + archive + ".npz"))
+        data = np.load(os.path.join(root_syn, archive + ".npz"),
+                       allow_pickle=True)
+        testing_data = np.load(os.path.join(root_syn, "testing_" + archive + ".npz"),
+                               allow_pickle=True)
     sim_params = data['sim_params'].ravel()[0]
     is_input_cs = False
 
@@ -81,7 +85,6 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
 
     if extra_suffix:
         suffix += "_" + extra_suffix
-
 
     print("{:45}".format("Beginning MNIST analysis"))
     print("{:45}".format("Archive name"), ":", archive)
@@ -139,8 +142,8 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
                 post_spikes[number][:, 0] == neuron_id)
 
         print("{:45}".format("Average firing rate (Hz) for number " + str(number)), ":",
-              np.mean(rates_for_number[number, :])/(simtime * ms))
-    print("-"*60)
+              np.mean(rates_for_number[number, :]) / (simtime * ms))
+    print("-" * 60)
 
     const_fig_width = 23
     const_fig_height = 7
@@ -176,20 +179,8 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     for index, val in np.ndenumerate(axes):
         x, y = index
         silly_ax[x * 5 + y].set_norm(norm)
-    # fig_conn.subplots_adjust(right=0.8)
-    # cbar_ax = fig_conn.add_axes([0.85, 0.15, 0.05, 0.7])
-    # fig_conn.colorbar(silly_ax[4], cax=cbar_ax)
-
-    # from mpl_toolkits.axes_grid1 import make_axes_locatable
-    # divider = make_axes_locatable(plt.gca())
-    # cax = divider.append_axes("right", "5%", pad="3%")
-    # plt.colorbar(silly_ax[4], cax=cax)
     fig_conn.colorbar(silly_ax[-1], ax=axes.ravel().tolist(), label="Firing rate (Hz)")
 
-    # cbaxes = fig_conn.add_axes([0.9, 0.01, 0., 1.])
-    # fig_conn.colorbar(silly_ax[-2], ax=cbaxes, label="Firing rate (Hz)")
-
-    # plt.tight_layout()
     plt.savefig(fig_folder + "mnist_total_target_hits_rate_based{}.pdf".format(suffix))
     plt.savefig(fig_folder + "mnist_total_target_hits_rate_based{}.svg".format(suffix))
     if show_plots:
@@ -212,7 +203,7 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
         source_weighted_hits = np.empty(28 ** 2)
         number = x * 5 + y
         conn_list = final_ff_conn[number]
-        weights_per_number.append([conn_list[:, 2]/g_max])
+        weights_per_number.append([conn_list[:, 2] / g_max])
         for i in range(28 ** 2):
             source_weighted_hits[i] = np.sum(conn_list[conn_list[:, 0] == i, 2])
         maximus = np.maximum(maximus, source_weighted_hits.max())
@@ -235,18 +226,8 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     for index, val in np.ndenumerate(axes):
         x, y = index
         silly_ax[x * 5 + y].set_norm(norm)
-    # fig_conn.subplots_adjust(right=0.8)
-    # cbar_ax = fig_conn.add_axes([0.85, 0.15, 0.05, 0.7])
-    # fig_conn.colorbar(silly_ax[4], cax=cbar_ax)
-
-    # from mpl_toolkits.axes_grid1 import make_axes_locatable
-    # divider = make_axes_locatable(plt.gca())
-    # cax = divider.append_axes("right", "5%", pad="3%")
-    # plt.colorbar(silly_ax[4], cax=cax)
 
     fig_conn.colorbar(silly_ax[-1], ax=axes.ravel().tolist(), label="Conn. strength")
-
-    # plt.tight_layout()
     plt.savefig(fig_folder + "mnist_all_digits_weighted_rate_based{}.pdf".format(suffix))
     plt.savefig(fig_folder + "mnist_all_digits_weighted_rate_based{}.svg".format(suffix))
     if show_plots:
@@ -256,8 +237,8 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     # Weight boxplot
     fig = plt.figure(figsize=(8, 8), dpi=600)
 
-    # plt.axhline(s_max, color='#b2dd2c', ls=":")
-    bp = plt.boxplot(weights_per_number, notch=True, medianprops=medianprops)
+    for weights_for_one_number in weights_per_number:
+        plt.boxplot(weights_for_one_number, notch=True, medianprops=medianprops)
 
     plt.xticks(np.arange(rates_for_number.shape[0]) + 1, np.arange(rates_for_number.shape[0]))
     plt.xlabel("Target layer")
@@ -286,14 +267,7 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
 
         silly_ax.append(axes[x, y].matshow(source_hits.reshape(28, 28)))
 
-    # ff_conn_ax = axes[0, 0].matshow(source_hits.reshape(28, 28))
-    # weighted_conn_ax = axes[1, 1].matshow(source_weighted_hits.reshape(28, 28))
-
-    # ax1.set_title("Hits\n")
-    # ax1.set_xlabel("Neuron ID")
     axes[0, 0].set_ylabel("Neuron ID")
-    # ax2.set_title("Weighted hits\n")
-    # ax2.set_xlabel("Neuron ID")
     axes[1, 0].set_ylabel("Neuron ID")
 
     for arg in range(5):
@@ -326,7 +300,6 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     # firing rate per digit
     fig = plt.figure(figsize=(8, 8), dpi=600)
 
-    # plt.axhline(s_max, color='#b2dd2c', ls=":")
     bp = plt.boxplot(instaneous_rates.T / Hz, notch=True, medianprops=medianprops)
 
     plt.xticks(np.arange(instaneous_rates.shape[0]) + 1, np.arange(instaneous_rates.shape[0]))
@@ -397,7 +370,6 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
     if len(new_post_spikes) > 0:
         post_spikes = new_post_spikes
     rates_for_number = np.zeros((10, 28 ** 2))
-
 
     print("-" * 60)
     print("{:45}".format("Average testing firing rates (Hz)"))
