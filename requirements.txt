@@ -1,0 +1,10 @@
+numpy
+scipy
+brian2
+spynnaker
+matplotlib
+sklearn
+statsmodels
+elephant
+colorama
+quantities

@@ -16,7 +16,12 @@ setup(
                       "scipy",
                       "brian2",
                       "spynnaker",
-                      "matplotlib"],
+                      "matplotlib",
+                      "sklearn",
+                      "statsmodels",
+                      "elephant",
+                      "colorama",
+                      "quantities"],
     classifiers=[
         "Development Status :: 3 - Alpha",
 
