@@ -313,9 +313,9 @@ else:
     lat_connections = []
 
     if ".npz" in args.testing:
-        testing_data = np.load(args.testing)
+        testing_data = np.load(args.testing, allow_pickle=True)
     else:
-        testing_data = np.load(args.testing + ".npz")
+        testing_data = np.load(args.testing + ".npz", allow_pickle=True)
 
     trained_ff_connectivity = testing_data['ff_connections'][-10:]
     trained_lat_connectivity = testing_data['lat_connections'][-10:]
