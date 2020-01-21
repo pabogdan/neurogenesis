@@ -21,6 +21,7 @@ from datetime import datetime
 from quantities import ms
 import statsmodels.graphics.api as smg
 import warnings
+
 warnings.filterwarnings("ignore", category=UserWarning)
 
 # ensure we use viridis as the default cmap
@@ -43,11 +44,9 @@ cyclic_viridis = colors.LinearSegmentedColormap.from_list(
 viridis_cmap = mlib.cm.get_cmap('viridis')
 
 # some defaults
-# root_stats = "C:\Work\phd\simulation_statistics\\"
-# root_syn = "C:\Work\phd\synaptogenesis\\"
-root_stats = args.root_stats
-root_syn = args.root_syn
-fig_folder = args.fig_folder
+root_stats = os.path.abspath(args.root_stats)
+root_syn = os.path.abspath(args.root_syn)
+fig_folder = os.path.abspath(args.fig_folder)
 testing_data = np.load(
     os.path.join(root_syn, "spiking_moving_bar_input", "compressed_spiking_moving_bar_motif_bank_simtime_32x32_1200s.npz"))
 # check if the figures folder exist
@@ -63,29 +62,6 @@ if not (args.singles or args.comparisons or args.evolutions or args.batches or a
 else:
     print("{:45}".format("Only running a subset of possible tests ..."))
     args.all_tests = False
-
-
-# TODO make this useful and use it!
-def save_figure(fig, filename, suffix, fig_folder=fig_folder, extensions=["pdf", "svg"]):
-    # TODO check that extensions is iterable
-    for ext in extensions:
-        full_filename = filename + suffix + "." + ext
-        plt.savefig(
-            fig_folder + full_filename,
-            bbox_inches='tight')
-
-
-def print_and_save_text(message, location):
-    '''
-    Print to terminal and save text to a file to be able to view statistics after running the analysis
-    :param message:
-    :type message:
-    :param location:
-    :type location:
-    :return:
-    :rtype:
-    '''
-    pass
 
 
 def generate_suffix(training_angles):
@@ -104,11 +80,9 @@ def generate_suffix(training_angles):
             suffix_test += "_" + str(ta)
     return suffix_test
 
+
 def connectivity_stats(all_connectivity, N_layer, grid, suffix, fig_folder,
                        fig_title=None, extra_suffix="", show_plots=False):
-
-
-
     # Plot number of contacts distribution
     # https://matplotlib.org/examples/pylab_examples/broken_axis.html
     non_zero_connectivity = all_connectivity[all_connectivity > 0].ravel().astype(int)
@@ -528,7 +502,6 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
                                extra_suffix=file_friendly_name[conn_set_id[0]],
                                show_plots=show_plots)
 
-
     aligned_connectivity = np.zeros(N_layer)
     aligned_weight = np.zeros(N_layer)
     aligned_delays = np.zeros(N_layer)
@@ -582,7 +555,6 @@ def analyse_one(archive, out_filename=None, extra_suffix=None, show_plots=False)
     if show_plots:
         plt.show()
     plt.close(fig)
-
 
     # response histograms
     fig = plt.figure(figsize=(16, 8), dpi=600)
@@ -2481,6 +2453,7 @@ def evolution(filenames, times, suffix, path=None, show_plots=False):
     plt.close(fig)
     print("=" * 45, "\n\n")
 
+
 def _add_batch_labels_to(ax, custom_labels, value_list):
     ax.set_ylabel(custom_labels[0])
     ax.set_yticks(np.arange(value_list[0].size))
@@ -2488,6 +2461,7 @@ def _add_batch_labels_to(ax, custom_labels, value_list):
     ax.set_xlabel(custom_labels[1])
     ax.set_xticks(np.arange(value_list[1].size))
     ax.set_xticklabels(value_list[1], rotation='vertical')
+
 
 def batch_analyser(batch_data_file, batch_info_file,
                    extra_suffix=None, show_plots=False, custom_labels=None,
@@ -2588,10 +2562,9 @@ def batch_analyser(batch_data_file, batch_info_file,
 
         inh_dsi_selective = current_results['inh_dsi_selective']
         inh_dsi_not_selective = current_results['inh_dsi_not_selective']
-        inh_dsi_selective=np.asarray(inh_dsi_selective)
-        inh_dsi_not_selective=np.asarray(inh_dsi_not_selective)
+        inh_dsi_selective = np.asarray(inh_dsi_selective)
+        inh_dsi_not_selective = np.asarray(inh_dsi_not_selective)
         inh_all_dsi = get_concatenated_dsis(inh_dsi_selective, inh_dsi_not_selective, order_by_id=True)
-
 
         average_dsi = np.nanmean(all_dsi)
         dsi_comparison[file_index] = average_dsi
@@ -2696,9 +2669,9 @@ def batch_analyser(batch_data_file, batch_info_file,
 
     fig = smg.plot_corr(dsi_entropy_covariance)
     plt.savefig(fig_folder + "batch_statsmodel_dsi_entropy_corr_coef{}.pdf".format(
-            suffix_test))
+        suffix_test))
     plt.savefig(fig_folder + "batch_statsmodel_dsi_entropy_corr_coef{}.svg".format(
-            suffix_test))
+        suffix_test))
     if show_plots:
         plt.show()
     plt.close(fig)
@@ -2722,7 +2695,6 @@ def batch_analyser(batch_data_file, batch_info_file,
     if show_plots:
         plt.show()
     plt.close(fig)
-
 
     # Plot DSI histograms
     dsi_thresh = 0.5
@@ -2755,7 +2727,6 @@ def batch_analyser(batch_data_file, batch_info_file,
     if show_plots:
         plt.show()
     plt.close(fig)
-
 
     # Plot INH DSI histograms
     fig, axes = plt.subplots(value_list[0].size, value_list[1].size, figsize=(value_list[0].size * size_scale,
@@ -2863,8 +2834,6 @@ def batch_analyser(batch_data_file, batch_info_file,
         plt.show()
     plt.close(fig)
 
-
-
     print("{:45}".format("DSI-Entropy covariance"))
     obs = np.asarray([dsi_comparison.ravel(), mean_exc_entropy.ravel()])
     cov = np.cov(obs)
@@ -2894,7 +2863,7 @@ def batch_analyser(batch_data_file, batch_info_file,
     entropies = all_exc_entropies.reshape(file_matrix.size, N_layer)
     fig = plt.figure(figsize=(12, 8), dpi=800)
     for i in range(file_matrix.size):
-        current_color = viridis_cmap(float((i+1) / len(value_list[1])) / len(value_list[0]))
+        current_color = viridis_cmap(float((i + 1) / len(value_list[1])) / len(value_list[0]))
         plt.scatter(dsis[i, :], entropies[i, :], c=current_color, alpha=0.1)
 
     plt.xlabel("DSI")
@@ -2910,9 +2879,9 @@ def batch_analyser(batch_data_file, batch_info_file,
     for i in range(file_matrix.size):
         i_ratio = float((i) / len(value_list[1])) / len(value_list[0])
         current_color = viridis_cmap(i_ratio)
-        current_alpha = .1 # if i_ratio < .8 else .3
+        current_alpha = .1  # if i_ratio < .8 else .3
         ax.scatter(dsis[i, :],
-                   np.tile(value_list[0][i/len(value_list[1])],
+                   np.tile(value_list[0][i / len(value_list[1])],
                            entropies[i, :].size),
                    entropies[i, :],
                    c=current_color, alpha=current_alpha, marker='.')
@@ -3661,7 +3630,6 @@ if __name__ == "__main__":
         fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_coplanar"
         fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_0_cont"
         comparison(fname1, fname2, extra_suffix="coplanar_vs_continuous_test", custom_labels=["coplanar", "continuous test"])
-
 
         fname1 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_coplanar"
         fname2 = args.preproc_folder + "results_for_testing_random_delay_smax_128_gmax_1_192k_sigma_7.5_3_angle_NESW_cont"

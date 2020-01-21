@@ -52,11 +52,9 @@ cyclic_viridis = colors.LinearSegmentedColormap.from_list(
      (1.0, cm_mlib.viridis.colors[0])])
 
 # some defaults
-# root_stats = "C:\Work\phd\simulation_statistics\\"
-# root_syn = "C:\Work\phd\synaptogenesis\\"
-root_stats = args.root_stats
-root_syn = args.root_syn
-fig_folder = args.fig_folder
+root_stats = os.path.abspath(args.root_stats)
+root_syn = os.path.abspath(args.root_syn)
+fig_folder = os.path.abspath(args.fig_folder)
 
 # check if the figures folder exist
 if not os.path.isdir(fig_folder) and not os.path.exists(fig_folder):
@@ -528,28 +526,29 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
 
 
 if __name__ == "__main__":
-    import sys
-
     # Case disambiguisation:
     #   1 - rewiring and     STDP
     #   2 - rewiring and     STDP, but no lateral connections
     #   3 - rewiring, but no STDP
+    if args.input and len(args.input) > 0:
+        for in_file in args.input:
+            mnist_analysis(in_file)
+    else:
+        # Rate-based input experiments
 
-    # Rate-based input experiments
+        filename = "mnist_case_1_5hz_rate_smax_96_sigma_lat_2"
+        mnist_analysis(filename)
 
-    filename = "mnist_case_1_5hz_rate_smax_96_sigma_lat_2"
-    mnist_analysis(filename)
+        filename = "mnist_case_2_5hz_rate_smax_96"
+        mnist_analysis(filename)
 
-    filename = "mnist_case_2_5hz_rate_smax_96"
-    mnist_analysis(filename)
+        filename = "mnist_case_3_5hz_rate_smax_96_sigma_lat_2"
+        mnist_analysis(filename)
 
-    filename = "mnist_case_3_5hz_rate_smax_96_sigma_lat_2"
-    mnist_analysis(filename)
+        # Centre Surround (Filtered) input experiments
 
-    # Centre Surround (Filtered) input experiments
+        filename = "mnist_case_1_5hz_cs_on_off_smax_96_sigma_lat_2"
+        mnist_analysis(filename)
 
-    filename = "mnist_case_1_5hz_cs_on_off_smax_96_sigma_lat_2"
-    mnist_analysis(filename)
-
-    filename = "mnist_case_3_5hz_cs_on_off_smax_96_sigma_lat_2"
-    mnist_analysis(filename)
+        filename = "mnist_case_3_5hz_cs_on_off_smax_96_sigma_lat_2"
+        mnist_analysis(filename)
