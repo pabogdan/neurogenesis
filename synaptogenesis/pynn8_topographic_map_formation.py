@@ -257,7 +257,7 @@ if case == CASE_CORR_AND_REW or case == CASE_REW_NO_CORR:
     elimination_weight = sim.RandomByWeightElimination(
         threshold=g_max / 2.,  # Use same weight as initial weight for static connections
         prob_elim_depressed=p_elim_dep,
-        prob_elim_potentiatiated=p_elim_pot
+        prob_elim_potentiated=p_elim_pot
     )
     structure_model_w_stdp = sim.StructuralMechanismSTDP(
         # Partner selection, formation and elimination rules from above
