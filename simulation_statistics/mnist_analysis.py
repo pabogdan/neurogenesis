@@ -345,7 +345,7 @@ def mnist_analysis(archive, out_filename=None, extra_suffix=None, show_plots=Fal
         else:
             i = index[0]
             curr_conn = conns[i]
-        ax.hist(curr_conn[:, 2] / g_max, bins=20, color='#414C82', edgecolor='k', normed=True)
+        ax.hist(curr_conn[:, 2] / g_max, bins=20, color='#414C82', edgecolor='k', density=True)
         ax.set_title(conns_names[i])
         ax.set_xlim([minimus, maximus])
         ax.set_xticklabels(["0", "0.5", "1"])
