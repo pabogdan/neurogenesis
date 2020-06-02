@@ -324,7 +324,7 @@ else:
     input_grating_fname = "spiking_moving_bar_input/" \
                           "compressed_spiking_moving_bar_motif_bank_simtime_" \
                           "{}x{}_{}s.npz".format(n, n, no_iterations // 1000)
-    data = np.load(input_grating_fname, encoding="latin1")
+    data = np.load(input_grating_fname, encoding="latin1", allow_pickle=True)
     try:
         actual_angles = data['actual_angles']
     except:
@@ -608,7 +608,7 @@ else:  # testing begins here
     data_file_name = args.testing
     if ".npz" not in args.testing:
         data_file_name += ".npz"
-    testing_data = np.load(data_file_name)
+    testing_data = np.load(data_file_name, allow_pickle=True)
     trained_ff_on_connectivity = testing_data['ff_connections'][-1]
     trained_ff_off_connectivity = testing_data['ff_off_connections'][-1]
     trained_lat_connectivity = testing_data['lat_connections'][-1]
